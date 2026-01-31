@@ -1016,6 +1016,23 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
                 handleSaveRequest(message.request, requestManager, panel);
                 sidebarProvider.refresh();
                 break;
+            case 'deleteRequest':
+                handleDeleteRequest(message.id, requestManager, panel);
+                sidebarProvider.refresh();
+                break;
+            case 'loadRequests':
+                handleLoadRequests(requestManager, panel);
+                break;
+            case 'loadAuthTokens':
+                await loadAuthTokens(panel, context);
+                break;
+            case 'saveAuthToken':
+                await saveAuthToken(message.token, message.name, context);
+                break;
+            case 'deleteAuthToken':
+                await deleteAuthToken(message.name, context);
+                await loadAuthTokens(panel, context);
+                break;
             case 'showInputBox':
                 const result = await vscode.window.showInputBox({
                     prompt: message.prompt,
@@ -2545,8 +2562,16 @@ function getWebviewContent(webview: vscode.Webview): string {
             return div.innerHTML;
         }
 
-        document.getElementById('addHeaderBtn').addEventListener('click', () => addHeaderRow());
-        document.getElementById('addQueryBtn').addEventListener('click', () => addQueryRow());
+        // Setup button handlers with null checks
+        const addHeaderBtn = document.getElementById('addHeaderBtn');
+        if (addHeaderBtn) {
+            addHeaderBtn.addEventListener('click', () => addHeaderRow());
+        }
+        
+        const addQueryBtn = document.getElementById('addQueryBtn');
+        if (addQueryBtn) {
+            addQueryBtn.addEventListener('click', () => addQueryRow());
+        }
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -2621,24 +2646,28 @@ function getWebviewContent(webview: vscode.Webview): string {
             };
         }
 
-        document.getElementById('sendBtn').addEventListener('click', () => {
-            const request = getCurrentRequest();
-            
-            if (!request.url) {
-                showToast('Please enter a URL');
-                document.getElementById('url').focus();
-                return;
-            }
+        // Send button handler with null check
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => {
+                const request = getCurrentRequest();
+                
+                if (!request.url) {
+                    showToast('Please enter a URL');
+                    document.getElementById('url').focus();
+                    return;
+                }
 
-            if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
-                showToast('URL must start with http:// or https://');
-                document.getElementById('url').focus();
-                return;
-            }
+                if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
+                    showToast('URL must start with http:// or https://');
+                    document.getElementById('url').focus();
+                    return;
+                }
 
-            setLoading(true);
-            vscode.postMessage({ command: 'sendRequest', request });
-        });
+                setLoading(true);
+                vscode.postMessage({ command: 'sendRequest', request });
+            });
+        }
 
         // Global değişken olarak mevcut request ID'sini tut
         let currentRequestId = null;
