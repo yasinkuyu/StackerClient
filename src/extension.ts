@@ -5,6 +5,7 @@ import { getWebviewContent } from './webviewContent';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 let sidebarProvider: SidebarProvider;
+const allPanels: vscode.WebviewPanel[] = [];
 
 // Hazır HTTP Header listesi
 const COMMON_HEADERS = [
