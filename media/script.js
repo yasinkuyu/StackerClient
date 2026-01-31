@@ -600,53 +600,166 @@ const vscode = acquireVsCodeApi();
             return cookies;
         }
 
+        // Store response data for copy function
+        let currentResponse = null;
+
         function displayResponse(response) {
+            currentResponse = response;
             const responseEl = document.getElementById('response');
             responseEl.style.display = 'block';
 
+            // Status
             const statusEl = document.getElementById('responseStatus');
             statusEl.textContent = response.status + ' ' + response.statusText;
             statusEl.className = 'response-status ' + (response.status >= 200 && response.status < 300 ? 'success' : 'error');
 
-            let timeInfo = response.time + 'ms';
-            if (response.size) {
-                const sizeKB = (response.size / 1024).toFixed(1);
-                timeInfo += ' | ' + sizeKB + ' KB';
-            }
-            document.getElementById('responseTime').textContent = timeInfo;
+            // Time
+            document.getElementById('responseTime').textContent = response.time + 'ms';
 
-            // Headers
-            let headersText = JSON.stringify(response.headers, null, 2);
+            // Size
+            const sizeEl = document.getElementById('responseSize');
+            if (sizeEl) {
+                if (response.size) {
+                    const sizeKB = (response.size / 1024).toFixed(2);
+                    sizeEl.textContent = sizeKB + ' KB';
+                } else {
+                    sizeEl.textContent = '-';
+                }
+            }
+
+            // Detect content type
+            const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
+            const responseTypeEl = document.getElementById('responseType');
+            if (responseTypeEl) {
+                if (contentType.includes('json')) {
+                    responseTypeEl.textContent = 'JSON';
+                } else if (contentType.includes('html')) {
+                    responseTypeEl.textContent = 'HTML';
+                } else if (contentType.includes('xml')) {
+                    responseTypeEl.textContent = 'XML';
+                } else if (contentType.includes('text')) {
+                    responseTypeEl.textContent = 'TEXT';
+                } else {
+                    responseTypeEl.textContent = contentType.split(';')[0] || 'Response';
+                }
+            }
+
+            // Headers - table format
+            const headersContainer = document.getElementById('responseHeaders');
+            const headerKeys = Object.keys(response.headers);
+            const headersCountEl = document.getElementById('headersCount');
+            if (headersCountEl) {
+                headersCountEl.textContent = headerKeys.length;
+            }
+
+            let headersHtml = '';
             if (response.interpolatedUrl) {
-                headersText = '// Variables interpolated: ' + response.interpolatedUrl + '\\n\\n' + headersText;
+                headersHtml += '<div class="header-row" style="background:rgba(167,139,250,0.1);margin:-12px -12px 12px -12px;padding:12px;border-radius:4px 4px 0 0;">';
+                headersHtml += '<span class="header-key" style="color:#a78bfa;">Interpolated URL</span>';
+                headersHtml += '<span class="header-value">' + escapeHtml(response.interpolatedUrl) + '</span>';
+                headersHtml += '</div>';
             }
-            document.getElementById('responseHeaders').textContent = headersText;
+            headerKeys.forEach(function(key) {
+                headersHtml += '<div class="header-row">';
+                headersHtml += '<span class="header-key">' + escapeHtml(key) + '</span>';
+                headersHtml += '<span class="header-value">' + escapeHtml(String(response.headers[key])) + '</span>';
+                headersHtml += '</div>';
+            });
+            headersContainer.innerHTML = headersHtml;
 
-            // Body
+            // Body - with syntax highlighting for JSON
             const bodyEl = document.getElementById('responseBody');
+            let bodyContent = '';
             if (typeof response.body === 'object') {
-                bodyEl.textContent = JSON.stringify(response.body, null, 2);
+                bodyContent = JSON.stringify(response.body, null, 2);
+                bodyEl.innerHTML = syntaxHighlightJSON(bodyContent);
             } else {
-                bodyEl.textContent = response.body;
+                bodyContent = response.body;
+                // Try to parse as JSON for highlighting
+                try {
+                    var parsed = JSON.parse(bodyContent);
+                    bodyEl.innerHTML = syntaxHighlightJSON(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    bodyEl.textContent = bodyContent;
+                }
             }
 
-            // Cookies
+            // Cookies - formatted display
             const cookies = parseCookies(response.headers);
             const cookiesEl = document.getElementById('responseCookies');
             if (cookies.length > 0) {
-                cookiesEl.textContent = JSON.stringify(cookies, null, 2);
+                let cookiesHtml = '';
+                cookies.forEach(function(cookie) {
+                    cookiesHtml += '<div class="cookie-item">';
+                    cookiesHtml += '<div class="cookie-name">' + escapeHtml(cookie.name) + '</div>';
+                    cookiesHtml += '<div class="cookie-value">' + escapeHtml(cookie.value) + '</div>';
+                    cookiesHtml += '<div class="cookie-attrs">';
+                    if (cookie.path) cookiesHtml += '<span class="cookie-attr">Path: ' + escapeHtml(cookie.path) + '</span>';
+                    if (cookie.domain) cookiesHtml += '<span class="cookie-attr">Domain: ' + escapeHtml(cookie.domain) + '</span>';
+                    if (cookie.expires) cookiesHtml += '<span class="cookie-attr">Expires: ' + escapeHtml(cookie.expires) + '</span>';
+                    if (cookie.httponly) cookiesHtml += '<span class="cookie-attr">HttpOnly</span>';
+                    if (cookie.secure) cookiesHtml += '<span class="cookie-attr">Secure</span>';
+                    if (cookie.samesite) cookiesHtml += '<span class="cookie-attr">SameSite: ' + escapeHtml(cookie.samesite) + '</span>';
+                    cookiesHtml += '</div>';
+                    cookiesHtml += '</div>';
+                });
+                cookiesEl.innerHTML = cookiesHtml;
             } else {
-                cookiesEl.textContent = 'No cookies in response';
+                cookiesEl.innerHTML = '<div class="empty-state" style="padding:20px;">No cookies in response</div>';
             }
 
             // Reset to Body tab
-            document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.res-tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.res-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.res-tab-content').forEach(function(c) { c.classList.remove('active'); });
             document.querySelector('.res-tab').classList.add('active');
             document.getElementById('resBody').classList.add('active');
 
             responseEl.scrollIntoView({ behavior: 'smooth' });
         }
+
+        // JSON syntax highlighting
+        function syntaxHighlightJSON(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Copy response content
+        window.copyResponse = function(type) {
+            if (!currentResponse) return;
+            var text = '';
+            if (type === 'body') {
+                if (typeof currentResponse.body === 'object') {
+                    text = JSON.stringify(currentResponse.body, null, 2);
+                } else {
+                    text = currentResponse.body;
+                }
+            } else if (type === 'headers') {
+                text = JSON.stringify(currentResponse.headers, null, 2);
+            }
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('Copied to clipboard!');
+            });
+        };
+
+        // Toggle word wrap
+        window.toggleWrap = function() {
+            var bodyEl = document.getElementById('responseBody');
+            bodyEl.classList.toggle('no-wrap');
+        };
 
         function displayError(error) {
             const responseEl = document.getElementById('response');

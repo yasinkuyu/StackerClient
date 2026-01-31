@@ -116,21 +116,47 @@
         <div class="response-header">
             <span>Status: <span id="responseStatus" class="response-status"></span></span>
             <span>Time: <span id="responseTime"></span></span>
+            <span>Size: <span id="responseSize"></span></span>
         </div>
         <div class="response-tabs">
             <button class="res-tab active" onclick="showResTab('resBody', event)">Body</button>
-            <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers</button>
+            <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers <span id="headersCount" class="tab-badge"></span></button>
             <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
         </div>
         <div class="response-content">
             <div id="resBody" class="res-tab-content active">
+                <div class="response-toolbar">
+                    <button class="toolbar-btn" onclick="copyResponse('body')" title="Copy">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                    </button>
+                    <button class="toolbar-btn" onclick="toggleWrap()" title="Toggle Word Wrap">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M3 12h15a3 3 0 1 1 0 6h-4l2-2m-2 2l2 2M3 18h7"></path>
+                        </svg>
+                        Wrap
+                    </button>
+                    <span class="response-type" id="responseType"></span>
+                </div>
                 <pre id="responseBody" class="response-body"></pre>
             </div>
             <div id="resHeaders" class="res-tab-content">
-                <pre id="responseHeaders" class="pre-headers"></pre>
+                <div class="response-toolbar">
+                    <button class="toolbar-btn" onclick="copyResponse('headers')" title="Copy Headers">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                    </button>
+                </div>
+                <div id="responseHeaders" class="headers-table"></div>
             </div>
             <div id="resCookies" class="res-tab-content">
-                <pre id="responseCookies" class="pre-headers">No cookies</pre>
+                <div id="responseCookies" class="cookies-list">No cookies</div>
             </div>
         </div>
     </div>

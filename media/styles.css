@@ -560,7 +560,140 @@
             max-height: 400px;
             overflow-y: auto;
             font-size: 13px;
+            margin: 0;
+            background: var(--vscode-editor-background);
+            border-radius: 0 0 4px 4px;
         }
+
+        .response-body.no-wrap {
+            white-space: pre;
+            word-wrap: normal;
+        }
+
+        .response-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--vscode-tab-inactiveBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: var(--vscode-button-secondaryBackground);
+            border: none;
+            border-radius: 3px;
+            color: var(--vscode-button-secondaryForeground);
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .toolbar-btn svg {
+            opacity: 0.8;
+        }
+
+        .response-type {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            padding: 2px 8px;
+            background: var(--vscode-badge-background);
+            border-radius: 3px;
+        }
+
+        .tab-badge {
+            font-size: 10px;
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 1px 5px;
+            border-radius: 8px;
+            margin-left: 4px;
+        }
+
+        .headers-table {
+            padding: 12px;
+        }
+
+        .header-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            font-size: 12px;
+        }
+
+        .header-row:last-child {
+            border-bottom: none;
+        }
+
+        .header-key {
+            min-width: 200px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .header-value {
+            flex: 1;
+            color: var(--vscode-descriptionForeground);
+            font-family: 'Consolas', 'Monaco', monospace;
+            word-break: break-all;
+        }
+
+        .cookies-list {
+            padding: 12px;
+        }
+
+        .cookie-item {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .cookie-name {
+            font-weight: 600;
+            color: #a78bfa;
+            margin-bottom: 6px;
+        }
+
+        .cookie-value {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            color: var(--vscode-foreground);
+            word-break: break-all;
+            margin-bottom: 8px;
+        }
+
+        .cookie-attrs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .cookie-attr {
+            background: var(--vscode-badge-background);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--vscode-badge-foreground);
+        }
+
+        /* JSON Syntax Highlighting */
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-number { color: #b5cea8; }
+        .json-boolean { color: #569cd6; }
+        .json-null { color: #569cd6; }
 
         .pre-headers {
             background: var(--vscode-input-background);
