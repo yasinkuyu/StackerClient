@@ -999,7 +999,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
     
     const panel = vscode.window.createWebviewPanel(
         'stackerClient',
-        `#${nextRequestNumber}`,
+        `#${nextRequestNumber} StackerClient`,
         vscode.ViewColumn.One,
         { enableScripts: true, retainContextWhenHidden: true }
     );
