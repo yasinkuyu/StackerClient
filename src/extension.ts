@@ -128,44 +128,8 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const addRequestCommand = vscode.commands.registerCommand('stacker.addRequest', () => {
-        // Always create new panel for new request
-        const panel = vscode.window.createWebviewPanel(
-            'stackerClient',
-            '⚡ New Request',
-            vscode.ViewColumn.One,
-            { enableScripts: true, retainContextWhenHidden: true }
-        );
-        panel.iconPath = new vscode.ThemeIcon('debug-alt');
-        panel.webview.html = getWebviewContent(panel.webview);
-        
-        // Setup message handlers
-        panel.webview.onDidReceiveMessage(async (message) => {
-            switch (message.command) {
-                case 'sendRequest':
-                    await handleSendRequest(message.request, panel);
-                    break;
-                case 'saveRequest':
-                    handleSaveRequest(message.request, requestManager, panel);
-                    sidebarProvider.refresh();
-                    break;
-                case 'showInputBox':
-                    const result = await vscode.window.showInputBox({
-                        prompt: message.prompt,
-                        value: message.value
-                    });
-                    panel.webview.postMessage({
-                        command: 'inputBoxResponse',
-                        result: result
-                    });
-                    break;
-                case 'getSettings':
-                    panel.webview.postMessage({
-                        command: 'settings',
-                        settings: getSettings()
-                    });
-                    break;
-            }
-        });
+        // Always create new panel for new request - don't use currentPanel singleton
+        createNewPanel(requestManager, context);
     });
 
     const deleteRequestCommand = vscode.commands.registerCommand('stacker.deleteRequest', (item: any) => {
@@ -936,6 +900,59 @@ async function deleteAuthToken(name: string, context: vscode.ExtensionContext) {
     const tokens = context.globalState.get<Record<string, string>>('stackerAuthTokens', {});
     delete tokens[name];
     await context.globalState.update('stackerAuthTokens', tokens);
+}
+
+// Create a new independent panel (not affecting currentPanel singleton)
+function createNewPanel(requestManager: RequestManager, context: vscode.ExtensionContext) {
+    const panel = vscode.window.createWebviewPanel(
+        'stackerClient',
+        '⚡ New Request',
+        vscode.ViewColumn.One,
+        { enableScripts: true, retainContextWhenHidden: true }
+    );
+    panel.iconPath = new vscode.ThemeIcon('debug-alt');
+    panel.webview.html = getWebviewContent(panel.webview);
+    
+    // Setup message handlers for this independent panel
+    panel.webview.onDidReceiveMessage(async (message) => {
+        switch (message.command) {
+            case 'sendRequest':
+                await handleSendRequest(message.request, panel, requestManager);
+                break;
+            case 'saveRequest':
+                handleSaveRequest(message.request, requestManager, panel);
+                sidebarProvider.refresh();
+                break;
+            case 'showInputBox':
+                const result = await vscode.window.showInputBox({
+                    prompt: message.prompt,
+                    value: message.value
+                });
+                panel.webview.postMessage({
+                    command: 'inputBoxResponse',
+                    result: result
+                });
+                break;
+            case 'getSettings':
+                panel.webview.postMessage({
+                    command: 'settings',
+                    settings: getSettings()
+                });
+                // Also send active environment info
+                const activeEnvId = sidebarProvider.getActiveEnvironment();
+                if (activeEnvId) {
+                    const envs = sidebarProvider.getEnvironments();
+                    const activeEnv = envs.find(e => e.id === activeEnvId);
+                    if (activeEnv) {
+                        panel.webview.postMessage({
+                            command: 'activeEnvironment',
+                            environment: activeEnv
+                        });
+                    }
+                }
+                break;
+        }
+    });
 }
 
 async function handleSendRequest(request: any, panel: vscode.WebviewPanel, requestManager?: RequestManager) {

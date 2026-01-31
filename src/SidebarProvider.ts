@@ -116,7 +116,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
                 case 'newRequest':
-                    vscode.commands.executeCommand('stacker.open');
+                    vscode.commands.executeCommand('stacker.addRequest');
                     break;
                 case 'loadRequest':
                     vscode.commands.executeCommand('stacker.loadRequest', { id: data.id });
