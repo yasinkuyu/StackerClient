@@ -15,6 +15,126 @@
         <input type="text" id="url" class="url-input" placeholder="https://api.example.com/{{endpoint}} (use {{var}} for env variables)">
         <button id="sendBtn" class="send-btn">Send</button>
         <button id="saveBtn" class="save-btn">Save</button>
+        <button id="examplesBtn" class="examples-btn" title="Load Example Requests">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Examples Modal -->
+    <div id="examplesModal" class="examples-modal">
+        <div class="examples-header">
+            <h3>Example Requests</h3>
+            <button id="closeExamples" class="close-btn">&times;</button>
+        </div>
+        <div class="examples-list">
+            <div class="example-category">JSONPlaceholder (Fake REST API)</div>
+            <div class="example-item" data-example="jsonplaceholder-get-users">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Get All Users</span>
+            </div>
+            <div class="example-item" data-example="jsonplaceholder-get-posts">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Get All Posts</span>
+            </div>
+            <div class="example-item" data-example="jsonplaceholder-get-post">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Get Single Post</span>
+            </div>
+            <div class="example-item" data-example="jsonplaceholder-post">
+                <span class="example-method post">POST</span>
+                <span class="example-name">Create Post</span>
+            </div>
+            <div class="example-item" data-example="jsonplaceholder-put">
+                <span class="example-method put">PUT</span>
+                <span class="example-name">Update Post</span>
+            </div>
+            <div class="example-item" data-example="jsonplaceholder-patch">
+                <span class="example-method patch">PATCH</span>
+                <span class="example-name">Patch Post</span>
+            </div>
+            <div class="example-item" data-example="jsonplaceholder-delete">
+                <span class="example-method delete">DELETE</span>
+                <span class="example-name">Delete Post</span>
+            </div>
+            
+            <div class="example-category">HTTPBin (Testing API)</div>
+            <div class="example-item" data-example="httpbin-get">
+                <span class="example-method get">GET</span>
+                <span class="example-name">HTTPBin GET</span>
+            </div>
+            <div class="example-item" data-example="httpbin-post">
+                <span class="example-method post">POST</span>
+                <span class="example-name">HTTPBin POST</span>
+            </div>
+            <div class="example-item" data-example="httpbin-headers">
+                <span class="example-method get">GET</span>
+                <span class="example-name">HTTPBin Headers</span>
+            </div>
+            
+            <div class="example-category">Reqres (Mock API)</div>
+            <div class="example-item" data-example="reqres-users">
+                <span class="example-method get">GET</span>
+                <span class="example-name">List Users</span>
+            </div>
+            <div class="example-item" data-example="reqres-create">
+                <span class="example-method post">POST</span>
+                <span class="example-name">Create User</span>
+            </div>
+            <div class="example-item" data-example="reqres-update">
+                <span class="example-method put">PUT</span>
+                <span class="example-name">Update User</span>
+            </div>
+            
+            <div class="example-category">GitHub API</div>
+            <div class="example-item" data-example="github-user">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Get GitHub User</span>
+            </div>
+            <div class="example-item" data-example="github-repos">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Get User Repos</span>
+            </div>
+            
+            <div class="example-category">Authentication Examples</div>
+            <div class="example-item" data-example="auth-bearer">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Bearer Token Auth</span>
+            </div>
+            <div class="example-item" data-example="auth-basic">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Basic Auth</span>
+            </div>
+            <div class="example-item" data-example="auth-apikey">
+                <span class="example-method get">GET</span>
+                <span class="example-name">API Key Header</span>
+            </div>
+            
+            <div class="example-category">Query Parameters</div>
+            <div class="example-item" data-example="query-search">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Search with Query</span>
+            </div>
+            <div class="example-item" data-example="query-filter">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Filter & Pagination</span>
+            </div>
+            <div class="example-item" data-example="query-multiple">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Multiple Parameters</span>
+            </div>
+            
+            <div class="example-category">Complex Examples</div>
+            <div class="example-item" data-example="complex-auth-query">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Auth + Query Params</span>
+            </div>
+            <div class="example-item" data-example="complex-post-auth">
+                <span class="example-method post">POST</span>
+                <span class="example-name">POST with Auth</span>
+            </div>
+        </div>
     </div>
 
     <!-- Tabs -->
@@ -133,7 +253,7 @@
                         </svg>
                         Copy
                     </button>
-                    <button class="toolbar-btn" onclick="expandAllJSON()" title="Expand All">
+                    <button class="toolbar-btn" onclick="expandAllJSON()" title="Expand All" id="expandBtn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="15 3 21 3 21 9"></polyline>
                             <polyline points="9 21 3 21 3 15"></polyline>
@@ -142,7 +262,7 @@
                         </svg>
                         Expand
                     </button>
-                    <button class="toolbar-btn" onclick="collapseAllJSON()" title="Collapse All">
+                    <button class="toolbar-btn" onclick="collapseAllJSON()" title="Collapse All" id="collapseBtn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="4 14 10 14 10 20"></polyline>
                             <polyline points="20 10 14 10 14 4"></polyline>
@@ -151,9 +271,19 @@
                         </svg>
                         Collapse
                     </button>
+                    <button class="toolbar-btn" onclick="toggleBodyView()" title="Toggle Raw/Preview" id="bodyViewToggle" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span id="bodyViewText">Preview</span>
+                    </button>
                     <span class="response-type" id="responseType"></span>
                 </div>
                 <pre id="responseBody" class="response-body"></pre>
+                <div id="responsePreview" class="response-preview" style="display:none;">
+                    <iframe id="previewFrame" sandbox="allow-same-origin"></iframe>
+                </div>
             </div>
             <div id="resHeaders" class="res-tab-content">
                 <div class="response-toolbar">
@@ -164,8 +294,20 @@
                         </svg>
                         Copy
                     </button>
+                    <button class="toolbar-btn" onclick="toggleHeadersView()" title="Toggle View">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                        <span id="headersViewText">Raw</span>
+                    </button>
                 </div>
                 <div id="responseHeaders" class="headers-table"></div>
+                <pre id="responseHeadersRaw" class="headers-raw" style="display:none;"></pre>
             </div>
             <div id="resCookies" class="res-tab-content">
                 <div id="responseCookies" class="cookies-list">No cookies</div>

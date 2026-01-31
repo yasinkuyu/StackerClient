@@ -602,6 +602,8 @@ const vscode = acquireVsCodeApi();
 
         // Store response data for copy function
         let currentResponse = null;
+        let bodyViewMode = 'raw'; // 'raw' or 'preview'
+        let headersViewMode = 'table'; // 'table' or 'raw'
 
         function displayResponse(response) {
             currentResponse = response;
@@ -629,11 +631,13 @@ const vscode = acquireVsCodeApi();
 
             // Detect content type
             const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
+            const isHtml = contentType.includes('html');
+            const isJson = contentType.includes('json');
             const responseTypeEl = document.getElementById('responseType');
             if (responseTypeEl) {
-                if (contentType.includes('json')) {
+                if (isJson) {
                     responseTypeEl.textContent = 'JSON';
-                } else if (contentType.includes('html')) {
+                } else if (isHtml) {
                     responseTypeEl.textContent = 'HTML';
                 } else if (contentType.includes('xml')) {
                     responseTypeEl.textContent = 'XML';
@@ -644,8 +648,30 @@ const vscode = acquireVsCodeApi();
                 }
             }
 
+            // Show/hide body view toggle based on content type
+            const bodyViewToggle = document.getElementById('bodyViewToggle');
+            const expandBtn = document.getElementById('expandBtn');
+            const collapseBtn = document.getElementById('collapseBtn');
+            
+            if (isHtml) {
+                bodyViewToggle.style.display = 'flex';
+                expandBtn.style.display = 'none';
+                collapseBtn.style.display = 'none';
+                bodyViewMode = 'raw';
+                updateBodyView();
+            } else if (isJson) {
+                bodyViewToggle.style.display = 'none';
+                expandBtn.style.display = 'flex';
+                collapseBtn.style.display = 'flex';
+            } else {
+                bodyViewToggle.style.display = 'none';
+                expandBtn.style.display = 'none';
+                collapseBtn.style.display = 'none';
+            }
+
             // Headers - table format
             const headersContainer = document.getElementById('responseHeaders');
+            const headersRawEl = document.getElementById('responseHeadersRaw');
             const headerKeys = Object.keys(response.headers);
             const headersCountEl = document.getElementById('headersCount');
             if (headersCountEl) {
@@ -667,9 +693,25 @@ const vscode = acquireVsCodeApi();
             });
             headersContainer.innerHTML = headersHtml;
 
-            // Body - with JSON tree viewer
+            // Headers raw format
+            let headersRaw = '';
+            if (response.interpolatedUrl) {
+                headersRaw += 'Interpolated URL: ' + response.interpolatedUrl + '\n';
+            }
+            headerKeys.forEach(function(key) {
+                headersRaw += key + ': ' + String(response.headers[key]) + '\n';
+            });
+            headersRawEl.textContent = headersRaw;
+
+            // Body - with JSON tree viewer or HTML preview
             const bodyEl = document.getElementById('responseBody');
+            const previewEl = document.getElementById('responsePreview');
+            const previewFrame = document.getElementById('previewFrame');
             var jsonData = null;
+
+            // Reset body view
+            bodyEl.style.display = 'block';
+            previewEl.style.display = 'none';
 
             if (typeof response.body === 'object') {
                 jsonData = response.body;
@@ -685,6 +727,13 @@ const vscode = acquireVsCodeApi();
 
             if (jsonData !== null) {
                 bodyEl.innerHTML = '<div class="json-tree">' + renderJSONTree(jsonData, 0) + '</div>';
+            }
+
+            // Setup HTML preview
+            if (isHtml && response.body) {
+                const blob = new Blob([response.body], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                previewFrame.src = url;
             }
 
             // Cookies - formatted display
@@ -717,7 +766,55 @@ const vscode = acquireVsCodeApi();
             document.querySelector('.res-tab').classList.add('active');
             document.getElementById('resBody').classList.add('active');
 
+            // Reset view modes
+            headersViewMode = 'table';
+            updateHeadersView();
+
             responseEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Toggle body view (raw/preview)
+        window.toggleBodyView = function() {
+            bodyViewMode = bodyViewMode === 'raw' ? 'preview' : 'raw';
+            updateBodyView();
+        };
+
+        function updateBodyView() {
+            const bodyEl = document.getElementById('responseBody');
+            const previewEl = document.getElementById('responsePreview');
+            const viewText = document.getElementById('bodyViewText');
+            
+            if (bodyViewMode === 'preview') {
+                bodyEl.style.display = 'none';
+                previewEl.style.display = 'block';
+                viewText.textContent = 'Raw';
+            } else {
+                bodyEl.style.display = 'block';
+                previewEl.style.display = 'none';
+                viewText.textContent = 'Preview';
+            }
+        }
+
+        // Toggle headers view (table/raw)
+        window.toggleHeadersView = function() {
+            headersViewMode = headersViewMode === 'table' ? 'raw' : 'table';
+            updateHeadersView();
+        };
+
+        function updateHeadersView() {
+            const tableEl = document.getElementById('responseHeaders');
+            const rawEl = document.getElementById('responseHeadersRaw');
+            const viewText = document.getElementById('headersViewText');
+            
+            if (headersViewMode === 'raw') {
+                tableEl.style.display = 'none';
+                rawEl.style.display = 'block';
+                viewText.textContent = 'Table';
+            } else {
+                tableEl.style.display = 'block';
+                rawEl.style.display = 'none';
+                viewText.textContent = 'Raw';
+            }
         }
 
         // JSON Tree Viewer - Collapsible
@@ -1102,6 +1199,385 @@ const vscode = acquireVsCodeApi();
         vscode.postMessage({ command: 'loadAuthTokens' });
         vscode.postMessage({ command: 'getSettings' });
         console.log('initApp completed successfully');
+        
+        // Clear all form data and response
+        function clearAllData() {
+            // Clear URL
+            document.getElementById('url').value = '';
+            
+            // Reset method to GET
+            document.getElementById('method').value = 'GET';
+            
+            // Clear headers
+            document.getElementById('headersContainer').innerHTML = '';
+            
+            // Clear query params
+            document.getElementById('queryContainer').innerHTML = '';
+            
+            // Clear body
+            document.getElementById('bodyInput').value = '';
+            
+            // Reset content type
+            document.getElementById('contentType').value = 'application/json';
+            
+            // Clear response
+            const responseEl = document.getElementById('response');
+            if (responseEl) {
+                responseEl.style.display = 'none';
+            }
+            
+            // Reset current response data
+            currentResponse = null;
+            
+            // Clear response body
+            const responseBody = document.getElementById('responseBody');
+            if (responseBody) {
+                responseBody.innerHTML = '';
+                responseBody.textContent = '';
+            }
+            
+            // Clear preview frame
+            const previewFrame = document.getElementById('previewFrame');
+            if (previewFrame) {
+                previewFrame.src = 'about:blank';
+            }
+            
+            // Clear response headers
+            const responseHeaders = document.getElementById('responseHeaders');
+            if (responseHeaders) {
+                responseHeaders.innerHTML = '';
+            }
+            
+            // Reset view modes
+            bodyViewMode = 'raw';
+            headersViewMode = 'table';
+            
+            // Reset tabs to headers
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-tab="headers"]').classList.add('active');
+            document.getElementById('headersTab').classList.add('active');
+            
+            // Reset response tabs
+            document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.res-tab-content').forEach(c => c.classList.remove('active'));
+            const firstResTab = document.querySelector('.res-tab');
+            if (firstResTab) {
+                firstResTab.classList.add('active');
+            }
+            document.getElementById('resBody').classList.add('active');
+        }
+        
+        // Examples Modal
+        const examplesBtn = document.getElementById('examplesBtn');
+        const examplesModal = document.getElementById('examplesModal');
+        const closeExamples = document.getElementById('closeExamples');
+        
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+        document.body.appendChild(backdrop);
+        
+        function showExamplesModal() {
+            examplesModal.classList.add('show');
+            backdrop.classList.add('show');
+        }
+        
+        function hideExamplesModal() {
+            examplesModal.classList.remove('show');
+            backdrop.classList.remove('show');
+        }
+        
+        if (examplesBtn) {
+            examplesBtn.addEventListener('click', showExamplesModal);
+        }
+        
+        if (closeExamples) {
+            closeExamples.addEventListener('click', hideExamplesModal);
+        }
+        
+        backdrop.addEventListener('click', hideExamplesModal);
+        
+        // Example requests data
+        const EXAMPLE_REQUESTS = {
+            'jsonplaceholder-get-users': {
+                method: 'GET',
+                url: 'https://jsonplaceholder.typicode.com/users',
+                headers: [{ key: 'Accept', value: 'application/json' }],
+                contentType: 'application/json',
+                body: ''
+            },
+            'jsonplaceholder-get-posts': {
+                method: 'GET',
+                url: 'https://jsonplaceholder.typicode.com/posts',
+                headers: [{ key: 'Accept', value: 'application/json' }],
+                contentType: 'application/json',
+                body: ''
+            },
+            'jsonplaceholder-get-post': {
+                method: 'GET',
+                url: 'https://jsonplaceholder.typicode.com/posts/1',
+                headers: [{ key: 'Accept', value: 'application/json' }],
+                contentType: 'application/json',
+                body: ''
+            },
+            'jsonplaceholder-post': {
+                method: 'POST',
+                url: 'https://jsonplaceholder.typicode.com/posts',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    title: 'foo',
+                    body: 'bar',
+                    userId: 1
+                }, null, 2)
+            },
+            'jsonplaceholder-put': {
+                method: 'PUT',
+                url: 'https://jsonplaceholder.typicode.com/posts/1',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: 1,
+                    title: 'foo updated',
+                    body: 'bar updated',
+                    userId: 1
+                }, null, 2)
+            },
+            'jsonplaceholder-patch': {
+                method: 'PATCH',
+                url: 'https://jsonplaceholder.typicode.com/posts/1',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    title: 'foo patched'
+                }, null, 2)
+            },
+            'jsonplaceholder-delete': {
+                method: 'DELETE',
+                url: 'https://jsonplaceholder.typicode.com/posts/1',
+                headers: [{ key: 'Accept', value: 'application/json' }],
+                contentType: 'application/json',
+                body: ''
+            },
+            'httpbin-get': {
+                method: 'GET',
+                url: 'https://httpbin.org/get',
+                headers: [{ key: 'Accept', value: 'application/json' }],
+                contentType: 'application/json',
+                body: ''
+            },
+            'httpbin-post': {
+                method: 'POST',
+                url: 'https://httpbin.org/post',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    name: 'test',
+                    value: 'hello world'
+                }, null, 2)
+            },
+            'httpbin-headers': {
+                method: 'GET',
+                url: 'https://httpbin.org/headers',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'X-Custom-Header', value: 'StackerClient' }
+                ],
+                contentType: 'application/json',
+                body: ''
+            },
+            'reqres-users': {
+                method: 'GET',
+                url: 'https://reqres.in/api/users?page=2',
+                headers: [{ key: 'Accept', value: 'application/json' }],
+                contentType: 'application/json',
+                body: ''
+            },
+            'reqres-create': {
+                method: 'POST',
+                url: 'https://reqres.in/api/users',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    name: 'morpheus',
+                    job: 'leader'
+                }, null, 2)
+            },
+            'reqres-update': {
+                method: 'PUT',
+                url: 'https://reqres.in/api/users/2',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    name: 'morpheus',
+                    job: 'zion resident'
+                }, null, 2)
+            },
+            'github-user': {
+                method: 'GET',
+                url: 'https://api.github.com/users/octocat',
+                headers: [
+                    { key: 'Accept', value: 'application/vnd.github.v3+json' },
+                    { key: 'User-Agent', value: 'StackerClient' }
+                ],
+                contentType: 'application/json',
+                body: ''
+            },
+            'github-repos': {
+                method: 'GET',
+                url: 'https://api.github.com/users/octocat/repos',
+                headers: [
+                    { key: 'Accept', value: 'application/vnd.github.v3+json' },
+                    { key: 'User-Agent', value: 'StackerClient' }
+                ],
+                contentType: 'application/json',
+                body: ''
+            },
+            'auth-bearer': {
+                method: 'GET',
+                url: 'https://httpbin.org/bearer',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Authorization', value: 'Bearer your_token_here' }
+                ],
+                contentType: 'application/json',
+                body: ''
+            },
+            'auth-basic': {
+                method: 'GET',
+                url: 'https://httpbin.org/basic-auth/user/passwd',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Authorization', value: 'Basic ' + btoa('user:passwd') }
+                ],
+                contentType: 'application/json',
+                body: ''
+            },
+            'auth-apikey': {
+                method: 'GET',
+                url: 'https://httpbin.org/headers',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'X-API-Key', value: 'your_api_key_here' }
+                ],
+                contentType: 'application/json',
+                body: ''
+            },
+            'query-search': {
+                method: 'GET',
+                url: 'https://httpbin.org/get',
+                headers: [
+                    { key: 'Accept', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: '',
+                queryParams: [
+                    { key: 'q', value: 'search term' },
+                    { key: 'limit', value: '10' }
+                ]
+            },
+            'query-filter': {
+                method: 'GET',
+                url: 'https://jsonplaceholder.typicode.com/posts',
+                headers: [
+                    { key: 'Accept', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: '',
+                queryParams: [
+                    { key: 'userId', value: '1' },
+                    { key: '_page', value: '1' },
+                    { key: '_limit', value: '5' }
+                ]
+            },
+            'query-multiple': {
+                method: 'GET',
+                url: 'https://httpbin.org/get',
+                headers: [
+                    { key: 'Accept', value: 'application/json' }
+                ],
+                contentType: 'application/json',
+                body: '',
+                queryParams: [
+                    { key: 'category', value: 'electronics' },
+                    { key: 'sort', value: 'price' },
+                    { key: 'order', value: 'asc' },
+                    { key: 'minPrice', value: '100' },
+                    { key: 'maxPrice', value: '1000' }
+                ]
+            },
+            'complex-auth-query': {
+                method: 'GET',
+                url: 'https://httpbin.org/get',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Authorization', value: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' }
+                ],
+                contentType: 'application/json',
+                body: '',
+                queryParams: [
+                    { key: 'page', value: '1' },
+                    { key: 'per_page', value: '20' },
+                    { key: 'filter', value: 'active' }
+                ]
+            },
+            'complex-post-auth': {
+                method: 'POST',
+                url: 'https://httpbin.org/post',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Content-Type', value: 'application/json' },
+                    { key: 'Authorization', value: 'Bearer your_access_token_here' }
+                ],
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    name: 'John Doe',
+                    email: 'john@example.com',
+                    role: 'admin',
+                    metadata: {
+                        department: 'Engineering',
+                        joined: '2024-01-15'
+                    }
+                }, null, 2)
+            }
+        };
+        
+        // Handle example item clicks
+        document.querySelectorAll('.example-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const exampleKey = item.dataset.example;
+                const example = EXAMPLE_REQUESTS[exampleKey];
+                
+                if (example) {
+                    // Clear all previous data and response first
+                    clearAllData();
+                    
+                    // Load the new example
+                    loadRequest(example);
+                    hideExamplesModal();
+                    showToast('Example loaded: ' + example.method + ' ' + example.url);
+                }
+            });
+        });
         }
 
         // Wait for DOM to be ready
