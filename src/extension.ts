@@ -115,6 +115,20 @@ export function activate(context: vscode.ExtensionContext) {
                         }
                     }
                     break;
+                case 'updateTitle':
+                    // Update panel title based on URL/method
+                    if (message.url) {
+                        try {
+                            const url = new URL(message.url);
+                            const path = url.pathname || '/';
+                            currentPanel!.title = `${message.method} ${path}`;
+                        } catch {
+                            currentPanel!.title = `${message.method} ${message.url.substring(0, 30)}`;
+                        }
+                    } else {
+                        currentPanel!.title = 'StackerClient';
+                    }
+                    break;
             }
         });
 
@@ -996,7 +1010,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
     // Calculate next request number based on saved requests count
     const allRequests = requestManager.getAllRequests();
     const nextRequestNumber = allRequests.length + 1;
-    
+
     const panel = vscode.window.createWebviewPanel(
         'stackerClient',
         `#${nextRequestNumber} StackerClient`,
@@ -1005,7 +1019,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
     );
     panel.iconPath = new vscode.ThemeIcon('debug-alt');
     panel.webview.html = getWebviewContent(panel.webview);
-    
+
     // Setup message handlers for this independent panel
     panel.webview.onDidReceiveMessage(async (message) => {
         switch (message.command) {
@@ -1061,9 +1075,23 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
                     }
                 }
                 break;
+            case 'updateTitle':
+                // Update panel title based on URL/method
+                if (message.url) {
+                    try {
+                        const url = new URL(message.url);
+                        const path = url.pathname || '/';
+                        panel.title = `#${nextRequestNumber} ${message.method} ${path}`;
+                    } catch {
+                        panel.title = `#${nextRequestNumber} ${message.method} ${message.url.substring(0, 30)}`;
+                    }
+                } else {
+                    panel.title = `#${nextRequestNumber} StackerClient`;
+                }
+                break;
         }
     });
-    
+
     return panel;
 }
 
@@ -2300,9 +2328,9 @@ function getWebviewContent(webview: vscode.Webview): string {
             <span>Time: <span id="responseTime"></span></span>
         </div>
         <div class="response-tabs">
-            <button class="res-tab active" onclick="showResTab('resBody')">Body</button>
-            <button class="res-tab" onclick="showResTab('resHeaders')">Headers</button>
-            <button class="res-tab" onclick="showResTab('resCookies')">Cookies</button>
+            <button class="res-tab active" onclick="showResTab('resBody', event)">Body</button>
+            <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers</button>
+            <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
         </div>
         <div class="response-content">
             <div id="resBody" class="res-tab-content active">
@@ -2336,10 +2364,10 @@ function getWebviewContent(webview: vscode.Webview): string {
             });
         });
 
-        function addAuthHeader(type, desc) {
+        window.addAuthHeader = function(type, desc) {
             let key = 'Authorization';
             let value = '';
-            
+
             switch(type) {
                 case 'Bearer':
                     value = 'Bearer ';
@@ -2351,17 +2379,17 @@ function getWebviewContent(webview: vscode.Webview): string {
                     key = 'X-API-Key';
                     break;
             }
-            
+
             addHeaderRow(key, value);
-            
+
             // Switch to headers tab
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelector('[data-tab="headers"]').classList.add('active');
             document.getElementById('headersTab').classList.add('active');
-            
+
             showToast(type + ' header added. Paste your token.');
-        }
+        };
 
         function createAutocompleteInput(placeholder, onSelect) {
             const container = document.createElement('div');
@@ -2864,10 +2892,14 @@ function getWebviewContent(webview: vscode.Webview): string {
         }
 
         // Response tab switching
-        window.showResTab = function(tabName) {
+        window.showResTab = function(tabName, evt) {
             document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.res-tab-content').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            } else {
+                document.querySelector('.res-tab').classList.add('active');
+            }
             document.getElementById(tabName).classList.add('active');
         };
 
@@ -3070,6 +3102,20 @@ function getWebviewContent(webview: vscode.Webview): string {
             currentPage = 1;
             displaySavedRequests();
         });
+
+        // Update panel title when URL or method changes
+        function updatePanelTitle() {
+            const url = document.getElementById('url').value.trim();
+            const method = document.getElementById('method').value;
+            vscode.postMessage({
+                command: 'updateTitle',
+                url: url,
+                method: method
+            });
+        }
+
+        document.getElementById('url')?.addEventListener('input', updatePanelTitle);
+        document.getElementById('method')?.addEventListener('change', updatePanelTitle);
 
         function loadRequest(req, activateTab = 'headers') {
             document.getElementById('method').value = req.method;
