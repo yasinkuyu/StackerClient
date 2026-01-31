@@ -1,7 +1,7 @@
 # ⚡ StackerClient
 
 <p align="center">
-  <img src="resources/icon.png" width="80" height="80" alt="StackerClient Logo">
+  <img src="https://raw.githubusercontent.com/yasinkuyu/StackerClient/main/resources/icon.png" width="80" height="80" alt="StackerClient Logo">
 </p>
 
 <p align="center">
