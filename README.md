@@ -9,8 +9,8 @@
 </p>
 
  <p align="center">
-   <img src="media/screenshot.png" width="48%" alt="StackerClient light">
-   <img src="media/screenshot_dark.png" width="48%" alt="StackerClient dark">
+   <img src="https://github.com/yasinkuyu/StackerClient/raw/main/media/screenshot.png" width="48%" alt="StackerClient light">
+   <img src="https://github.com/yasinkuyu/StackerClient/raw/main/media/screenshot_dark.png" width="48%" alt="StackerClient dark">
  </p>
 
 <p align="center">
