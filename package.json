@@ -12,10 +12,10 @@
   "homepage": "https://insya.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yasinkuyu/stacker-client"
+    "url": "https://github.com/yasinkuyu/stackerclient"
   },
   "bugs": {
-    "url": "https://github.com/yasinkuyu/stacker-client/issues"
+    "url": "https://github.com/yasinkuyu/stackerclient/issues"
   },
   "license": "MIT",
   "icon": "resources/icon.png",
