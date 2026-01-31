@@ -1,0 +1,138 @@
+<!-- Active Environment Indicator -->
+    <div id="envIndicator" class="env-indicator" style="display:none;padding:6px 12px;background:rgba(34,197,94,0.1);border-radius:4px;margin-bottom:8px;font-size:11px;color:#22c55e;">
+        <span style="opacity:0.7;">Active Environment:</span> <strong id="envName"></strong>
+    </div>
+
+    <!-- URL Bar -->
+    <div class="url-bar">
+        <select id="method" class="method-select">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+        </select>
+        <input type="text" id="url" class="url-input" placeholder="https://api.example.com/{{endpoint}} (use {{var}} for env variables)">
+        <button id="sendBtn" class="send-btn">Send</button>
+        <button id="saveBtn" class="save-btn">Save</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="headers">Headers</button>
+        <button class="tab" data-tab="query">Query</button>
+        <button class="tab" data-tab="body">Body</button>
+        <button class="tab" data-tab="auth">Auth</button>
+        <button class="tab" data-tab="saved">Saved</button>
+    </div>
+
+    <!-- Headers Tab -->
+    <div id="headersTab" class="tab-content active">
+        <div class="section-title">
+            Request Headers
+            <span style="font-size: 11px; color: var(--vscode-descriptionForeground); font-weight: normal;">
+                Type to see suggestions
+            </span>
+        </div>
+        <div id="headersContainer"></div>
+        <button id="addHeaderBtn" class="btn-small">+ Add Header</button>
+    </div>
+
+    <!-- Query Tab -->
+    <div id="queryTab" class="tab-content">
+        <div class="section-title">
+            Query Parameters
+            <span style="font-size: 11px; color: var(--vscode-descriptionForeground); font-weight: normal;">
+                URL query string parameters
+            </span>
+        </div>
+        <div id="queryContainer"></div>
+        <button id="addQueryBtn" class="btn-small">+ Add Parameter</button>
+    </div>
+
+    <!-- Body Tab -->
+    <div id="bodyTab" class="tab-content">
+        <div class="section-title">Content Type</div>
+        <select id="contentType" class="content-type-select">
+            <option value="application/json">application/json</option>
+            <option value="text/plain">text/plain</option>
+            <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+            <option value="multipart/form-data">multipart/form-data</option>
+        </select>
+        <div class="section-title">Request Body</div>
+        <textarea id="bodyInput" placeholder='{"key": "{{value}}"} (use {{var}} for env variables)'></textarea>
+    </div>
+
+    <!-- Auth Tab -->
+    <div id="authTab" class="tab-content">
+        <div class="section-title">Authorization</div>
+        <div class="auth-section">
+            <div class="auth-header">
+                <span class="auth-title">Quick Add</span>
+            </div>
+            <button class="auth-btn" onclick="addAuthHeader('Bearer', 'Bearer token')">+ Bearer Token</button>
+            <button class="auth-btn" onclick="addAuthHeader('Basic', 'Basic credentials')">+ Basic Auth</button>
+            <button class="auth-btn" onclick="addAuthHeader('API Key', 'API key')">+ API Key</button>
+        </div>
+        
+        <div class="section-title">Saved Tokens</div>
+        <div id="tokenList" class="token-list">
+            <div class="empty-state">No saved tokens. Use Command Palette to add tokens.</div>
+        </div>
+    </div>
+
+    <!-- Saved Tab -->
+    <div id="savedTab" class="tab-content">
+        <div class="saved-toolbar">
+            <div class="saved-search">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="savedFilterInput" class="saved-search-input" placeholder="Search saved requests...">
+            </div>
+            <div class="saved-stats" id="savedStats"></div>
+        </div>
+        <div id="savedRequestsContainer" class="saved-requests-list">
+            <div class="empty-state">No saved requests yet</div>
+        </div>
+        <div class="pagination" id="pagination" style="display: none;">
+            <button class="page-btn" id="prevPage" onclick="changePage(-1)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <span class="page-info" id="pageInfo">1 / 1</span>
+            <button class="page-btn" id="nextPage" onclick="changePage(1)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Response -->
+    <div id="response" class="response" style="display:none">
+        <div class="response-header">
+            <span>Status: <span id="responseStatus" class="response-status"></span></span>
+            <span>Time: <span id="responseTime"></span></span>
+        </div>
+        <div class="response-tabs">
+            <button class="res-tab active" onclick="showResTab('resBody', event)">Body</button>
+            <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers</button>
+            <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
+        </div>
+        <div class="response-content">
+            <div id="resBody" class="res-tab-content active">
+                <pre id="responseBody" class="response-body"></pre>
+            </div>
+            <div id="resHeaders" class="res-tab-content">
+                <pre id="responseHeaders" class="pre-headers"></pre>
+            </div>
+            <div id="resCookies" class="res-tab-content">
+                <pre id="responseCookies" class="pre-headers">No cookies</pre>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
