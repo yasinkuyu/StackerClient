@@ -328,24 +328,17 @@ export function activate(context: vscode.ExtensionContext) {
             try {
                 const request = parseCurl(curlCommand);
 
-                // Panel yoksa aç
-                if (!currentPanel) {
-                    vscode.commands.executeCommand('stacker.open');
-                    // Panel oluşana kadar bekle (max 1 saniye)
-                    let attempts = 0;
-                    while (!currentPanel && attempts < 100) {
-                        await new Promise(r => setTimeout(r, 10));
-                        attempts++;
-                    }
-                }
+                // Always create new panel for imported cURL
+                const panel = createNewPanel(requestManager, context);
 
-                // Panel hazırsa gönder - importCurl flag'i ile query tab'ını otomatik aç
-                if (currentPanel) {
-                    currentPanel.webview.postMessage({
+                // Wait a bit for panel to initialize then send import data
+                setTimeout(() => {
+                    panel.webview.postMessage({
                         command: 'importCurl',
                         request: request
                     });
-                }
+                }, 300);
+
             } catch (error: any) {
                 vscode.window.showErrorMessage('Failed to parse cURL: ' + error.message);
             }
@@ -534,91 +527,173 @@ function parseCurl(curlCommand: string): any {
     }
 
     // Parse method (-X or --request)
-    const methodMatch = cmd.match(/-(?:X|request)\s+['"]?(\w+)['"]?/i);
+    const methodMatch = cmd.match(/-(?:X|request)\s+['"]*(\w+)['"]?/i);
     if (methodMatch) {
         request.method = methodMatch[1].toUpperCase();
     }
 
     // Parse headers (-H or --header) - handle both single and double quotes
-    // Pattern: -H 'Header: Value' or -H "Header: Value" or --header 'Header: Value'
-    const headerPatterns = [
-        /-(?:H|header)\s+'([^']+)'/gi,
-        /-(?:H|header)\s+"([^"]+)"/gi,
-        /--header\s+'([^']+)'/gi,
-        /--header\s+"([^"]+)"/gi
-    ];
-
-    for (const pattern of headerPatterns) {
-        let match;
-        while ((match = pattern.exec(cmd)) !== null) {
-            const headerStr = match[1];
+    const headerRegex = /-(?:H|header)\s+(?:'([^']+)'|"([^"]+)"|([^\s]+))/gi;
+    let headerMatch;
+    while ((headerMatch = headerRegex.exec(cmd)) !== null) {
+        const headerStr = headerMatch[1] || headerMatch[2] || headerMatch[3];
+        if (headerStr) {
             const colonIndex = headerStr.indexOf(':');
             if (colonIndex > 0) {
                 const key = headerStr.substring(0, colonIndex).trim();
                 const value = headerStr.substring(colonIndex + 1).trim();
 
                 // Avoid duplicate headers
-                const existing = request.headers.find((h: any) => h.key.toLowerCase() === key.toLowerCase());
-                if (!existing) {
+                const existingIndex = request.headers.findIndex((h: any) => h.key.toLowerCase() === key.toLowerCase());
+                if (existingIndex >= 0) {
+                    request.headers[existingIndex] = { key, value }; // Update existing
+                } else {
                     request.headers.push({ key, value });
                 }
 
                 if (key.toLowerCase() === 'content-type') {
-                    request.contentType = value.split(';')[0].trim(); // Handle "application/json; charset=utf-8"
+                    request.contentType = value.split(';')[0].trim();
                 }
             }
         }
     }
 
     // Parse data (-d, --data, --data-raw, --data-binary, --data-urlencode)
-    const dataPatterns = [
-        /-(?:d|data|data-raw|data-binary)\s+'([^']+)'/i,
-        /-(?:d|data|data-raw|data-binary)\s+"([^"]+)"/i,
-        /--data-urlencode\s+'([^']+)'/i,
-        /--data-urlencode\s+"([^"]+)"/i,
-        /-d\s+(\{[^}]+\})/i,  // Handle unquoted JSON: -d {key:value}
-        /--data\s+(\{[^}]+\})/i
-    ];
-
-    for (const pattern of dataPatterns) {
-        const dataMatch = cmd.match(pattern);
-        if (dataMatch) {
-            request.body = dataMatch[1];
-            if (request.method === 'GET') {
-                request.method = 'POST';
+    // Support multiple -d flags (concatenate with & for form data, or use last for JSON)
+    const dataParts: string[] = [];
+    const dataRegex = /-(?:d|data|data-raw|data-binary)\s+(?:'([^']+)'|"([^"]+)"|\$'([^']+)'|([^\s]+))/gi;
+    let dataMatch;
+    while ((dataMatch = dataRegex.exec(cmd)) !== null) {
+        const dataStr = dataMatch[1] || dataMatch[2] || dataMatch[3] || dataMatch[4];
+        if (dataStr) {
+            // Handle bash $'...' style escape sequences
+            let cleanData = dataStr;
+            if (dataMatch[3]) { // $'...' style
+                cleanData = dataStr.replace(/\\'/g, "'").replace(/\\n/g, '\n').replace(/\\t/g, '\t');
             }
-            break;
+            dataParts.push(cleanData);
         }
     }
 
-    // Also try to capture $'...' style strings (bash)
-    const bashDataMatch = cmd.match(/-(?:d|data|data-raw)\s+\$'([^']+)'/);
-    if (bashDataMatch && !request.body) {
-        request.body = bashDataMatch[1].replace(/\\'/g, "'").replace(/\\n/g, '\n');
+    // Parse --data-urlencode
+    const urlEncodeRegex = /--data-urlencode\s+(?:'([^']+)'|"([^"]+)"|([^\s]+))/gi;
+    let urlEncodeMatch;
+    while ((urlEncodeMatch = urlEncodeRegex.exec(cmd)) !== null) {
+        const dataStr = urlEncodeMatch[1] || urlEncodeMatch[2] || urlEncodeMatch[3];
+        if (dataStr) {
+            // If it's key=value format, encode only value part
+            if (dataStr.includes('=')) {
+                const [key, ...valueParts] = dataStr.split('=');
+                const value = valueParts.join('='); // Rejoin if value had = in it
+                dataParts.push(`${key}=${encodeURIComponent(value)}`);
+            } else {
+                dataParts.push(encodeURIComponent(dataStr));
+            }
+        }
+    }
+
+    // Parse form data (-F, --form)
+    const formParts: Array<{ key: string, value: string, type: 'text' | 'file', filename?: string }> = [];
+    const formRegex = /-(?:F|form)\s+(?:'([^']+)'|"([^"]+)"|([^\s]+))/gi;
+    let formMatch;
+    while ((formMatch = formRegex.exec(cmd)) !== null) {
+        const formStr = formMatch[1] || formMatch[2] || formMatch[3];
+        if (formStr) {
+            // Parse form field: key=value or key=@filename or key=<filename
+            const equalIndex = formStr.indexOf('=');
+            if (equalIndex > 0) {
+                const key = formStr.substring(0, equalIndex).trim();
+                const value = formStr.substring(equalIndex + 1).trim();
+                
+                if (value.startsWith('@')) {
+                    // File upload
+                    formParts.push({ 
+                        key, 
+                        value: value.substring(1), 
+                        type: 'file',
+                        filename: value.substring(1).split(/[\/\\]/).pop() || 'file'
+                    });
+                } else if (value.startsWith('<')) {
+                    // File content as text
+                    formParts.push({ 
+                        key, 
+                        value: value.substring(1), 
+                        type: 'file',
+                        filename: value.substring(1).split(/[\/\\]/).pop() || 'file'
+                    });
+                } else {
+                    // Regular form field
+                    formParts.push({ key, value, type: 'text' });
+                }
+            }
+        }
+    }
+
+    // Handle data body construction
+    if (dataParts.length > 0) {
+        // Check if it's JSON
+        const isJson = dataParts.some(p => p.trim().startsWith('{') || p.trim().startsWith('['));
+        if (isJson) {
+            // For JSON, use the last data part (usually the complete JSON)
+            request.body = dataParts[dataParts.length - 1];
+        } else {
+            // For form data, concatenate with &
+            request.body = dataParts.join('&');
+        }
         if (request.method === 'GET') {
             request.method = 'POST';
         }
     }
 
-    // Parse URL - handle various positions and quote styles
-    // First try quoted URLs
-    let urlMatch = cmd.match(/['"]?(https?:\/\/[^\s'"]+)['"]?/);
-    if (!urlMatch) {
-        // Try URL at the end without quotes
-        urlMatch = cmd.match(/(https?:\/\/[^\s]+)$/);
+    // Handle form data
+    if (formParts.length > 0) {
+        request.formData = formParts;
+        request.contentType = 'multipart/form-data';
+        if (request.method === 'GET') {
+            request.method = 'POST';
+        }
     }
+
+    // Parse URL - handle various formats
+    // 1. Try --url flag
+    let urlMatch = cmd.match(/--url\s+(?:'([^']+)'|"([^"]+)"|([^\s]+))/i);
+    
+    // 2. Try quoted URLs
     if (!urlMatch) {
-        // Try URL anywhere
-        urlMatch = cmd.match(/(https?:\/\/[^\s'"\\]+)/);
+        urlMatch = cmd.match(/['"](https?:\/\/[^'"]+)['"]/);
+    }
+    
+    // 3. Try unquoted URL (usually at the end or beginning)
+    if (!urlMatch) {
+        // Remove flags and their values to isolate URL
+        const withoutFlags = cmd
+            .replace(/-(?:H|header)\s+(?:'[^']*'|"[^"]*"|[^\s]+)/gi, '')
+            .replace(/-(?:d|data|data-raw|data-binary|data-urlencode)\s+(?:'[^']*'|"[^"]*"|\$'[^']*'|[^\s]+)/gi, '')
+            .replace(/-(?:F|form)\s+(?:'[^']*'|"[^"]*"|[^\s]+)/gi, '')
+            .replace(/-(?:X|request)\s+['"]?\w+['"]?/gi, '')
+            .replace(/-(?:A|user-agent)\s+(?:'[^']*'|"[^"]*")/gi, '')
+            .replace(/-(?:u|user)\s+(?:'[^']*'|"[^"]*"|[^\s]+)/gi, '')
+            .replace(/-(?:b|cookie)\s+(?:'[^']*'|"[^"]*")/gi, '')
+            .replace(/--(?:compressed|insecure|L|location)\b/gi, '')
+            .replace(/-(?:L|k)\b/gi, '')
+            .trim();
+        
+        urlMatch = withoutFlags.match(/(https?:\/\/[^\s'"]+)/);
     }
 
     if (urlMatch) {
-        // Clean URL - remove trailing quotes or special chars
-        let cleanUrl = urlMatch[1].replace(/['"]$/, '').replace(/\\$/, '');
+        let cleanUrl = (urlMatch[1] || urlMatch[2] || urlMatch[3] || urlMatch[0]).trim();
+        
+        // Remove trailing quotes or special chars
+        cleanUrl = cleanUrl.replace(/['"]+$/, '').replace(/\\+$/, '');
 
         // Parse query parameters
         try {
-            const urlObj = new URL(cleanUrl);
+            // Handle URLs with hash fragments
+            const hashIndex = cleanUrl.indexOf('#');
+            const urlWithoutHash = hashIndex >= 0 ? cleanUrl.substring(0, hashIndex) : cleanUrl;
+            
+            const urlObj = new URL(urlWithoutHash);
             const queryParams: Array<{ key: string, value: string }> = [];
 
             urlObj.searchParams.forEach((value, key) => {
@@ -630,6 +705,10 @@ function parseCurl(curlCommand: string): any {
                 // Remove query string from URL for display
                 urlObj.search = '';
                 cleanUrl = urlObj.toString();
+                // Restore hash if present
+                if (hashIndex >= 0) {
+                    cleanUrl += cleanUrl.substring(hashIndex);
+                }
             }
         } catch (e) {
             // Invalid URL, keep as is
@@ -658,7 +737,7 @@ function parseCurl(curlCommand: string): any {
     }
 
     // Parse basic auth (-u or --user)
-    const authMatch = cmd.match(/-(?:u|user)\s+['"]?([^'"\s]+)['"]?/i);
+    const authMatch = cmd.match(/-(?:u|user)\s+['"]*([^'"\s]+)['"]?/i);
     if (authMatch) {
         const credentials = authMatch[1];
         const base64 = Buffer.from(credentials).toString('base64');
@@ -674,6 +753,16 @@ function parseCurl(curlCommand: string): any {
         const hasCookie = request.headers.some((h: any) => h.key.toLowerCase() === 'cookie');
         if (!hasCookie) {
             request.headers.push({ key: 'Cookie', value: cookieMatch[1] });
+        }
+    }
+
+    // Handle @file syntax for data
+    const fileDataMatch = cmd.match(/-(?:d|data|data-raw)\s+@([^\s'"]+)/);
+    if (fileDataMatch && !request.body) {
+        request.body = `@[File: ${fileDataMatch[1]}]`;
+        request.bodyFile = fileDataMatch[1];
+        if (request.method === 'GET') {
+            request.method = 'POST';
         }
     }
 
@@ -903,7 +992,7 @@ async function deleteAuthToken(name: string, context: vscode.ExtensionContext) {
 }
 
 // Create a new independent panel (not affecting currentPanel singleton)
-function createNewPanel(requestManager: RequestManager, context: vscode.ExtensionContext) {
+function createNewPanel(requestManager: RequestManager, context: vscode.ExtensionContext): vscode.WebviewPanel {
     // Calculate next request number based on saved requests count
     const allRequests = requestManager.getAllRequests();
     const nextRequestNumber = allRequests.length + 1;
@@ -957,6 +1046,8 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
                 break;
         }
     });
+    
+    return panel;
 }
 
 async function handleSendRequest(request: any, panel: vscode.WebviewPanel, requestManager?: RequestManager) {
@@ -2955,7 +3046,25 @@ function getWebviewContent(webview: vscode.Webview): string {
             document.getElementById('method').value = req.method;
             document.getElementById('url').value = req.url;
             document.getElementById('contentType').value = req.contentType || 'application/json';
-            document.getElementById('bodyInput').value = req.body || '';
+            
+            // Handle form data from cURL import
+            if (req.formData && req.formData.length > 0) {
+                // Form data varsa body'yi form formatında göster
+                const formBody = req.formData.map(function(f) {
+                    if (f.type === 'file') {
+                        return f.key + '=@[' + (f.filename || 'file') + ']';
+                    }
+                    return f.key + '=' + f.value;
+                }).join('\n');
+                document.getElementById('bodyInput').value = formBody;
+            } else {
+                document.getElementById('bodyInput').value = req.body || '';
+            }
+            
+            // Handle file upload indicator in body
+            if (req.bodyFile) {
+                showToast('Note: File upload "@' + req.bodyFile + '" needs manual handling');
+            }
             
             // Headers'ı yükle
             const headersContainer = document.getElementById('headersContainer');
@@ -2971,12 +3080,23 @@ function getWebviewContent(webview: vscode.Webview): string {
                 req.queryParams.forEach(p => addQueryRow(p.key, p.value, p.checked !== false));
             }
             
+            // Tab switching logic
+            const hasQueryParams = req.queryParams && req.queryParams.length > 0;
+            const hasFormData = req.formData && req.formData.length > 0;
+            
             // Eğer query parametreleri varsa ve import ediliyorsa query tab'ını aktif yap
-            if (req.queryParams && req.queryParams.length > 0 && activateTab === 'query') {
+            if (hasQueryParams && activateTab === 'query') {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.querySelector('[data-tab="query"]').classList.add('active');
                 document.getElementById('queryTab').classList.add('active');
+            } else if (hasFormData) {
+                // Form data varsa body tab'ını aç
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.querySelector('[data-tab="body"]').classList.add('active');
+                document.getElementById('bodyTab').classList.add('active');
+                showToast('Form data imported - check Body tab');
             } else {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
