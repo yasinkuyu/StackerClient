@@ -2,6 +2,11 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.1] - 2026-02-01
+
+### Fixed
+- GitHub repository URL corrected
+
 ## [1.1.0] - 2026-02-01
 
 ### Added
