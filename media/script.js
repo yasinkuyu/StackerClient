@@ -667,21 +667,24 @@ const vscode = acquireVsCodeApi();
             });
             headersContainer.innerHTML = headersHtml;
 
-            // Body - with syntax highlighting for JSON
+            // Body - with JSON tree viewer
             const bodyEl = document.getElementById('responseBody');
-            let bodyContent = '';
+            var jsonData = null;
+
             if (typeof response.body === 'object') {
-                bodyContent = JSON.stringify(response.body, null, 2);
-                bodyEl.innerHTML = syntaxHighlightJSON(bodyContent);
+                jsonData = response.body;
             } else {
-                bodyContent = response.body;
-                // Try to parse as JSON for highlighting
+                // Try to parse as JSON
                 try {
-                    var parsed = JSON.parse(bodyContent);
-                    bodyEl.innerHTML = syntaxHighlightJSON(JSON.stringify(parsed, null, 2));
+                    jsonData = JSON.parse(response.body);
                 } catch (e) {
-                    bodyEl.textContent = bodyContent;
+                    // Not JSON, show as plain text
+                    bodyEl.textContent = response.body;
                 }
+            }
+
+            if (jsonData !== null) {
+                bodyEl.innerHTML = '<div class="json-tree">' + renderJSONTree(jsonData, 0) + '</div>';
             }
 
             // Cookies - formatted display
@@ -717,7 +720,131 @@ const vscode = acquireVsCodeApi();
             responseEl.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // JSON syntax highlighting
+        // JSON Tree Viewer - Collapsible
+        function renderJSONTree(data, level) {
+            level = level || 0;
+            var indent = '  '.repeat(level);
+            var html = '';
+
+            if (data === null) {
+                return '<span class="json-null">null</span>';
+            }
+
+            if (typeof data === 'boolean') {
+                return '<span class="json-boolean">' + data + '</span>';
+            }
+
+            if (typeof data === 'number') {
+                return '<span class="json-number">' + data + '</span>';
+            }
+
+            if (typeof data === 'string') {
+                var escaped = data.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                // Check if it's a URL
+                if (/^https?:\/\//.test(data)) {
+                    return '<span class="json-string">"<a href="' + escaped + '" class="json-link" title="Open URL">' + escaped + '</a>"</span>';
+                }
+                // Check if it's a date
+                if (/^\d{4}-\d{2}-\d{2}/.test(data)) {
+                    return '<span class="json-string json-date">"' + escaped + '"</span>';
+                }
+                return '<span class="json-string">"' + escaped + '"</span>';
+            }
+
+            if (Array.isArray(data)) {
+                if (data.length === 0) {
+                    return '<span class="json-bracket">[]</span>';
+                }
+                var id = 'json-' + Math.random().toString(36).substr(2, 9);
+                html += '<span class="json-toggle" onclick="toggleJSON(\'' + id + '\')">';
+                html += '<span class="json-toggle-icon">▼</span>';
+                html += '</span>';
+                html += '<span class="json-bracket">[</span>';
+                html += '<span class="json-size">' + data.length + ' items</span>';
+                html += '<div id="' + id + '" class="json-content">';
+                data.forEach(function(item, index) {
+                    html += '<div class="json-line">';
+                    html += '<span class="json-index">' + index + '</span>';
+                    html += '<span class="json-colon">: </span>';
+                    html += renderJSONTree(item, level + 1);
+                    if (index < data.length - 1) html += '<span class="json-comma">,</span>';
+                    html += '</div>';
+                });
+                html += '</div>';
+                html += '<span class="json-bracket">]</span>';
+                return html;
+            }
+
+            if (typeof data === 'object') {
+                var keys = Object.keys(data);
+                if (keys.length === 0) {
+                    return '<span class="json-bracket">{}</span>';
+                }
+                var id = 'json-' + Math.random().toString(36).substr(2, 9);
+                html += '<span class="json-toggle" onclick="toggleJSON(\'' + id + '\')">';
+                html += '<span class="json-toggle-icon">▼</span>';
+                html += '</span>';
+                html += '<span class="json-bracket">{</span>';
+                html += '<span class="json-size">' + keys.length + ' keys</span>';
+                html += '<div id="' + id + '" class="json-content">';
+                keys.forEach(function(key, index) {
+                    html += '<div class="json-line">';
+                    html += '<span class="json-key">"' + key + '"</span>';
+                    html += '<span class="json-colon">: </span>';
+                    html += renderJSONTree(data[key], level + 1);
+                    if (index < keys.length - 1) html += '<span class="json-comma">,</span>';
+                    html += '</div>';
+                });
+                html += '</div>';
+                html += '<span class="json-bracket">}</span>';
+                return html;
+            }
+
+            return String(data);
+        }
+
+        // Toggle JSON node
+        window.toggleJSON = function(id) {
+            var el = document.getElementById(id);
+            var toggle = el.previousElementSibling.previousElementSibling;
+            var icon = toggle.querySelector('.json-toggle-icon');
+            var size = el.previousElementSibling;
+
+            if (el.classList.contains('collapsed')) {
+                el.classList.remove('collapsed');
+                icon.textContent = '▼';
+                size.style.display = 'none';
+            } else {
+                el.classList.add('collapsed');
+                icon.textContent = '▶';
+                size.style.display = 'inline';
+            }
+        };
+
+        // Collapse/Expand all
+        window.collapseAllJSON = function() {
+            document.querySelectorAll('.json-content').forEach(function(el) {
+                el.classList.add('collapsed');
+                var toggle = el.previousElementSibling.previousElementSibling;
+                var icon = toggle.querySelector('.json-toggle-icon');
+                var size = el.previousElementSibling;
+                if (icon) icon.textContent = '▶';
+                if (size) size.style.display = 'inline';
+            });
+        };
+
+        window.expandAllJSON = function() {
+            document.querySelectorAll('.json-content').forEach(function(el) {
+                el.classList.remove('collapsed');
+                var toggle = el.previousElementSibling.previousElementSibling;
+                var icon = toggle.querySelector('.json-toggle-icon');
+                var size = el.previousElementSibling;
+                if (icon) icon.textContent = '▼';
+                if (size) size.style.display = 'none';
+            });
+        };
+
+        // Simple syntax highlight for non-JSON
         function syntaxHighlightJSON(json) {
             json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {

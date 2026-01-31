@@ -688,12 +688,122 @@
             color: var(--vscode-badge-foreground);
         }
 
-        /* JSON Syntax Highlighting */
-        .json-key { color: #9cdcfe; }
-        .json-string { color: #ce9178; }
-        .json-number { color: #b5cea8; }
-        .json-boolean { color: #569cd6; }
-        .json-null { color: #569cd6; }
+        /* JSON Tree Viewer */
+        .json-tree {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .json-line {
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .json-line:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .json-toggle {
+            cursor: pointer;
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+            user-select: none;
+        }
+
+        .json-toggle:hover {
+            color: #a78bfa;
+        }
+
+        .json-toggle-icon {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            transition: transform 0.15s;
+        }
+
+        .json-content {
+            overflow: hidden;
+            transition: max-height 0.2s ease;
+        }
+
+        .json-content.collapsed {
+            display: none;
+        }
+
+        .json-size {
+            display: none;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            margin-left: 8px;
+            font-style: italic;
+        }
+
+        .json-bracket {
+            color: var(--vscode-foreground);
+            opacity: 0.7;
+        }
+
+        .json-colon {
+            color: var(--vscode-foreground);
+            opacity: 0.5;
+        }
+
+        .json-comma {
+            color: var(--vscode-foreground);
+            opacity: 0.5;
+        }
+
+        .json-index {
+            color: #6A9955;
+            font-size: 11px;
+            min-width: 24px;
+            display: inline-block;
+        }
+
+        .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-string {
+            color: #ce9178;
+        }
+
+        .json-number {
+            color: #b5cea8;
+        }
+
+        .json-boolean {
+            color: #569cd6;
+            font-weight: 600;
+        }
+
+        .json-null {
+            color: #569cd6;
+            font-style: italic;
+        }
+
+        .json-date {
+            color: #DCDCAA;
+        }
+
+        .json-link {
+            color: #3794ff;
+            text-decoration: none;
+        }
+
+        .json-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Copy value on hover */
+        .json-line .json-string:hover,
+        .json-line .json-number:hover,
+        .json-line .json-boolean:hover {
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
 
         .pre-headers {
             background: var(--vscode-input-background);
