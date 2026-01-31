@@ -904,9 +904,13 @@ async function deleteAuthToken(name: string, context: vscode.ExtensionContext) {
 
 // Create a new independent panel (not affecting currentPanel singleton)
 function createNewPanel(requestManager: RequestManager, context: vscode.ExtensionContext) {
+    // Calculate next request number based on saved requests count
+    const allRequests = requestManager.getAllRequests();
+    const nextRequestNumber = allRequests.length + 1;
+    
     const panel = vscode.window.createWebviewPanel(
         'stackerClient',
-        '⚡ New Request',
+        `#${nextRequestNumber}`,
         vscode.ViewColumn.One,
         { enableScripts: true, retainContextWhenHidden: true }
     );
