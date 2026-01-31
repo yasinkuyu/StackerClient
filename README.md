@@ -14,7 +14,7 @@
  </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/VS%20Code-%5E1.74.0-blue.svg" alt="VS Code">
   <img src="https://img.shields.io/badge/Cursor-Compatible-blue.svg" alt="Cursor">
   <img src="https://img.shields.io/badge/Antigravity-Compatible-blue.svg" alt="Antigravity">
@@ -24,7 +24,10 @@
 ## 🌟 Features
 
 - 🚀 **Send HTTP Requests** - GET, POST, PUT, PATCH, DELETE with custom headers
+- 📚 **Example Requests** - 15+ ready-to-use API examples (JSONPlaceholder, HTTPBin, GitHub)
+- 🌍 **Environment Variables** - Manage multiple environments with `{{variable}}` syntax
 - 🔐 **Authentication** - Bearer tokens, Basic Auth, API Keys with secure storage
+- 👁️ **HTML Preview** - Render HTML responses with Raw/Preview toggle
 - 💾 **Request History** - Save, rename, filter and organize your requests
 - 📥 **Import cURL** - Convert cURL commands to StackerClient requests
 - 🔍 **Smart Autocomplete** - Headers autocomplete with suggestions
@@ -68,9 +71,39 @@ Click the `⚡ StackerClient` button in the bottom-left status bar for quick men
 3. Paste your token in the header value
 
 #### Saved Tokens
-1. Open Command Palette (`Cmd+Shift+P`)
-2. Type: `StackerClient: Manage Auth`
+1. Go to **Auth** tab
+2. Click **+ Add** button in Saved Tokens section
 3. Add tokens with name for reuse
+4. Click ✓ to use, 🗑️ to delete
+
+### Environment Variables
+
+Manage multiple environments (Development, Production, Staging) with variable substitution:
+
+1. Open **Sidebar** → **Environments** tab
+2. Click **New Environment** (e.g., "Production")
+3. Add variables: `baseUrl` = `https://api.example.com`
+4. Click environment to activate (green "Active" badge)
+5. Use in requests: `{{baseUrl}}/users`
+
+**Supported locations:**
+- URL: `{{baseUrl}}/users/{{userId}}`
+- Headers: `Authorization: Bearer {{token}}`
+- Body: `{"id": "{{userId}}"}`
+- Query Parameters: `?page={{pageNum}}&limit={{pageSize}}`
+
+### Example Requests
+
+Quick start with 15+ built-in examples:
+
+1. Click **📚 Examples** button (next to Save)
+2. Choose from categories:
+   - **JSONPlaceholder**: Fake REST API for testing
+   - **HTTPBin**: HTTP testing endpoints
+   - **Reqres**: Mock API for prototyping
+   - **GitHub API**: Real API examples
+   - **Authentication**: Bearer, Basic, API Key examples
+   - **Environment Demo**: Variables usage examples
 
 ### Import cURL
 

@@ -2,6 +2,34 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.0] - 2026-02-01
+
+### Added
+- **Example Requests**: 15+ ready-to-use API examples (JSONPlaceholder, HTTPBin, Reqres, GitHub API)
+- **Environment Variables**: Full environment management with `{{variable}}` syntax support
+  - URL, headers, body, and query parameters interpolation
+  - Multiple environments (Development, Production, Staging)
+- **HTML Preview**: Render HTML responses in iframe with Raw/Preview toggle
+- **Headers Raw/Table View**: Toggle between formatted table and raw headers view
+- **Modern Auth Tab UI**: Redesigned token management with inline "Add" button
+- **Token Auto-Sync**: Token changes instantly reflect across all open panels
+- **Query Parameter Variables**: Environment variables now work in query parameters
+- **New Example Categories**:
+  - Authentication examples (Bearer, Basic, API Key)
+  - Query parameter examples
+  - Complex examples (Auth + Query + Body)
+  - Environment variables demo
+
+### Changed
+- **Placeholder Texts**: Realistic examples instead of variable syntax
+- **Token UI**: Minimalist card-based design with icons
+- **Response Toolbar**: Smart buttons based on content type (JSON/HTML)
+
+### Fixed
+- Token addition not reflecting until panel reload
+- Environment variable interpolation in query parameters
+- HTML preview CSP issues (switched to srcdoc)
+
 ## [1.0.0] - 2024-01-31
 
 ### Added
