@@ -729,11 +729,23 @@ const vscode = acquireVsCodeApi();
                 bodyEl.innerHTML = '<div class="json-tree">' + renderJSONTree(jsonData, 0) + '</div>';
             }
 
-            // Setup HTML preview
+            // Setup HTML preview using srcdoc (more secure and CSP-friendly)
             if (isHtml && response.body) {
-                const blob = new Blob([response.body], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                previewFrame.src = url;
+                // Sanitize and prepare HTML for preview
+                let htmlContent = response.body;
+                
+                // Add base target to prevent links from breaking out
+                if (!htmlContent.includes('<base')) {
+                    htmlContent = htmlContent.replace('<head>', '<head><base target="_blank">');
+                    if (!htmlContent.includes('<head>')) {
+                        htmlContent = '<base target="_blank">' + htmlContent;
+                    }
+                }
+                
+                // Use srcdoc for better security and CSP compliance
+                previewFrame.srcdoc = htmlContent;
+            } else {
+                previewFrame.srcdoc = '';
             }
 
             // Cookies - formatted display
@@ -1239,7 +1251,8 @@ const vscode = acquireVsCodeApi();
             // Clear preview frame
             const previewFrame = document.getElementById('previewFrame');
             if (previewFrame) {
-                previewFrame.src = 'about:blank';
+                previewFrame.srcdoc = '';
+                previewFrame.removeAttribute('src');
             }
             
             // Clear response headers
@@ -1397,6 +1410,15 @@ const vscode = acquireVsCodeApi();
                     { key: 'X-Custom-Header', value: 'StackerClient' }
                 ],
                 contentType: 'application/json',
+                body: ''
+            },
+            'httpbin-html': {
+                method: 'GET',
+                url: 'https://httpbin.org/html',
+                headers: [
+                    { key: 'Accept', value: 'text/html' }
+                ],
+                contentType: 'text/html',
                 body: ''
             },
             'reqres-users': {

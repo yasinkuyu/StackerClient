@@ -8,6 +8,11 @@
   <strong>Modern REST API Client for VS Code, Cursor & Antigravity IDE</strong>
 </p>
 
+ <p align="center">
+   <img src="media/screenshot.png" width="48%" alt="StackerClient light">
+   <img src="media/screenshot_dark.png" width="48%" alt="StackerClient dark">
+ </p>
+
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/VS%20Code-%5E1.74.0-blue.svg" alt="VS Code">
