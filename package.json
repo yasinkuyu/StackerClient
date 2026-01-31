@@ -1,0 +1,282 @@
+{
+  "name": "stacker-client",
+  "displayName": "StackerClient - REST API Client",
+  "description": "Powerful REST API client for VS Code, Cursor, and Antigravity IDE. Test APIs, manage auth tokens, save request history with modern UI. Lightweight alternative to Postman and Insomnia.",
+  "version": "1.0.0",
+  "publisher": "Insya - Yasin Kuyu",
+  "author": {
+    "name": "Insya - Yasin Kuyu",
+    "email": "yasin@insya.com",
+    "url": "https://insya.com"
+  },
+  "homepage": "https://insya.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yasinkuyu/stacker-client"
+  },
+  "bugs": {
+    "url": "https://github.com/yasinkuyu/stacker-client/issues"
+  },
+  "license": "MIT",
+  "icon": "resources/icon.svg",
+  "keywords": [
+    "rest",
+    "api",
+    "http",
+    "client",
+    "postman",
+    "insomnia",
+    "thunder-client",
+    "request",
+    "debug",
+    "testing",
+    "api-testing",
+    "rest-client",
+    "http-client"
+  ],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Testing",
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:stackerSidebar",
+    "onCommand:stacker.open",
+    "onCommand:stacker.addRequest"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "stacker.open",
+        "title": "StackerClient: Open",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "stacker.refresh",
+        "title": "StackerClient: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "stacker.addRequest",
+        "title": "StackerClient: New Request",
+        "icon": "$(add)"
+      },
+      {
+        "command": "stacker.deleteRequest",
+        "title": "StackerClient: Delete Request",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "stacker.loadRequest",
+        "title": "StackerClient: Load Request"
+      },
+      {
+        "command": "stacker.manageAuth",
+        "title": "StackerClient: Manage Auth Tokens",
+        "icon": "$(key)"
+      },
+      {
+        "command": "stacker.showQuickMenu",
+        "title": "StackerClient: Quick Menu"
+      },
+      {
+        "command": "stacker.renameRequest",
+        "title": "StackerClient: Rename Request",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "stacker.importCurl",
+        "title": "StackerClient: Import cURL",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "stacker.clearHistory",
+        "title": "StackerClient: Clear All History",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "stacker.help",
+        "title": "StackerClient: Help & About",
+        "icon": "$(question)"
+      },
+      {
+        "command": "stacker.exportData",
+        "title": "StackerClient: Export All Data",
+        "icon": "$(export)"
+      },
+      {
+        "command": "stacker.importData",
+        "title": "StackerClient: Import Data",
+        "icon": "$(import)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "stackerContainer",
+          "title": "StackerClient",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "stackerContainer": [
+        {
+          "type": "webview",
+          "id": "stackerSidebar",
+          "name": "Requests"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "StackerClient",
+      "properties": {
+        "stacker.requestTimeout": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "Request timeout in milliseconds (default: 30000ms = 30 seconds)"
+        },
+        "stacker.defaultContentType": {
+          "type": "string",
+          "default": "application/json",
+          "enum": [
+            "application/json",
+            "application/x-www-form-urlencoded",
+            "multipart/form-data",
+            "text/plain",
+            "text/html",
+            "application/xml"
+          ],
+          "description": "Default Content-Type for new requests"
+        },
+        "stacker.defaultMethod": {
+          "type": "string",
+          "default": "GET",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+          "description": "Default HTTP method for new requests"
+        },
+        "stacker.maxHistoryItems": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum number of requests to keep in history"
+        },
+        "stacker.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show StackerClient in status bar"
+        },
+        "stacker.autoSaveRequests": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically save requests after sending"
+        },
+        "stacker.followRedirects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically follow HTTP redirects"
+        },
+        "stacker.validateSSL": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate SSL certificates (disable for self-signed certs)"
+        },
+        "stacker.prettyPrintResponse": {
+          "type": "boolean",
+          "default": true,
+          "description": "Format JSON responses with indentation"
+        },
+        "stacker.theme": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "light", "dark"],
+          "enumDescriptions": [
+            "Follow VS Code theme",
+            "Always use light theme",
+            "Always use dark theme"
+          ],
+          "description": "UI theme for StackerClient panels"
+        },
+        "stacker.proxy.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable HTTP proxy"
+        },
+        "stacker.proxy.url": {
+          "type": "string",
+          "default": "",
+          "description": "Proxy URL (e.g., http://proxy.example.com:8080)"
+        },
+        "stacker.defaultHeaders": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          },
+          "description": "Default headers to include in all requests"
+        },
+        "stacker.responsePreview.maxSize": {
+          "type": "number",
+          "default": 5242880,
+          "description": "Maximum response size to preview (in bytes, default: 5MB)"
+        },
+        "stacker.sidebar.showMethodBadges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show colored method badges in sidebar"
+        },
+        "stacker.sidebar.groupByMethod": {
+          "type": "boolean",
+          "default": true,
+          "description": "Group requests by HTTP method in sidebar"
+        },
+        "stacker.editor.fontSize": {
+          "type": "number",
+          "default": 13,
+          "minimum": 10,
+          "maximum": 24,
+          "description": "Font size in request/response editor"
+        },
+        "stacker.editor.wordWrap": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable word wrap in response viewer"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "stacker.open",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "stacker.addRequest",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.0.0"
+  }
+}
