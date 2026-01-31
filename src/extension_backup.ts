@@ -42,15 +42,11 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebarProvider)
     );
 
-    const openCommand = vscode.commands.registerCommand('stacker.open', () => {
-        if (currentPanel) {
-            currentPanel.reveal(vscode.ViewColumn.One);
-            return;
-        }
-
-        currentPanel = vscode.window.createWebviewPanel(
+    // Helper function to create a new panel
+    function createPanel(title: string = 'StackerClient', isNewRequest: boolean = false) {
+        const panel = vscode.window.createWebviewPanel(
             'stackerClient',
-            'StackerClient',
+            title,
             vscode.ViewColumn.One,
             {
                 enableScripts: true,
@@ -58,47 +54,37 @@ export function activate(context: vscode.ExtensionContext) {
             }
         );
 
-        currentPanel.iconPath = new vscode.ThemeIcon('debug-alt');
-        currentPanel.webview.html = getWebviewContent(currentPanel.webview);
+        panel.iconPath = new vscode.ThemeIcon('debug-alt');
+        panel.webview.html = getWebviewContent(panel.webview);
 
-        currentPanel.webview.onDidReceiveMessage(async (message) => {
+        panel.webview.onDidReceiveMessage(async (message) => {
             switch (message.command) {
                 case 'sendRequest':
-                    await handleSendRequest(message.request, currentPanel!, requestManager);
+                    await handleSendRequest(message.request, panel, requestManager);
                     break;
                 case 'saveRequest':
-                    handleSaveRequest(message.request, requestManager, currentPanel!);
+                    handleSaveRequest(message.request, requestManager, panel);
                     sidebarProvider.refresh();
                     break;
                 case 'loadRequests':
-                    handleLoadRequests(requestManager, currentPanel!);
+                    handleLoadRequests(requestManager, panel);
                     break;
                 case 'deleteRequest':
-                    handleDeleteRequest(message.id, requestManager, currentPanel!);
+                    handleDeleteRequest(message.id, requestManager, panel);
                     sidebarProvider.refresh();
                     break;
                 case 'saveAuthToken':
                     await saveAuthToken(message.token, message.name, context);
                     break;
                 case 'loadAuthTokens':
-                    await loadAuthTokens(currentPanel!, context);
+                    await loadAuthTokens(panel, context);
                     break;
                 case 'deleteAuthToken':
                     await deleteAuthToken(message.name, context);
-                    await loadAuthTokens(currentPanel!, context);
-                    break;
-                case 'showInputBox':
-                    const result = await vscode.window.showInputBox({
-                        prompt: message.prompt,
-                        value: message.value
-                    });
-                    currentPanel!.webview.postMessage({
-                        command: 'inputBoxResponse',
-                        result: result
-                    });
+                    await loadAuthTokens(panel, context);
                     break;
                 case 'getSettings':
-                    currentPanel!.webview.postMessage({
+                    panel.webview.postMessage({
                         command: 'settings',
                         settings: getSettings()
                     });
@@ -108,45 +94,12 @@ export function activate(context: vscode.ExtensionContext) {
                         const envs = sidebarProvider.getEnvironments();
                         const activeEnv = envs.find(e => e.id === activeEnvId);
                         if (activeEnv) {
-                            currentPanel!.webview.postMessage({
+                            panel.webview.postMessage({
                                 command: 'activeEnvironment',
                                 environment: activeEnv
                             });
                         }
                     }
-                    break;
-            }
-        });
-
-        currentPanel.onDidDispose(() => {
-            currentPanel = undefined;
-        });
-    });
-
-    const refreshCommand = vscode.commands.registerCommand('stacker.refresh', () => {
-        sidebarProvider.refresh();
-    });
-
-    const addRequestCommand = vscode.commands.registerCommand('stacker.addRequest', () => {
-        // Always create new panel for new request
-        const panel = vscode.window.createWebviewPanel(
-            'stackerClient',
-            '⚡ New Request',
-            vscode.ViewColumn.One,
-            { enableScripts: true, retainContextWhenHidden: true }
-        );
-        panel.iconPath = new vscode.ThemeIcon('debug-alt');
-        panel.webview.html = getWebviewContent(panel.webview);
-        
-        // Setup message handlers
-        panel.webview.onDidReceiveMessage(async (message) => {
-            switch (message.command) {
-                case 'sendRequest':
-                    await handleSendRequest(message.request, panel);
-                    break;
-                case 'saveRequest':
-                    handleSaveRequest(message.request, requestManager, panel);
-                    sidebarProvider.refresh();
                     break;
                 case 'showInputBox':
                     const result = await vscode.window.showInputBox({
@@ -158,14 +111,45 @@ export function activate(context: vscode.ExtensionContext) {
                         result: result
                     });
                     break;
-                case 'getSettings':
-                    panel.webview.postMessage({
-                        command: 'settings',
-                        settings: getSettings()
-                    });
-                    break;
             }
         });
+
+        panel.onDidDispose(() => {
+            if (currentPanel === panel) {
+                currentPanel = undefined;
+            }
+        });
+
+        currentPanel = panel;
+        return panel;
+    }
+
+    // Create new panel for each new request
+    function createNewPanel() {
+        const panel = createPanel('⚡ New Request', true);
+        // Reset the form after a short delay to ensure panel is ready
+        setTimeout(() => {
+            panel.webview.postMessage({
+                command: 'resetForm'
+            });
+        }, 100);
+    }
+
+    const openCommand = vscode.commands.registerCommand('stacker.open', () => {
+        if (currentPanel) {
+            currentPanel.reveal(vscode.ViewColumn.One);
+            return;
+        }
+        createPanel();
+    });
+
+    const refreshCommand = vscode.commands.registerCommand('stacker.refresh', () => {
+        sidebarProvider.refresh();
+    });
+
+    const addRequestCommand = vscode.commands.registerCommand('stacker.addRequest', () => {
+        // Always open a new panel for new requests
+        createNewPanel();
     });
 
     const deleteRequestCommand = vscode.commands.registerCommand('stacker.deleteRequest', (item: any) => {
@@ -179,23 +163,50 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    const loadRequestCommand = vscode.commands.registerCommand('stacker.loadRequest', (item: any) => {
+    const loadRequestCommand = vscode.commands.registerCommand('stacker.loadRequest', async (item: any) => {
         const id = item?.id || item;
         if (id) {
             const request = requestManager.getRequest(id);
-            if (request && currentPanel) {
+            if (!request) return;
+            
+            // Check for unsaved changes in current panel
+            if (currentPanel) {
+                const hasUnsavedChanges = await checkUnsavedChanges(currentPanel);
+                if (hasUnsavedChanges) {
+                    const action = await vscode.window.showWarningMessage(
+                        'Current request has unsaved changes.',
+                        'Save & Continue',
+                        'Discard & Continue',
+                        'Cancel'
+                    );
+                    
+                    if (action === 'Cancel' || !action) return;
+                    if (action === 'Save & Continue') {
+                        currentPanel.webview.postMessage({ command: 'saveCurrentRequest' });
+                        // Wait a bit for save to complete
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                }
+            }
+            
+            if (currentPanel) {
                 currentPanel.webview.postMessage({
                     command: 'loadRequest',
                     request: request
                 });
+                // Update panel title with request name
+                currentPanel.title = `⚡ ${request.name}`;
                 currentPanel.reveal(vscode.ViewColumn.One);
-            } else if (request) {
+            } else {
                 vscode.commands.executeCommand('stacker.open');
                 setTimeout(() => {
-                    currentPanel?.webview.postMessage({
-                        command: 'loadRequest',
-                        request: request
-                    });
+                    if (currentPanel) {
+                        currentPanel.webview.postMessage({
+                            command: 'loadRequest',
+                            request: request
+                        });
+                        currentPanel.title = `⚡ ${request.name}`;
+                    }
                 }, 500);
             }
         }
@@ -1002,6 +1013,28 @@ function handleDeleteRequest(id: string, requestManager: RequestManager, panel: 
     handleLoadRequests(requestManager, panel);
 }
 
+// Track unsaved changes state
+let unsavedChangesMap = new Map<string, boolean>();
+
+async function checkUnsavedChanges(panel: vscode.WebviewPanel): Promise<boolean> {
+    return new Promise((resolve) => {
+        const disposable = panel.webview.onDidReceiveMessage(message => {
+            if (message.command === 'unsavedChangesResponse') {
+                disposable.dispose();
+                resolve(message.hasUnsavedChanges);
+            }
+        });
+        
+        panel.webview.postMessage({ command: 'checkUnsavedChanges' });
+        
+        // Timeout after 1 second (assume no unsaved changes if no response)
+        setTimeout(() => {
+            disposable.dispose();
+            resolve(false);
+        }, 1000);
+    });
+}
+
 // Get extension settings
 function getSettings() {
     const config = vscode.workspace.getConfiguration('stacker');
@@ -1659,6 +1692,50 @@ function getWebviewContent(webview: vscode.Webview): string {
             display: none;
         }
 
+        .response-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 16px;
+            background: var(--vscode-tab-inactiveBackground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            font-size: 12px;
+        }
+
+        .response-status {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .response-status.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .response-status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .content-type-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: auto;
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+
+        .content-type-badge.type-json { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .content-type-badge.type-html { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .content-type-badge.type-xml { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+        .content-type-badge.type-javascript { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .content-type-badge.type-css { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .content-type-badge.type-text { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+
         .response-tabs {
             display: flex;
             background: var(--vscode-tab-inactiveBackground);
@@ -1682,6 +1759,49 @@ function getWebviewContent(webview: vscode.Webview): string {
         .res-tab.active {
             color: var(--vscode-tab-activeForeground);
             border-bottom-color: var(--vscode-focusBorder);
+        }
+
+        .response-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--vscode-panel-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .format-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.15s;
+        }
+
+        .format-btn:hover {
+            opacity: 1;
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .preview-container {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border: none;
+        }
+
+        .preview-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
         }
 
         .response-content {
@@ -2169,15 +2289,38 @@ function getWebviewContent(webview: vscode.Webview): string {
         <div class="response-header">
             <span>Status: <span id="responseStatus" class="response-status"></span></span>
             <span>Time: <span id="responseTime"></span></span>
+            <span id="contentTypeBadge" class="content-type-badge"></span>
         </div>
         <div class="response-tabs">
-            <button class="res-tab active" onclick="showResTab('resBody')">Body</button>
+            <button class="res-tab active" onclick="showResTab('resBody')" id="tabBody">Body</button>
+            <button class="res-tab" onclick="showResTab('resPreview')" id="tabPreview" style="display:none">Preview</button>
             <button class="res-tab" onclick="showResTab('resHeaders')">Headers</button>
             <button class="res-tab" onclick="showResTab('resCookies')">Cookies</button>
         </div>
         <div class="response-content">
             <div id="resBody" class="res-tab-content active">
+                <div class="response-toolbar">
+                    <button class="format-btn" onclick="formatResponse()" title="Format/Prettify">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="21" y1="10" x2="3" y2="10"></line>
+                            <line x1="21" y1="6" x2="3" y2="6"></line>
+                            <line x1="21" y1="14" x2="3" y2="14"></line>
+                            <line x1="21" y1="18" x2="3" y2="18"></line>
+                        </svg>
+                        Format
+                    </button>
+                    <button class="format-btn" onclick="copyResponse()" title="Copy to clipboard">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                    </button>
+                </div>
                 <pre id="responseBody" class="response-body"></pre>
+            </div>
+            <div id="resPreview" class="res-tab-content">
+                <div class="preview-container" id="previewContainer"></div>
             </div>
             <div id="resHeaders" class="res-tab-content">
                 <pre id="responseHeaders" class="pre-headers"></pre>
@@ -2191,11 +2334,25 @@ function getWebviewContent(webview: vscode.Webview): string {
     <div id="toast" class="toast"></div>
 
     <script>
-        const vscode = acquireVsCodeApi();
+        console.log('[StackerClient] Script starting...');
+        
+        try {
+            var vscode = acquireVsCodeApi();
+            console.log('[StackerClient] vscode API acquired');
+        } catch(e) {
+            console.error('[StackerClient] Failed to acquire vscode API:', e);
+        }
+        
         const COMMON_HEADERS = ${headersJson};
         let savedRequests = [];
         let authTokens = {};
         let isLoading = false;
+
+        // Check if buttons exist
+        console.log('[StackerClient] Checking buttons...');
+        console.log('[StackerClient] sendBtn:', document.getElementById('sendBtn'));
+        console.log('[StackerClient] saveBtn:', document.getElementById('saveBtn'));
+        console.log('[StackerClient] addHeaderBtn:', document.getElementById('addHeaderBtn'));
 
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
@@ -2455,6 +2612,50 @@ function getWebviewContent(webview: vscode.Webview): string {
             }
         }
 
+        // Track unsaved changes
+        let originalRequestState = null;
+        let isDirty = false;
+        
+        function markDirty() {
+            isDirty = true;
+            updateWindowTitle();
+        }
+        
+        function markClean() {
+            isDirty = false;
+            originalRequestState = JSON.stringify(getCurrentRequest());
+            updateWindowTitle();
+        }
+        
+        function updateWindowTitle() {
+            // Update tab title indicator (if possible)
+            const title = document.title;
+            if (isDirty && !title.startsWith('● ')) {
+                document.title = '● ' + title;
+            } else if (!isDirty && title.startsWith('● ')) {
+                document.title = title.substring(2);
+            }
+        }
+        
+        function hasUnsavedChanges() {
+            if (!originalRequestState) return false;
+            const current = JSON.stringify(getCurrentRequest());
+            return current !== originalRequestState;
+        }
+        
+        // Add listeners to track changes
+        function setupChangeTracking() {
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('change', markDirty);
+                input.addEventListener('input', () => {
+                    // Debounce input events
+                    clearTimeout(input._dirtyTimeout);
+                    input._dirtyTimeout = setTimeout(markDirty, 500);
+                });
+            });
+        }
+        
         function getCurrentRequest() {
             // Sadece checked olan header'ları topla
             const headerRows = document.querySelectorAll('#headersContainer .key-value-row');
@@ -2509,85 +2710,126 @@ function getWebviewContent(webview: vscode.Webview): string {
             };
         }
 
-        document.getElementById('sendBtn').addEventListener('click', () => {
-            const request = getCurrentRequest();
-            
-            if (!request.url) {
-                showToast('Please enter a URL');
-                document.getElementById('url').focus();
-                return;
-            }
+        // Send button
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            console.log('StackerClient: Send button found');
+            sendBtn.addEventListener('click', () => {
+                console.log('StackerClient: Send button clicked');
+                try {
+                    const request = getCurrentRequest();
+                    
+                    if (!request.url) {
+                        showToast('Please enter a URL');
+                        document.getElementById('url').focus();
+                        return;
+                    }
 
-            if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
-                showToast('URL must start with http:// or https://');
-                document.getElementById('url').focus();
-                return;
-            }
+                    if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
+                        showToast('URL must start with http:// or https://');
+                        document.getElementById('url').focus();
+                        return;
+                    }
 
-            setLoading(true);
-            vscode.postMessage({ command: 'sendRequest', request });
-        });
+                    setLoading(true);
+                    vscode.postMessage({ command: 'sendRequest', request });
+                } catch (err) {
+                    console.error('Send error:', err);
+                    showToast('Error: ' + err.message);
+                }
+            });
+        } else {
+            console.error('StackerClient: Send button NOT found');
+        }
 
         // Global değişken olarak mevcut request ID'sini tut
         let currentRequestId = null;
         
-        // Save button
+        // Save button with spinner
         const saveBtn = document.getElementById('saveBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                const request = getCurrentRequest();
-                
-                if (!request.url) {
-                    showToast('Please enter a URL before saving');
-                    document.getElementById('url').focus();
-                    return;
-                }
-
-                if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
-                    showToast('URL must start with http:// or https://');
-                    document.getElementById('url').focus();
-                    return;
-                }
-
-                // İsim için öneri oluştur
-                let defaultName;
-                try {
-                    defaultName = new URL(request.url).pathname || 'root';
-                } catch {
-                    defaultName = 'untitled';
-                }
-                
-                // Kullanıcıdan isim al
-                vscode.postMessage({ 
-                    command: 'showInputBox', 
-                    prompt: 'Enter request name',
-                    value: currentRequestId ? undefined : defaultName
-                });
-            });
+        if (!saveBtn) {
+            console.error('StackerClient: Save button NOT found');
+        } else {
+        console.log('StackerClient: Save button found');
+        const originalSaveText = saveBtn.innerHTML;
+        
+        function setSaveLoading(loading) {
+            if (loading) {
+                saveBtn.innerHTML = '<span class="spinner-small"></span>Saving...';
+                saveBtn.disabled = true;
+            } else {
+                saveBtn.innerHTML = originalSaveText;
+                saveBtn.disabled = false;
+            }
         }
-
-        // Input box yanıtı için callback
-        window.handleInputBoxResponse = function(name) {
-            if (name === undefined) return;
+        
+        saveBtn.addEventListener('click', () => {
+            console.log('StackerClient: Save button clicked');
+            try {
+            setSaveLoading(true);
             
             const request = getCurrentRequest();
-            const defaultName = request.url ? (new URL(request.url).pathname || 'root') : 'untitled';
             
-            const requestToSave = {
-                id: currentRequestId || Date.now().toString(),
-                name: name || defaultName,
-                method: request.method,
-                url: request.url,
-                headers: request.headers,
-                contentType: request.contentType,
-                body: request.body,
-                queryParams: request.queryParams
+            if (!request.url) {
+                showToast('Please enter a URL before saving');
+                document.getElementById('url').focus();
+                setSaveLoading(false);
+                return;
+            }
+
+            // URL format validation
+            if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
+                showToast('URL must start with http:// or https://');
+                document.getElementById('url').focus();
+                setSaveLoading(false);
+                return;
+            }
+
+            // İsim için öneri oluştur
+            let defaultName;
+            try {
+                defaultName = new URL(request.url).pathname || 'root';
+            } catch {
+                defaultName = 'untitled';
+            }
+            
+            // Kullanıcıdan isim al
+            vscode.postMessage({ 
+                command: 'showInputBox', 
+                prompt: 'Enter request name',
+                value: currentRequestId ? undefined : defaultName
+            });
+            
+            // Callback for input box response
+            window.saveRequestCallback = (name) => {
+                if (name === undefined) {
+                    setSaveLoading(false);
+                    return; // İptal edildi
+                }
+
+                const requestToSave = {
+                    id: currentRequestId || Date.now().toString(),
+                    name: name || defaultName,
+                    method: request.method,
+                    url: request.url,
+                    headers: request.headers,
+                    contentType: request.contentType,
+                    body: request.body,
+                    queryParams: request.queryParams
+                };
+                
+                currentRequestId = requestToSave.id;
+                vscode.postMessage({ command: 'saveRequest', request: requestToSave });
+                showToast(currentRequestId ? 'Request updated!' : 'Request saved!');
+                setSaveLoading(false);
             };
-            
-            currentRequestId = requestToSave.id;
-            vscode.postMessage({ command: 'saveRequest', request: requestToSave });
-            showToast(currentRequestId ? 'Request updated!' : 'Request saved!');
-        };
+        } catch (err) {
+            console.error('Save error:', err);
+            showToast('Error: ' + err.message);
+            setSaveLoading(false);
+        }
+        });
+        } // end if saveBtn exists
 
         window.addEventListener('message', event => {
             const message = event.data;
@@ -2606,11 +2848,42 @@ function getWebviewContent(webview: vscode.Webview): string {
                     break;
                 case 'requestSaved':
                     showToast('Request saved successfully!');
+                    markClean();
+                    break;
+                case 'resetForm':
+                    // Reset form to default state for new request
+                    document.getElementById('method').value = 'GET';
+                    document.getElementById('url').value = '';
+                    document.getElementById('contentType').value = 'application/json';
+                    document.getElementById('bodyInput').value = '';
+                    document.getElementById('headersContainer').innerHTML = '';
+                    document.getElementById('queryContainer').innerHTML = '';
+                    document.getElementById('response').style.display = 'none';
+                    currentRequestId = null;
+                    originalRequestState = null;
+                    isDirty = false;
+                    document.title = '⚡ New Request';
+                    // Add default tracking
+                    setTimeout(() => {
+                        originalRequestState = JSON.stringify(getCurrentRequest());
+                        setupChangeTracking();
+                    }, 100);
                     break;
                 case 'inputBoxResponse':
-                    if (window.handleInputBoxResponse) {
-                        window.handleInputBoxResponse(message.result);
+                    // Handle input box response for save dialog
+                    if (window.saveRequestCallback) {
+                        window.saveRequestCallback(message.result);
+                        window.saveRequestCallback = null;
                     }
+                    break;
+                case 'checkUnsavedChanges':
+                    vscode.postMessage({
+                        command: 'unsavedChangesResponse',
+                        hasUnsavedChanges: hasUnsavedChanges()
+                    });
+                    break;
+                case 'saveCurrentRequest':
+                    document.getElementById('saveBtn').click();
                     break;
                 case 'authTokens':
                     authTokens = message.tokens || {};
@@ -2618,10 +2891,21 @@ function getWebviewContent(webview: vscode.Webview): string {
                     break;
                 case 'loadRequest':
                     loadRequest(message.request);
+                    // Store state after loading for dirty checking
+                    setTimeout(() => {
+                        originalRequestState = JSON.stringify(getCurrentRequest());
+                        isDirty = false;
+                        setupChangeTracking();
+                    }, 100);
                     break;
                 case 'importCurl':
                     // Import cURL'da query parametreleri varsa query tab'ını aç
                     loadRequest(message.request, message.request.queryParams?.length > 0 ? 'query' : 'headers');
+                    setTimeout(() => {
+                        originalRequestState = JSON.stringify(getCurrentRequest());
+                        isDirty = false;
+                        setupChangeTracking();
+                    }, 100);
                     break;
                 case 'settings':
                     applySettings(message.settings);
@@ -2752,34 +3036,140 @@ function getWebviewContent(webview: vscode.Webview): string {
             return cookies;
         }
 
+        // Store current response for formatting
+        let currentResponse = null;
+        let currentResponseBody = null;
+
+        function detectContentType(headers, body) {
+            const contentType = headers['content-type'] || headers['Content-Type'] || '';
+            if (contentType.includes('application/json')) return 'json';
+            if (contentType.includes('text/html')) return 'html';
+            if (contentType.includes('application/xml') || contentType.includes('text/xml')) return 'xml';
+            if (contentType.includes('text/css')) return 'css';
+            if (contentType.includes('application/javascript') || contentType.includes('text/javascript')) return 'javascript';
+            if (contentType.includes('image/')) return 'image';
+            if (contentType.includes('text/plain')) return 'text';
+            
+            // Try to auto-detect from body
+            if (typeof body === 'string') {
+                const trimmed = body.trim();
+                if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) return 'html';
+                if (trimmed.startsWith('<?xml')) return 'xml';
+                if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                    try { JSON.parse(trimmed); return 'json'; } catch {}
+                }
+            }
+            return 'text';
+        }
+
+        function formatJson(text) {
+            try {
+                const obj = typeof text === 'string' ? JSON.parse(text) : text;
+                return JSON.stringify(obj, null, 2);
+            } catch {
+                return text;
+            }
+        }
+
+        function formatXml(text) {
+            try {
+                let formatted = '';
+                let indent = 0;
+                const lines = text.split(/>\s*</);
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (i > 0) line = '<' + line;
+                    if (i < lines.length - 1) line = line + '>';
+                    if (line.match(/^<\/\w/)) indent = Math.max(0, indent - 1);
+                    formatted += '  '.repeat(indent) + line + '\n';
+                    if (line.match(/^<\w[^>]*[^\/>]>.*$/)) indent++;
+                }
+                return formatted.trim();
+            } catch {
+                return text;
+            }
+        }
+
+        window.formatResponse = function() {
+            if (!currentResponseBody) return;
+            const bodyEl = document.getElementById('responseBody');
+            const contentType = detectContentType(currentResponse.headers || {}, currentResponseBody);
+            
+            if (contentType === 'json') {
+                bodyEl.textContent = formatJson(currentResponseBody);
+                showToast('JSON formatted');
+            } else if (contentType === 'xml') {
+                bodyEl.textContent = formatXml(currentResponseBody);
+                showToast('XML formatted');
+            } else {
+                showToast('No formatter available for this content type');
+            }
+        };
+
+        window.copyResponse = function() {
+            if (!currentResponseBody) return;
+            navigator.clipboard.writeText(currentResponseBody).then(() => {
+                showToast('Response copied to clipboard');
+            }).catch(() => {
+                showToast('Failed to copy');
+            });
+        };
+
         function displayResponse(response) {
+            currentResponse = response;
+            currentResponseBody = typeof response.body === 'object' ? JSON.stringify(response.body) : String(response.body || '');
+            
             const responseEl = document.getElementById('response');
             responseEl.style.display = 'block';
 
             const statusEl = document.getElementById('responseStatus');
-            statusEl.textContent = \`\${response.status} \${response.statusText}\`;
+            statusEl.textContent = response.status + " " + response.statusText;
             statusEl.className = 'response-status ' + (response.status >= 200 && response.status < 300 ? 'success' : 'error');
 
-            let timeInfo = \`\${response.time}ms\`;
+            let timeInfo = response.time + "ms";
             if (response.size) {
                 const sizeKB = (response.size / 1024).toFixed(1);
-                timeInfo += \` | \${sizeKB} KB\`;
+                timeInfo += " | " + sizeKB + " KB";
             }
             document.getElementById('responseTime').textContent = timeInfo;
+
+            // Content type badge
+            const contentType = detectContentType(response.headers || {}, currentResponseBody);
+            const badgeEl = document.getElementById('contentTypeBadge');
+            badgeEl.textContent = contentType.toUpperCase();
+            badgeEl.className = 'content-type-badge type-' + contentType;
 
             // Headers
             let headersText = JSON.stringify(response.headers, null, 2);
             if (response.interpolatedUrl) {
-                headersText = '// Variables interpolated: ' + response.interpolatedUrl + '\\n\\n' + headersText;
+                headersText = '// Variables interpolated: ' + response.interpolatedUrl + '\n\n' + headersText;
             }
             document.getElementById('responseHeaders').textContent = headersText;
 
             // Body
             const bodyEl = document.getElementById('responseBody');
-            if (typeof response.body === 'object') {
-                bodyEl.textContent = JSON.stringify(response.body, null, 2);
+            
+            // Format based on content type
+            if (contentType === 'json') {
+                bodyEl.textContent = formatJson(currentResponseBody);
+            } else if (contentType === 'xml') {
+                bodyEl.textContent = formatXml(currentResponseBody);
             } else {
-                bodyEl.textContent = response.body;
+                bodyEl.textContent = currentResponseBody;
+            }
+
+            // HTML Preview
+            const previewTab = document.getElementById('tabPreview');
+            if (contentType === 'html') {
+                previewTab.style.display = 'inline-block';
+                const previewContainer = document.getElementById('previewContainer');
+                // Sanitize and create safe preview
+                const escapedBody = currentResponseBody
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                previewContainer.innerHTML = '<iframe sandbox="allow-same-origin allow-scripts" srcdoc="' + escapedBody + '"></iframe>';
+            } else {
+                previewTab.style.display = 'none';
             }
 
             // Cookies
@@ -2794,7 +3184,7 @@ function getWebviewContent(webview: vscode.Webview): string {
             // Reset to Body tab
             document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.res-tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector('.res-tab').classList.add('active');
+            document.getElementById('tabBody').classList.add('active');
             document.getElementById('resBody').classList.add('active');
 
             responseEl.scrollIntoView({ behavior: 'smooth' });
@@ -2963,14 +3353,27 @@ function getWebviewContent(webview: vscode.Webview): string {
                 document.getElementById(activateTab + 'Tab').classList.add('active');
             }
             
-            showToast('Request loaded: ' + req.method + ' ' + req.url);
+            // Reset dirty state and setup tracking for new request
+            setTimeout(() => {
+                originalRequestState = JSON.stringify(getCurrentRequest());
+                isDirty = false;
+                setupChangeTracking();
+                document.title = req.name || (req.method + ' ' + req.url);
+            }, 50);
+            
+            showToast('Loaded: ' + (req.name || req.method + ' ' + req.url));
         }
 
         // Load on startup
-        vscode.postMessage({ command: 'loadRequests' });
-        vscode.postMessage({ command: 'loadAuthTokens' });
-        vscode.postMessage({ command: 'getSettings' });
-    </script>
+        console.log('[StackerClient] Sending initial messages...');
+        try {
+            vscode.postMessage({ command: 'loadRequests' });
+            vscode.postMessage({ command: 'loadAuthTokens' });
+            vscode.postMessage({ command: 'getSettings' });
+            console.log('[StackerClient] Initial messages sent');
+        } catch(e) {
+            console.error('[StackerClient] Failed to send messages:', e);
+        }
 </body>
 </html>`;
 }
