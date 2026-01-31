@@ -1209,8 +1209,24 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     // Apply environment variable interpolation
-    const interpolatedUrl = interpolateEnvironmentVariables(request.url, envVariables);
+    let interpolatedUrl = interpolateEnvironmentVariables(request.url, envVariables);
     const interpolatedBody = request.body ? interpolateEnvironmentVariables(request.body, envVariables) : '';
+
+    // Interpolate query parameters and rebuild URL
+    if (request.queryParams && Array.isArray(request.queryParams) && request.queryParams.length > 0) {
+        const urlObj = new URL(interpolatedUrl);
+        urlObj.search = ''; // Clear existing query string
+        
+        request.queryParams.forEach((param: any) => {
+            if (param.key && param.checked !== false) {
+                const interpolatedKey = interpolateEnvironmentVariables(param.key, envVariables);
+                const interpolatedValue = interpolateEnvironmentVariables(param.value || '', envVariables);
+                urlObj.searchParams.append(interpolatedKey, interpolatedValue);
+            }
+        });
+        
+        interpolatedUrl = urlObj.toString();
+    }
 
     const headers: Record<string, string> = {};
 

@@ -1580,6 +1580,21 @@ const vscode = acquireVsCodeApi();
                         joined: '2024-01-15'
                     }
                 }, null, 2)
+            },
+            'env-demo': {
+                method: 'GET',
+                url: '{{baseUrl}}/users/{{userId}}',
+                headers: [
+                    { key: 'Accept', value: 'application/json' },
+                    { key: 'Authorization', value: 'Bearer {{authToken}}' },
+                    { key: 'X-API-Version', value: '{{apiVersion}}' }
+                ],
+                contentType: 'application/json',
+                body: '',
+                queryParams: [
+                    { key: 'page', value: '{{pageNum}}' },
+                    { key: 'limit', value: '{{pageSize}}' }
+                ]
             }
         };
         

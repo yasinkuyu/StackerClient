@@ -12,7 +12,7 @@
             <option value="PATCH">PATCH</option>
             <option value="DELETE">DELETE</option>
         </select>
-        <input type="text" id="url" class="url-input" placeholder="https://api.example.com/{{endpoint}} (use {{var}} for env variables)">
+        <input type="text" id="url" class="url-input" placeholder="https://api.example.com/users">
         <button id="sendBtn" class="send-btn">Send</button>
         <button id="saveBtn" class="save-btn">Save</button>
         <button id="examplesBtn" class="examples-btn" title="Load Example Requests">
@@ -138,6 +138,12 @@
                 <span class="example-method post">POST</span>
                 <span class="example-name">POST with Auth</span>
             </div>
+            
+            <div class="example-category">Environment Variables</div>
+            <div class="example-item" data-example="env-demo">
+                <span class="example-method get">GET</span>
+                <span class="example-name">Environment Variables Demo</span>
+            </div>
         </div>
     </div>
 
@@ -184,7 +190,7 @@
             <option value="multipart/form-data">multipart/form-data</option>
         </select>
         <div class="section-title">Request Body</div>
-        <textarea id="bodyInput" placeholder='{"key": "{{value}}"} (use {{var}} for env variables)'></textarea>
+        <textarea id="bodyInput" placeholder='{"name": "John Doe", "email": "john@example.com"}'></textarea>
     </div>
 
     <!-- Auth Tab -->
