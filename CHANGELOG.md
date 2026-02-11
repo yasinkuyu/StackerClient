@@ -2,6 +2,12 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.2] - 2026-02-12
+
+### Fixed
+- Fixed extension bundling issues
+- Resolved dependency resolution errors in marketplace installation
+
 ## [1.1.1] - 2026-02-01
 
 ### Fixed
