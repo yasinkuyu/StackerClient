@@ -1,328 +1,550 @@
 <!-- Active Environment Indicator -->
-    <div id="envIndicator" class="env-indicator" style="display:none;padding:6px 12px;background:rgba(34,197,94,0.1);border-radius:4px;margin-bottom:8px;font-size:11px;color:#22c55e;">
-        <span style="opacity:0.7;">Active Environment:</span> <strong id="envName"></strong>
-    </div>
+<div id="envIndicator" class="env-indicator"
+    style="display:none;padding:6px 12px;background:rgba(34,197,94,0.1);border-radius:4px;margin-bottom:8px;font-size:11px;color:#22c55e;">
+    <span style="opacity:0.7;">Active Environment:</span> <strong id="envName"></strong>
+</div>
 
-    <!-- URL Bar -->
-    <div class="url-bar">
-        <select id="method" class="method-select">
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="PATCH">PATCH</option>
-            <option value="DELETE">DELETE</option>
-        </select>
-        <input type="text" id="url" class="url-input" placeholder="https://api.example.com/users">
-        <button id="sendBtn" class="send-btn">Send</button>
-        <button id="saveBtn" class="save-btn">Save</button>
-        <button id="examplesBtn" class="examples-btn" title="Load Example Requests">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-            </svg>
-        </button>
-    </div>
+<!-- URL Bar -->
+<div class="url-bar">
+    <select id="method" class="method-select">
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+        <option value="PUT">PUT</option>
+        <option value="PATCH">PATCH</option>
+        <option value="DELETE">DELETE</option>
+        <option value="HEAD">HEAD</option>
+        <option value="OPTIONS">OPTIONS</option>
+        <option value="CONNECT">CONNECT</option>
+        <option value="TRACE">TRACE</option>
+    </select>
+    <input type="text" id="url" class="url-input" placeholder="https://api.example.com/users">
+    <button id="sendBtn" class="send-btn">Send</button>
+    <button id="saveBtn" class="save-btn">Save</button>
+    <button id="examplesBtn" class="examples-btn" title="Load Example Requests">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+            </path>
+        </svg>
+    </button>
+</div>
 
-    <!-- Examples Modal -->
-    <div id="examplesModal" class="examples-modal">
-        <div class="examples-header">
-            <h3>Example Requests</h3>
-            <button id="closeExamples" class="close-btn">&times;</button>
+<!-- Examples Modal -->
+<div id="examplesModal" class="examples-modal">
+    <div class="examples-header">
+        <h3>Example Requests</h3>
+        <button id="closeExamples" class="close-btn">&times;</button>
+    </div>
+    <div class="examples-search">
+        <input type="text" id="examplesSearch" placeholder="Search examples...">
+    </div>
+    <div class="examples-list">
+        <div class="example-category">JSONPlaceholder (Fake REST API)</div>
+        <div class="example-item" data-example="jsonplaceholder-get-users">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get All Users</span>
         </div>
-        <div class="examples-list">
-            <div class="example-category">JSONPlaceholder (Fake REST API)</div>
-            <div class="example-item" data-example="jsonplaceholder-get-users">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Get All Users</span>
-            </div>
-            <div class="example-item" data-example="jsonplaceholder-get-posts">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Get All Posts</span>
-            </div>
-            <div class="example-item" data-example="jsonplaceholder-get-post">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Get Single Post</span>
-            </div>
-            <div class="example-item" data-example="jsonplaceholder-post">
-                <span class="example-method post">POST</span>
-                <span class="example-name">Create Post</span>
-            </div>
-            <div class="example-item" data-example="jsonplaceholder-put">
-                <span class="example-method put">PUT</span>
-                <span class="example-name">Update Post</span>
-            </div>
-            <div class="example-item" data-example="jsonplaceholder-patch">
-                <span class="example-method patch">PATCH</span>
-                <span class="example-name">Patch Post</span>
-            </div>
-            <div class="example-item" data-example="jsonplaceholder-delete">
-                <span class="example-method delete">DELETE</span>
-                <span class="example-name">Delete Post</span>
-            </div>
-            
-            <div class="example-category">HTTPBin (Testing API)</div>
-            <div class="example-item" data-example="httpbin-get">
-                <span class="example-method get">GET</span>
-                <span class="example-name">HTTPBin GET</span>
-            </div>
-            <div class="example-item" data-example="httpbin-post">
-                <span class="example-method post">POST</span>
-                <span class="example-name">HTTPBin POST</span>
-            </div>
-            <div class="example-item" data-example="httpbin-headers">
-                <span class="example-method get">GET</span>
-                <span class="example-name">HTTPBin Headers</span>
-            </div>
-            <div class="example-item" data-example="httpbin-html">
-                <span class="example-method get">GET</span>
-                <span class="example-name">HTTPBin HTML (Preview Test)</span>
-            </div>
-            
-            <div class="example-category">Reqres (Mock API)</div>
-            <div class="example-item" data-example="reqres-users">
-                <span class="example-method get">GET</span>
-                <span class="example-name">List Users</span>
-            </div>
-            <div class="example-item" data-example="reqres-create">
-                <span class="example-method post">POST</span>
-                <span class="example-name">Create User</span>
-            </div>
-            <div class="example-item" data-example="reqres-update">
-                <span class="example-method put">PUT</span>
-                <span class="example-name">Update User</span>
-            </div>
-            
-            <div class="example-category">GitHub API</div>
-            <div class="example-item" data-example="github-user">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Get GitHub User</span>
-            </div>
-            <div class="example-item" data-example="github-repos">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Get User Repos</span>
-            </div>
-            
-            <div class="example-category">Authentication Examples</div>
-            <div class="example-item" data-example="auth-bearer">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Bearer Token Auth</span>
-            </div>
-            <div class="example-item" data-example="auth-basic">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Basic Auth</span>
-            </div>
-            <div class="example-item" data-example="auth-apikey">
-                <span class="example-method get">GET</span>
-                <span class="example-name">API Key Header</span>
-            </div>
-            
-            <div class="example-category">Query Parameters</div>
-            <div class="example-item" data-example="query-search">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Search with Query</span>
-            </div>
-            <div class="example-item" data-example="query-filter">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Filter & Pagination</span>
-            </div>
-            <div class="example-item" data-example="query-multiple">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Multiple Parameters</span>
-            </div>
-            
-            <div class="example-category">Complex Examples</div>
-            <div class="example-item" data-example="complex-auth-query">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Auth + Query Params</span>
-            </div>
-            <div class="example-item" data-example="complex-post-auth">
-                <span class="example-method post">POST</span>
-                <span class="example-name">POST with Auth</span>
-            </div>
-            
-            <div class="example-category">Environment Variables</div>
-            <div class="example-item" data-example="env-demo">
-                <span class="example-method get">GET</span>
-                <span class="example-name">Environment Variables Demo</span>
-            </div>
+        <div class="example-item" data-example="jsonplaceholder-get-posts">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get All Posts</span>
+        </div>
+        <div class="example-item" data-example="jsonplaceholder-get-post">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get Single Post</span>
+        </div>
+        <div class="example-item" data-example="jsonplaceholder-post">
+            <span class="example-method post">POST</span>
+            <span class="example-name">Create Post</span>
+        </div>
+        <div class="example-item" data-example="jsonplaceholder-put">
+            <span class="example-method put">PUT</span>
+            <span class="example-name">Update Post</span>
+        </div>
+        <div class="example-item" data-example="jsonplaceholder-patch">
+            <span class="example-method patch">PATCH</span>
+            <span class="example-name">Patch Post</span>
+        </div>
+        <div class="example-item" data-example="jsonplaceholder-delete">
+            <span class="example-method delete">DELETE</span>
+            <span class="example-name">Delete Post</span>
+        </div>
+
+        <div class="example-category">HTTPBin (Testing API)</div>
+        <div class="example-item" data-example="httpbin-get">
+            <span class="example-method get">GET</span>
+            <span class="example-name">HTTPBin GET</span>
+        </div>
+        <div class="example-item" data-example="httpbin-post">
+            <span class="example-method post">POST</span>
+            <span class="example-name">HTTPBin POST</span>
+        </div>
+        <div class="example-item" data-example="httpbin-headers">
+            <span class="example-method get">GET</span>
+            <span class="example-name">HTTPBin Headers</span>
+        </div>
+        <div class="example-item" data-example="httpbin-html">
+            <span class="example-method get">GET</span>
+            <span class="example-name">HTTPBin HTML (Preview Test)</span>
+        </div>
+        <div class="example-item" data-example="httpbin-head">
+            <span class="example-method head">HEAD</span>
+            <span class="example-name">HEAD Request</span>
+        </div>
+        <div class="example-item" data-example="httpbin-options">
+            <span class="example-method options">OPTIONS</span>
+            <span class="example-name">OPTIONS Request</span>
+        </div>
+        <div class="example-item" data-example="httpbin-anything-post">
+            <span class="example-method post">POST</span>
+            <span class="example-name">POST with Body</span>
+        </div>
+        <div class="example-item" data-example="httpbin-anything-put">
+            <span class="example-method put">PUT</span>
+            <span class="example-name">PUT Request</span>
+        </div>
+        <div class="example-item" data-example="httpbin-anything-patch">
+            <span class="example-method patch">PATCH</span>
+            <span class="example-name">PATCH Request</span>
+        </div>
+        <div class="example-item" data-example="httpbin-delete">
+            <span class="example-method delete">DELETE</span>
+            <span class="example-name">DELETE Request</span>
+        </div>
+        <div class="example-item" data-example="httpbin-cookies">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get Cookies</span>
+        </div>
+        <div class="example-item" data-example="httpbin-set-cookies">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Set Cookies</span>
+        </div>
+        <div class="example-item" data-example="httpbin-ip">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get IP Address</span>
+        </div>
+        <div class="example-item" data-example="httpbin-user-agent">
+            <span class="example-method get">GET</span>
+            <span class="example-name">User Agent</span>
+        </div>
+        <div class="example-item" data-example="httpbin-delay">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Delayed Response (2s)</span>
+        </div>
+        <div class="example-item" data-example="httpbin-status">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Status Code Test</span>
+        </div>
+        <div class="example-item" data-example="httpbin-json">
+            <span class="example-method get">GET</span>
+            <span class="example-name">JSON Response</span>
+        </div>
+        <div class="example-item" data-example="httpbin-xml">
+            <span class="example-method get">GET</span>
+            <span class="example-name">XML Response</span>
+        </div>
+        <div class="example-item" data-example="httpbin-basic-auth">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Basic Auth Test</span>
+        </div>
+        <div class="example-item" data-example="httpbin bearer">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Bearer Token Test</span>
+        </div>
+
+        <div class="example-category">Reqres (Mock API)</div>
+        <div class="example-item" data-example="reqres-users">
+            <span class="example-method get">GET</span>
+            <span class="example-name">List Users</span>
+        </div>
+        <div class="example-item" data-example="reqres-create">
+            <span class="example-method post">POST</span>
+            <span class="example-name">Create User</span>
+        </div>
+        <div class="example-item" data-example="reqres-update">
+            <span class="example-method put">PUT</span>
+            <span class="example-name">Update User</span>
+        </div>
+
+        <div class="example-category">GitHub API</div>
+        <div class="example-item" data-example="github-user">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get GitHub User</span>
+        </div>
+        <div class="example-item" data-example="github-repos">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Get User Repos</span>
+        </div>
+
+        <div class="example-category">Authentication Examples</div>
+        <div class="example-item" data-example="auth-bearer">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Bearer Token Auth</span>
+        </div>
+        <div class="example-item" data-example="auth-basic">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Basic Auth</span>
+        </div>
+        <div class="example-item" data-example="auth-apikey">
+            <span class="example-method get">GET</span>
+            <span class="example-name">API Key Header</span>
+        </div>
+        <div class="example-item" data-example="auth-cookie">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Cookie Auth</span>
+        </div>
+
+        <div class="example-category">Query Parameters</div>
+        <div class="example-item" data-example="query-search">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Search with Query</span>
+        </div>
+        <div class="example-item" data-example="query-filter">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Filter & Pagination</span>
+        </div>
+        <div class="example-item" data-example="query-multiple">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Multiple Parameters</span>
+        </div>
+
+        <div class="example-category">Complex Examples</div>
+        <div class="example-item" data-example="complex-auth-query">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Auth + Query Params</span>
+        </div>
+        <div class="example-item" data-example="complex-post-auth">
+            <span class="example-method post">POST</span>
+            <span class="example-name">POST with Auth</span>
+        </div>
+
+        <div class="example-category">Environment Variables</div>
+        <div class="example-item" data-example="env-demo">
+            <span class="example-method get">GET</span>
+            <span class="example-name">Environment Variables Demo</span>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab active" data-tab="headers">Headers</button>
+    <button class="tab" data-tab="query">Query</button>
+    <button class="tab" data-tab="body">Body</button>
+    <button class="tab" data-tab="auth">Auth</button>
+    <button class="tab" data-tab="saved">Saved</button>
+</div>
+
+<!-- Headers Tab -->
+<div id="headersTab" class="tab-content active">
+    <div class="section-title">
+        Request Headers
+        <span style="font-size: 11px; color: var(--vscode-descriptionForeground); font-weight: normal;">
+            Type to see suggestions
+        </span>
+    </div>
+    <div id="headersContainer"></div>
+    <button id="addHeaderBtn" class="btn-small">+ Add Header</button>
+</div>
+
+<!-- Query Tab -->
+<div id="queryTab" class="tab-content">
+    <div class="section-title">
+        Query Parameters
+        <span style="font-size: 11px; color: var(--vscode-descriptionForeground); font-weight: normal;">
+            URL query string parameters
+        </span>
+    </div>
+    <div id="queryContainer"></div>
+    <button id="addQueryBtn" class="btn-small">+ Add Parameter</button>
+</div>
+
+<!-- Body Tab -->
+<div id="bodyTab" class="tab-content">
+    <div class="section-title">Content Type</div>
+    <select id="contentType" class="content-type-select">
+        <option value="application/json">application/json</option>
+        <option value="text/plain">text/plain</option>
+        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+        <option value="multipart/form-data">multipart/form-data</option>
+    </select>
+    <div class="section-title">Request Body</div>
+    <textarea id="bodyInput" placeholder='{"name": "John Doe", "email": "john@example.com"}'></textarea>
+</div>
+
+<!-- Auth Tab -->
+<div id="authTab" class="tab-content">
+    <div class="section-title">Authorization</div>
+
+    <!-- Auth Sub-tabs -->
+    <div class="auth-tabs">
+        <button class="auth-sub-tab active" onclick="showAuthTab('authCredentials', event)">Credentials</button>
+        <button class="auth-sub-tab" onclick="showAuthTab('authSaved', event)">Saved</button>
+        <button class="auth-sub-tab" onclick="showAuthTab('authSecurity', event)">Security</button>
+        <button class="auth-sub-tab" onclick="showAuthTab('authQuickAdd', event)">Quick Add</button>
+    </div>
+
+    <!-- Credentials Sub-tab -->
+    <div id="authCredentials" class="auth-tab-content active">
+        <!-- Bearer Token Section -->
+        <div class="section-title">Bearer Token</div>
+        <div class="auth-row">
+            <input type="password" id="bearerTokenInput" placeholder="Paste your token here..." class="auth-field">
+            <button class="btn-apply" onclick="applyBearerToken()">Apply</button>
+        </div>
+
+        <!-- Basic Auth Section -->
+        <div class="section-title">Basic Auth</div>
+        <div class="auth-row">
+            <input type="text" id="basicUser" placeholder="Username" class="auth-field">
+            <input type="password" id="basicPass" placeholder="Password" class="auth-field">
+            <button class="btn-apply" onclick="applyBasicAuth()">Apply</button>
         </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-        <button class="tab active" data-tab="headers">Headers</button>
-        <button class="tab" data-tab="query">Query</button>
-        <button class="tab" data-tab="body">Body</button>
-        <button class="tab" data-tab="auth">Auth</button>
-        <button class="tab" data-tab="saved">Saved</button>
-    </div>
-
-    <!-- Headers Tab -->
-    <div id="headersTab" class="tab-content active">
-        <div class="section-title">
-            Request Headers
-            <span style="font-size: 11px; color: var(--vscode-descriptionForeground); font-weight: normal;">
-                Type to see suggestions
-            </span>
-        </div>
-        <div id="headersContainer"></div>
-        <button id="addHeaderBtn" class="btn-small">+ Add Header</button>
-    </div>
-
-    <!-- Query Tab -->
-    <div id="queryTab" class="tab-content">
-        <div class="section-title">
-            Query Parameters
-            <span style="font-size: 11px; color: var(--vscode-descriptionForeground); font-weight: normal;">
-                URL query string parameters
-            </span>
-        </div>
-        <div id="queryContainer"></div>
-        <button id="addQueryBtn" class="btn-small">+ Add Parameter</button>
-    </div>
-
-    <!-- Body Tab -->
-    <div id="bodyTab" class="tab-content">
-        <div class="section-title">Content Type</div>
-        <select id="contentType" class="content-type-select">
-            <option value="application/json">application/json</option>
-            <option value="text/plain">text/plain</option>
-            <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
-            <option value="multipart/form-data">multipart/form-data</option>
-        </select>
-        <div class="section-title">Request Body</div>
-        <textarea id="bodyInput" placeholder='{"name": "John Doe", "email": "john@example.com"}'></textarea>
-    </div>
-
-    <!-- Auth Tab -->
-    <div id="authTab" class="tab-content">
-        <div class="section-title">Authorization</div>
-        <div class="auth-section">
-            <div class="auth-header">
-                <span class="auth-title">Quick Add</span>
-            </div>
-            <button class="auth-btn" onclick="addAuthHeader('Bearer', 'Bearer token')">+ Bearer Token</button>
-            <button class="auth-btn" onclick="addAuthHeader('Basic', 'Basic credentials')">+ Basic Auth</button>
-            <button class="auth-btn" onclick="addAuthHeader('API Key', 'API key')">+ API Key</button>
-        </div>
-        
+    <!-- Saved Tokens Sub-tab -->
+    <div id="authSaved" class="auth-tab-content">
         <div class="section-title">Saved Tokens</div>
         <div id="tokenList" class="token-list">
             <div class="empty-state">No saved tokens. Use Command Palette to add tokens.</div>
         </div>
     </div>
 
-    <!-- Saved Tab -->
-    <div id="savedTab" class="tab-content">
-        <div class="saved-toolbar">
-            <div class="saved-search">
-                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="savedFilterInput" class="saved-search-input" placeholder="Search saved requests...">
+    <!-- Security/Bypass Sub-tab -->
+    <div id="authSecurity" class="auth-tab-content">
+        <div class="section-title">Bypass & Stealth</div>
+        <div class="auth-options">
+            <label class="checkbox-container" style="margin-bottom: 12px;">
+                <input type="checkbox" id="bypassWAF">
+                <span class="checkmark"></span>
+                Bypass Cloudflare / WAF (Stealth Mode)
+            </label>
+            <div class="auth-row" style="margin-top: 10px;">
+                <span class="auth-label">User-Agent:</span>
+                <select id="userAgentSelect" class="compact-select" style="width: 220px; margin-left: 8px;">
+                    <option value="">Default (StackerClient)</option>
+                    <optgroup label="Browsers">
+                        <option value="chrome_win">Chrome (Windows)</option>
+                        <option value="chrome_mac">Chrome (Mac)</option>
+                        <option value="firefox_win">Firefox (Windows)</option>
+                        <option value="firefox_mac">Firefox (Mac)</option>
+                        <option value="safari_mac">Safari (Mac)</option>
+                        <option value="edge_win">Edge (Windows)</option>
+                    </optgroup>
+                    <optgroup label="Mobile">
+                        <option value="iphone">iPhone / iOS</option>
+                        <option value="android">Android / Chrome</option>
+                    </optgroup>
+                    <optgroup label="Bots & Crawlers">
+                        <option value="googlebot">Googlebot</option>
+                        <option value="bingbot">Bingbot</option>
+                        <option value="yandexbot">Yandex Bot</option>
+                        <option value="duckduckgo">DuckDuckGo</option>
+                    </optgroup>
+                    <option value="custom">Custom...</option>
+                </select>
             </div>
-            <div class="saved-stats" id="savedStats"></div>
-        </div>
-        <div id="savedRequestsContainer" class="saved-requests-list">
-            <div class="empty-state">No saved requests yet</div>
-        </div>
-        <div class="pagination" id="pagination" style="display: none;">
-            <button class="page-btn" id="prevPage" onclick="changePage(-1)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <span class="page-info" id="pageInfo">1 / 1</span>
-            <button class="page-btn" id="nextPage" onclick="changePage(1)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    <!-- Response -->
-    <div id="response" class="response" style="display:none">
-        <div class="response-header">
-            <span>Status: <span id="responseStatus" class="response-status"></span></span>
-            <span>Time: <span id="responseTime"></span></span>
-            <span>Size: <span id="responseSize"></span></span>
-        </div>
-        <div class="response-tabs">
-            <button class="res-tab active" onclick="showResTab('resBody', event)">Body</button>
-            <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers <span id="headersCount" class="tab-badge"></span></button>
-            <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
-        </div>
-        <div class="response-content">
-            <div id="resBody" class="res-tab-content active">
-                <div class="response-toolbar">
-                    <button class="toolbar-btn" onclick="copyResponse('body')" title="Copy">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        Copy
-                    </button>
-                    <button class="toolbar-btn" onclick="expandAllJSON()" title="Expand All" id="expandBtn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <polyline points="9 21 3 21 3 15"></polyline>
-                            <line x1="21" y1="3" x2="14" y2="10"></line>
-                            <line x1="3" y1="21" x2="10" y2="14"></line>
-                        </svg>
-                        Expand
-                    </button>
-                    <button class="toolbar-btn" onclick="collapseAllJSON()" title="Collapse All" id="collapseBtn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="4 14 10 14 10 20"></polyline>
-                            <polyline points="20 10 14 10 14 4"></polyline>
-                            <line x1="14" y1="10" x2="21" y2="3"></line>
-                            <line x1="3" y1="21" x2="10" y2="14"></line>
-                        </svg>
-                        Collapse
-                    </button>
-                    <button class="toolbar-btn" onclick="toggleBodyView()" title="Toggle Raw/Preview" id="bodyViewToggle" style="display:none;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                        <span id="bodyViewText">Preview</span>
-                    </button>
-                    <span class="response-type" id="responseType"></span>
-                </div>
-                <pre id="responseBody" class="response-body"></pre>
-                <div id="responsePreview" class="response-preview" style="display:none;">
-                    <iframe id="previewFrame" sandbox="allow-same-origin allow-scripts"></iframe>
-                </div>
-            </div>
-            <div id="resHeaders" class="res-tab-content">
-                <div class="response-toolbar">
-                    <button class="toolbar-btn" onclick="copyResponse('headers')" title="Copy Headers">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        Copy
-                    </button>
-                    <button class="toolbar-btn" onclick="toggleHeadersView()" title="Toggle View">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="8" y1="6" x2="21" y2="6"></line>
-                            <line x1="8" y1="12" x2="21" y2="12"></line>
-                            <line x1="8" y1="18" x2="21" y2="18"></line>
-                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                        </svg>
-                        <span id="headersViewText">Raw</span>
-                    </button>
-                </div>
-                <div id="responseHeaders" class="headers-table"></div>
-                <pre id="responseHeadersRaw" class="headers-raw" style="display:none;"></pre>
-            </div>
-            <div id="resCookies" class="res-tab-content">
-                <div id="responseCookies" class="cookies-list">No cookies</div>
+            <div id="customUserAgentRow" style="display: none; margin-top: 8px;">
+                <input type="text" id="customUserAgentInput" placeholder="Enter custom User-Agent..." class="auth-field"
+                    style="width: 100%;">
             </div>
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <!-- Quick Add Sub-tab -->
+    <div id="authQuickAdd" class="auth-tab-content">
+        <div class="section-title">Quick Add Headers</div>
+        <div class="auth-row" style="flex-wrap: wrap; gap: 4px;">
+            <button class="auth-btn" onclick="addAuthHeader('Bearer', 'Bearer token')">+ Bearer</button>
+            <button class="auth-btn" onclick="addAuthHeader('Basic', 'Basic credentials')">+ Basic</button>
+            <button class="auth-btn" onclick="addAuthHeader('API Key', 'API key')">+ API Key</button>
+        </div>
+    </div>
+</div>
+
+<!-- Saved Tab -->
+<div id="savedTab" class="tab-content">
+    <div class="saved-toolbar">
+        <div class="saved-search">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="savedFilterInput" class="saved-search-input" placeholder="Search saved requests...">
+        </div>
+        <div class="saved-stats" id="savedStats"></div>
+    </div>
+    <div id="savedRequestsContainer" class="saved-requests-list">
+        <div class="empty-state">No saved requests yet</div>
+    </div>
+    <div class="pagination" id="pagination" style="display: none;">
+        <button class="page-btn" id="prevPage" onclick="changePage(-1)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </button>
+        <span class="page-info" id="pageInfo">1 / 1</span>
+        <button class="page-btn" id="nextPage" onclick="changePage(1)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<!-- Response -->
+<div id="response" class="response" style="display:none">
+    <div class="response-header">
+        <span>Status: <span id="responseStatus" class="response-status"></span></span>
+        <span>Time: <span id="responseTime"></span></span>
+        <span>Size: <span id="responseSize"></span></span>
+        <span id="chunkedIndicator" class="chunked-badge" style="display:none">Chunked</span>
+    </div>
+    <div class="response-tabs">
+        <button class="res-tab active" onclick="showResTab('resBody', event)">Body</button>
+        <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers <span id="headersCount"
+                class="tab-badge"></span></button>
+        <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
+        <button class="res-tab" onclick="showResTab('resTests', event)">Tests</button>
+        <button class="res-tab" onclick="showResTab('resHex', event)">Hex</button>
+    </div>
+    <div class="response-content">
+
+        <div id="resBody" class="res-tab-content active">
+            <!-- Content moved to sharedResponseContent -->
+        </div>
+        <div id="resTests" class="res-tab-content">
+            <!-- Extraction Tools -->
+            <div id="extractionTools" class="extraction-panel">
+                <div class="extraction-row">
+                    <div class="extraction-search-wrapper">
+                        <input type="text" id="extractionPath" class="extraction-input"
+                            placeholder="//div[@class=&quot;content&quot;]">
+                        <div class="type-toggle-btns">
+                            <button class="type-toggle-btn active" onclick="toggleExtractionType('xpath')"
+                                id="btn-xpath" title="XPath">XPath</button>
+                            <button class="type-toggle-btn" onclick="toggleExtractionType('regex')" id="btn-regex"
+                                title="Regular Expression">Regex</button>
+                            <button class="type-toggle-btn" onclick="toggleExtractionType('jspath')" id="btn-jspath"
+                                title="JSON Path">JSON Path</button>
+                            <button class="type-toggle-btn" onclick="toggleExtractionType('css')" id="btn-css"
+                                title="CSS Selector">CSS</button>
+                        </div>
+                    </div>
+                    <button class="btn-apply btn-sm" onclick="evaluateExtraction()">Extract</button>
+                    <button class="btn-apply btn-sm btn-secondary" onclick="filterResponse()"
+                        title="Filter">Filter</button>
+                    <button class="btn-icon-sm" onclick="saveCurrentTemplate()" title="Save as template">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Templates Header -->
+                <div class="templates-header" onclick="toggleTemplatesList()"
+                    style="cursor: pointer; display: flex; align-items: center; gap: 4px; margin-top: 8px; opacity: 0.7; user-select: none;">
+                    <span
+                        style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Templates</span>
+                    <svg id="templatesChevron" class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="3" style="transition: transform 0.2s;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <!-- Saved Templates -->
+                <div id="templatesListContainer" class="templates-list-container" style="display: none;">
+                    <div id="templatesList" class="templates-list" style="margin-top: 4px;"></div>
+                </div>
+            </div>
+            <div id="extractionResultContainer" style="display: none; margin-top: 10px;">
+                <div class="extraction-result-header"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 11px; font-weight: 600; opacity: 0.6;">EXTRACTION RESULT</span>
+                    <button class="btn-link-sm" onclick="clearExtractionResult()"
+                        style="font-size: 10px; opacity: 0.6; cursor: pointer; background: none; border: none; color: var(--vscode-foreground);">Clear</button>
+                </div>
+                <div id="extractionResult" class="extraction-result" style="margin-top: 0; display: block;"></div>
+            </div>
+        </div>
+
+        <!-- Shared Body/Preview (Visible in Body and Test tabs) -->
+        <div id="sharedResponseContent" class="shared-response-content">
+            <div class="response-toolbar">
+                <button class="toolbar-btn" onclick="copyResponse('body')" title="Copy">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copy
+                </button>
+                <button class="toolbar-btn" onclick="expandAllJSON()" title="Expand All" id="expandBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                    Expand
+                </button>
+                <button class="toolbar-btn" onclick="collapseAllJSON()" title="Collapse All" id="collapseBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 14 10 14 10 20"></polyline>
+                        <polyline points="20 10 14 10 14 4"></polyline>
+                        <line x1="14" y1="10" x2="21" y2="3"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                    Collapse
+                </button>
+                <button class="toolbar-btn" onclick="toggleBodyView()" title="Toggle Raw/Preview" id="bodyViewToggle"
+                    style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="bodyViewText">Preview</span>
+                </button>
+                <span class="response-type" id="responseType"></span>
+            </div>
+            <pre id="responseBody" class="response-body"></pre>
+            <div id="responsePreview" class="response-preview" style="display:none;">
+                <iframe id="previewFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+            </div>
+        </div>
+    </div>
+    <div id="resHeaders" class="res-tab-content">
+        <div class="response-toolbar">
+            <button class="toolbar-btn" onclick="copyResponse('headers')" title="Copy Headers">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy
+            </button>
+            <button class="toolbar-btn" onclick="toggleHeadersView()" title="Toggle View">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <span id="headersViewText">Raw</span>
+            </button>
+        </div>
+        <div id="responseHeaders" class="headers-table"></div>
+        <pre id="responseHeadersRaw" class="headers-raw" style="display:none;"></pre>
+    </div>
+    <div id="resCookies" class="res-tab-content">
+        <div id="responseCookies" class="cookies-list">No cookies</div>
+    </div>
+    <div id="resHex" class="res-tab-content">
+        <div id="hexViewer" class="hex-viewer">
+            <div class="hex-empty">No response data</div>
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="toast" class="toast"></div>

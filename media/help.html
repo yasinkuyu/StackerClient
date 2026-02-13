@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StackerClient - Help & About</title>
+    <style>
+        :root {
+            --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
+            --vscode-font-size: 13px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        h1 {
+            color: var(--vscode-foreground);
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            color: var(--vscode-descriptionForeground);
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+
+        h2 {
+            color: var(--vscode-foreground);
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .feature {
+            background: var(--vscode-sideBar-background);
+            border: 1px solid var(--vscode-panel-border);
+            padding: 20px;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .feature:hover {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .feature h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--vscode-textLink-foreground);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feature p {
+            color: var(--vscode-foreground);
+            opacity: 0.9;
+            font-size: 13px;
+        }
+
+        code {
+            background: var(--vscode-textCodeBlock-background);
+            color: var(--vscode-textPreformat-foreground);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+
+        .author-card {
+            margin-top: 60px;
+            padding: 32px;
+            background: linear-gradient(135deg, var(--vscode-button-background) 0%, var(--vscode-activityBar-activeBorder) 100%);
+            color: var(--vscode-button-foreground);
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .author-card h3 {
+            margin-bottom: 8px;
+            font-size: 20px;
+        }
+
+        .author-card p {
+            opacity: 0.9;
+            margin-bottom: 16px;
+        }
+
+        .author-card a {
+            color: var(--vscode-button-foreground);
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0 10px;
+            transition: opacity 0.2s;
+            border-bottom: 1px solid transparent;
+        }
+
+        .author-card a:hover {
+            opacity: 0.8;
+            border-bottom-color: currentColor;
+        }
+
+        .version-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>⚡ StackerClient <span class="version-badge">v{{VERSION}}</span></h1>
+    <p class="subtitle">Modern REST API Client for VS Code, Cursor & Antigravity IDE</p>
+
+    <h2>🚀 Quick Start</h2>
+    <div class="feature">
+        <h3>Keyboard Shortcut</h3>
+        <p>Press <code>Ctrl+Shift+R</code> (Mac: <code>Cmd+Shift+R</code>) to open StackerClient instantly.</p>
+    </div>
+
+    <h2>✨ Features</h2>
+    <div class="grid">
+        <div class="feature">
+            <h3>🌐 Send HTTP Requests</h3>
+            <p>Support for GET, POST, PUT, PATCH, DELETE methods with custom headers and body.</p>
+        </div>
+        <div class="feature">
+            <h3>🔐 Authentication</h3>
+            <p>Built-in support for Bearer tokens, Basic Auth, API Keys, and SSL Pinning. Save tokens securely.</p>
+        </div>
+        <div class="feature">
+            <h3>💾 Request History</h3>
+            <p>Save and organize your requests. Filter by name, URL, or method. Create collections.</p>
+        </div>
+        <div class="feature">
+            <h3>📥 Import cURL</h3>
+            <p>Paste any cURL command to automatically convert it to a StackerClient request.</p>
+        </div>
+        <div class="feature">
+            <h3>🌍 Environments</h3>
+            <p>Manage multiple environments and variables for easy testing across different stages.</p>
+        </div>
+        <div class="feature">
+            <h3>📁 Collections</h3>
+            <p>Organize your requests into folders and share them with your team.</p>
+        </div>
+    </div>
+
+    <div class="author-card">
+        <h3>Created by Insya - Yasin Kuyu</h3>
+        <div class="links">
+            <a href="https://github.com/yasinkuyu">GitHub</a>
+        </div>
+    </div>
+</body>
+
+</html>

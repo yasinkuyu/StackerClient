@@ -2,6 +2,61 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.3] - 2026-02-13
+
+### Added
+- **Hex Viewer**: New dedicated tab to view any response in hex format (Binary, Images, PDF, etc.)
+- **Binary Response Support**: Automatic hex display for images, PDFs, ZIPs, and other binary content
+- **Chunked Response Detection**: Shows "Chunked" badge when transfer-encoding: chunked detected
+- **multipart/form-data Parser**: Parses and displays form-data responses with proper formatting
+- **Regex Extraction**: Full regex support in Tests tab with capturing group support
+- **Filter Button**: Filters response body and displays results in Body tab with match count
+- **HTTP Methods**: Added HEAD, OPTIONS, CONNECT, and TRACE methods to the method dropdown
+- **Example Search**: Minimalist search input in Examples modal to filter by name or method
+- **Template System**: Save and reuse extraction expressions in Tests panel with custom templates
+- **Response Test Tab**: Dedicated tab for XPath, JS Path, and CSS Selector tools for a cleaner UI
+- **Bidirectional URL & Query Sync**: Real-time synchronization between URL input and Query tab
+- **HTML/XML Syntax Highlighting**: Automatic syntax highlighting for HTML and XML responses
+- **Simplified Auth UI**: Inline inputs for Bearer and Basic Auth (Username/Password)
+- **Stealth Mode (Bypass WAF)**: New option to bypass Cloudflare/WAF with browser-identical headers
+
+### Improved
+- **Tests Tab**: Renamed from "Extract" to "Tests" with XPath as default extraction type
+- **Example Requests**: Added 15+ new HTTP method examples (HEAD, OPTIONS, PUT, PATCH, DELETE, etc.)
+- **Example Requests**: Added HTTPBin test examples (cookies, IP, user-agent, delay, status codes)
+- **Hex Viewer**: Shows Offset, Hex bytes (16 bytes/line), and ASCII representation
+- **Hex Viewer**: 1MB limit with truncation indicator for performance
+- **Hex Viewer**: MIME type and file size display in header
+- **Tests Panel**: Full extraction support for XPath, Regex, JSON Path, and CSS selectors
+- **Auth Tabs**: Removed unused SSL Pinning tab (was not implemented)
+- **Sidebar Search Alignment**: Exactly matched the History sidebar search layout with the "Saved" tab
+- **User-Agent Width**: Fixed select width for a more balanced UI
+- **History List Item Layout**: Better alignment for URL and request method (Indented URL)
+- **Removal Button Aesthetics**: Subtle rounded hover effect for removal buttons in headers/params
+- **Expanded User-Agent & Bots**: Select from various browsers and bots like Googlebot, Bingbot, and more
+- **Extraction Tools**: Minimalist XPath (HTML/XML) and JS Path (JSON) extraction for responses
+- **Tab Title Configuration**: New `stacker.tabTitleFormat` setting (Full URL vs Path only)
+- **Smooth Loading Spinner**: Replaced rotating refresh icon with a polished circular spinner
+- **Improved UI Consistency**: Minimalist search input styling in Saved tab
+- **Tab Title Fix**: Improved dynamic tab updates for pre-filled and loaded requests
+- **Auth Tab Restructured**: Split into Credentials, Saved, Pin, Security, and Quick Add sub-tabs
+- **About Page Externalized**: Help content moved to `media/help.html` with dynamic version injection
+- **Response Headers UI**: Reduced excess whitespace in headers table for a compact layout
+- **Cookie Parsing**: Fixed `Set-Cookie` header handling using `getSetCookie()` for correct multi-cookie display
+
+### Fixed
+- **Tests Panel**: Fixed Regex button not being detected (was not in the type check chain)
+- **Filter Function**: Created separate filterResponse() function that displays filtered results in Body tab
+- **Hex Viewer**: Fixed backend hex generation logic - now generates hex for all response types
+- **Hex Viewer**: Added frontend fallback to generate hex from response body if backend fails
+- **Memory Leak**: `onDidChangeConfiguration` listener now properly disposed via `context.subscriptions`
+- **VS Code Compatibility**: Replaced `Buffer.from()` with `TextEncoder().encode()` for broader compatibility
+- **Null Safety**: Eliminated all `currentPanel!` non-null assertions with safe `panelRef` capture pattern
+- **Null Safety**: `SidebarProvider` constructor now validates `context` instead of using `context!`
+- **URL Parsing**: Added try-catch around `new URL()` in query param interpolation with manual fallback
+- **Cleanup**: Removed unused `allPanels` array; added `onDidDispose` to `createNewPanel`
+
+
 ## [1.1.2] - 2026-02-12
 
 ### Fixed

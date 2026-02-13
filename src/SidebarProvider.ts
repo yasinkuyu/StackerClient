@@ -29,7 +29,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         private readonly _requestManager: RequestManager,
         context?: vscode.ExtensionContext
     ) {
-        this._context = context!;
+        if (!context) {
+            throw new Error('SidebarProvider requires a valid ExtensionContext');
+        }
+        this._context = context;
     }
 
     public setContext(context: vscode.ExtensionContext) {
@@ -222,18 +225,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     const folders = this.getFolders();
                     const folder = folders.find(f => f.id === data.folderId);
                     if (!folder) break;
-                    
+
                     const allReqs = this._requestManager.getAllRequests();
                     const availableReqs = allReqs.filter(r => !folder.requestIds.includes(r.id));
-                    
+
                     if (availableReqs.length === 0) {
                         vscode.window.showInformationMessage('No available requests to add');
                         break;
                     }
-                    
+
                     const items = availableReqs.map(r => ({ label: r.method + ' ' + r.name, description: r.url, id: r.id }));
                     const selected = await vscode.window.showQuickPick(items, { placeHolder: 'Select request to add' });
-                    
+
                     if (selected) {
                         folder.requestIds.push(selected.id);
                         this.saveFolder(folder);
@@ -361,7 +364,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         .refresh-spinner {
             display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
             animation: spin 0.8s linear infinite;
+            box-sizing: border-box;
         }
 
         .icon-btn {
@@ -618,42 +627,50 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
 
         /* Search/Filter */
-        .filter-container {
-            padding: 8px 12px;
+        .saved-toolbar {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            background: var(--vscode-sideBar-background);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .filter-input {
-            width: 100%;
-            padding: 8px 12px;
-            padding-left: 32px;
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 6px;
-            color: var(--vscode-input-foreground);
-            font-size: 12px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .filter-input:focus {
-            border-color: #8b5cf6;
-        }
-
-        .filter-input::placeholder {
-            color: var(--vscode-input-placeholderForeground);
-        }
-
-        .filter-wrapper {
+        .saved-search {
+            flex: 1;
             position: relative;
         }
 
-        .filter-icon {
+        .search-icon {
             position: absolute;
             left: 10px;
             top: 50%;
             transform: translateY(-50%);
             opacity: 0.5;
             pointer-events: none;
+            color: var(--vscode-foreground);
+        }
+
+        .saved-search-input {
+            width: 100%;
+            height: 28px;
+            padding: 6px 10px 6px 32px;
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            color: var(--vscode-input-foreground);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .saved-search-input:focus {
+            border-color: #8b5cf6;
+        }
+
+        .saved-search-input::placeholder {
+            color: var(--vscode-input-placeholderForeground);
+            opacity: 0.7;
         }
 
         /* Content */
@@ -706,12 +723,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         .request-item {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             padding: 8px 10px;
             border-radius: 6px;
             cursor: pointer;
             transition: background 0.15s;
-            gap: 10px;
+            gap: 4px;
         }
 
         .request-item:hover {
@@ -737,13 +754,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         .request-info {
             flex: 1;
             min-width: 0;
+            display: flex;
+            align-items: center;
         }
 
-        .request-name-row {
+        .request-header-row {
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-bottom: 2px;
+            width: 100%;
         }
 
         .request-name {
@@ -785,7 +804,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding-left: 34px;
+            width: 100%;
         }
 
         .request-actions {
@@ -1202,13 +1221,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 </div>
             </div>
 
-            <div class="filter-container">
-                <div class="filter-wrapper">
-                    <svg class="filter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="saved-toolbar">
+                <div class="saved-search">
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" class="filter-input" id="filterInput" placeholder="Search requests...">
+                    <input type="text" class="saved-search-input" id="filterInput" placeholder="Search requests...">
                 </div>
             </div>
 
@@ -1319,8 +1338,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             const btn = document.querySelector('[onclick="refreshList()"]');
             const originalIcon = btn.innerHTML;
             
-            // Add spinning animation
-            btn.innerHTML = '<span class="refresh-spinner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg></span>';
+            // Add loading spinner
+            btn.innerHTML = '<span class="refresh-spinner"></span>';
             btn.disabled = true;
             
             vscode.postMessage({ type: 'refreshList' });
@@ -1529,22 +1548,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
             return \`
                 <div class="request-item" onclick="loadRequest('\${req.id}')">
-                    <div class="request-info">
-                        <div class="request-name-row">
-                            <span class="method-badge-small \${methodClass}">\${req.method}</span>
+                    <div class="request-header-row">
+                        <span class="method-badge-small \${methodClass}">\${req.method}</span>
+                        <div class="request-info">
                             <span class="request-name">\${escapeHtml(req.name)}</span>
-                            <span class="request-time">\${timeAgo}</span>
+                            </div>
+                        <span class="request-time">\${timeAgo}</span>
+                        <div class="request-actions">
+                            <button class="action-btn delete" onclick="deleteRequest('\${req.id}', event)" title="Delete">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="request-url">\${escapeHtml(displayUrl)}</div>
                     </div>
-                    <div class="request-actions">
-                        <button class="action-btn delete" onclick="deleteRequest('\${req.id}', event)" title="Delete">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    <div class="request-url">\${escapeHtml(displayUrl)}</div>
                 </div>
             \`;
         }
@@ -1591,19 +1610,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
             return \`
                 <div class="request-item folder-request-item">
-                    <div class="request-info" onclick="loadRequest('\${req.id}')">
-                        <div class="request-name">\${escapeHtml(req.name)}</div>
-                        <div class="request-url">
-                            <span class="method-badge \${methodClass}">\${req.method}</span>
-                            \${escapeHtml(displayUrl)}
+                    <div class="request-header-row">
+                        <span class="method-badge-small \${methodClass}">\${req.method}</span>
+                        <div class="request-info" onclick="loadRequest('\${req.id}')">
+                            <div class="request-name">\${escapeHtml(req.name)}</div>
                         </div>
+                        <button class="action-btn" onclick="removeFromFolder('\${folderId}', '\${req.id}', event)" title="Remove from folder">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
-                    <button class="action-btn" onclick="removeFromFolder('\${folderId}', '\${req.id}', event)" title="Remove from folder">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
+                    <div class="request-url">\${escapeHtml(displayUrl)}</div>
                 </div>
             \`;
         }

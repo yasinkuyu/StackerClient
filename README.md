@@ -14,7 +14,7 @@
  </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.3-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/VS%20Code-%5E1.74.0-blue.svg" alt="VS Code">
   <img src="https://img.shields.io/badge/Cursor-Compatible-blue.svg" alt="Cursor">
   <img src="https://img.shields.io/badge/Antigravity-Compatible-blue.svg" alt="Antigravity">
@@ -23,17 +23,20 @@
 
 ## 🌟 Features
 
-- 🚀 **Send HTTP Requests** - GET, POST, PUT, PATCH, DELETE with custom headers
-- 📚 **Example Requests** - 15+ ready-to-use API examples (JSONPlaceholder, HTTPBin, GitHub)
-- 🌍 **Environment Variables** - Manage multiple environments with `{{variable}}` syntax
-- 🔐 **Authentication** - Bearer tokens, Basic Auth, API Keys with secure storage
-- 👁️ **HTML Preview** - Render HTML responses with Raw/Preview toggle
-- 💾 **Request History** - Save, rename, filter and organize your requests
-- 📥 **Import cURL** - Convert cURL commands to StackerClient requests
-- 🔍 **Smart Autocomplete** - Headers autocomplete with suggestions
-- 🎨 **Modern UI** - Native VS Code interface with purple theme accents
-- 📊 **Status Bar Integration** - Quick access from status bar
-- 🎯 **Multi-Platform** - Works on VS Code, Cursor IDE, and Antigravity
+- 🚀 **Send HTTP Requests** - Full support for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS
+- 📊 **Hex Viewer** - Dedicated tab for binary analysis (Images, PDF, ZIP) with ASCII representation
+- 🧪 **Advanced Testing** - Extract and filter data using **XPath, CSS, JSPath, and Regex**
+- 📋 **Extraction Templates** - Save and reuse complex expressions for faster API testing
+- 🏰 **Stealth Mode** - Bypass WAF/Cloudflare protection with browser-identical header profiles
+- 📚 **Example Requests** - 20+ ready-to-use API examples including HTTPBin, Auth, and mock APIs
+- 🌍 **Environment Variables** - Manage multiple environments with `{{variable}}` syntax support
+- 🔐 **Authentication** - Securely manage Bearer tokens, Basic Auth, and API Keys
+- 🔄 **Bidirectional Sync** - Real-time synchronization between URL input and Query parameter tab
+- 👁️ **HTML Preview** - Render and inspect HTML responses directly within the editor
+- 💾 **Request History** - Save, rename, filter, and organize your API requests with ease
+- 📥 **Import cURL** - Instantly convert regular cURL commands into StackerClient requests
+- 🔍 **Smart Autocomplete** - Intelligent header suggestions as you type
+- 🎨 **Modern UI** - A clean, high-performance interface with native VS Code theme support
 
 ## 🖥️ Supported Platforms
 
@@ -105,9 +108,27 @@ Quick start with 15+ built-in examples:
    - **Authentication**: Bearer, Basic, API Key examples
    - **Environment Demo**: Variables usage examples
 
+### Advanced Diagnostic Tools (Tests)
+
+StackerClient 1.1.3 introduces powerful extraction and filtering tools:
+
+1. Click the **Tests** tab in the response panel.
+2. Select your tool: **XPath**, **JS Path**, **CSS**, or **Regex**.
+3. Enter your expression (e.g., `//title` for XPath or `data.users[0]` for JS Path).
+4. **Filter**: Click to see a structured visual view (JSON tree or highlighted markup).
+5. **Extract**: Click to get a clean, newline-separated plain text list (ideal for data harvesting).
+6. **Templates**: Save your expressions by clicking the **Save** icon for future reuse.
+
+### Hex Viewer (Binary Analysis)
+
+For requests returning binary data (Images, PDFs, ZIPs, etc.):
+1. StackerClient automatically detects binary content.
+2. Switch to the **Hex** tab to view the data in raw hexadecimal format.
+3. Analyze offsets, hex bytes, and ASCII representation side-by-side.
+
 ### Import cURL
 
-Paste any cURL command:
+Paste any cURL command by clicking the **Import cURL** icon in the action bar:
 ```bash
 curl -X POST https://api.example.com/users \
   -H "Content-Type: application/json" \

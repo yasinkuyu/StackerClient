@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { RequestManager, SavedRequest } from './RequestManager';
 import { SidebarProvider } from './SidebarProvider';
 import { getWebviewContent } from './webviewContent';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 let sidebarProvider: SidebarProvider;
-const allPanels: vscode.WebviewPanel[] = [];
+
 
 // Hazır HTTP Header listesi
 const COMMON_HEADERS = [
@@ -63,44 +64,46 @@ export function activate(context: vscode.ExtensionContext) {
         currentPanel.iconPath = new vscode.ThemeIcon('debug-alt');
         currentPanel.webview.html = getWebviewContent();
 
-        currentPanel.webview.onDidReceiveMessage(async (message) => {
+        const panelRef = currentPanel;
+        const messageDisposable = panelRef.webview.onDidReceiveMessage(async (message) => {
+            if (!panelRef) { return; }
             switch (message.command) {
                 case 'sendRequest':
-                    await handleSendRequest(message.request, currentPanel!, requestManager);
+                    await handleSendRequest(message.request, panelRef, requestManager);
                     break;
                 case 'saveRequest':
-                    handleSaveRequest(message.request, requestManager, currentPanel!);
+                    handleSaveRequest(message.request, requestManager, panelRef);
                     sidebarProvider.refresh();
                     break;
                 case 'loadRequests':
-                    handleLoadRequests(requestManager, currentPanel!);
+                    handleLoadRequests(requestManager, panelRef);
                     break;
                 case 'deleteRequest':
-                    handleDeleteRequest(message.id, requestManager, currentPanel!);
+                    handleDeleteRequest(message.id, requestManager, panelRef);
                     sidebarProvider.refresh();
                     break;
                 case 'saveAuthToken':
                     await saveAuthToken(message.token, message.name, context);
                     break;
                 case 'loadAuthTokens':
-                    await loadAuthTokens(currentPanel!, context);
+                    await loadAuthTokens(panelRef, context);
                     break;
                 case 'deleteAuthToken':
                     await deleteAuthToken(message.name, context);
-                    await loadAuthTokens(currentPanel!, context);
+                    await loadAuthTokens(panelRef, context);
                     break;
                 case 'showInputBox':
                     const result = await vscode.window.showInputBox({
                         prompt: message.prompt,
                         value: message.value
                     });
-                    currentPanel!.webview.postMessage({
+                    panelRef.webview.postMessage({
                         command: 'inputBoxResponse',
                         result: result
                     });
                     break;
                 case 'getSettings':
-                    currentPanel!.webview.postMessage({
+                    panelRef.webview.postMessage({
                         command: 'settings',
                         settings: getSettings()
                     });
@@ -110,7 +113,7 @@ export function activate(context: vscode.ExtensionContext) {
                         const envs = sidebarProvider.getEnvironments();
                         const activeEnv = envs.find(e => e.id === activeEnvId);
                         if (activeEnv) {
-                            currentPanel!.webview.postMessage({
+                            panelRef.webview.postMessage({
                                 command: 'activeEnvironment',
                                 environment: activeEnv
                             });
@@ -118,23 +121,13 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                     break;
                 case 'updateTitle':
-                    // Update panel title based on URL/method
-                    if (message.url) {
-                        try {
-                            const url = new URL(message.url);
-                            const path = url.pathname || '/';
-                            currentPanel!.title = `${message.method} ${path}`;
-                        } catch {
-                            currentPanel!.title = `${message.method} ${message.url.substring(0, 30)}`;
-                        }
-                    } else {
-                        currentPanel!.title = 'StackerClient';
-                    }
+                    updatePanelTitle(panelRef, message.method, message.url);
                     break;
             }
         });
 
         currentPanel.onDidDispose(() => {
+            messageDisposable.dispose();
             currentPanel = undefined;
         });
     });
@@ -251,7 +244,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // Listen for settings changes
-    vscode.workspace.onDidChangeConfiguration(e => {
+    const configChangeListener = vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('stacker.showStatusBar')) {
             const settings = getSettings();
             if (settings.showStatusBar) {
@@ -261,6 +254,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
     });
+    context.subscriptions.push(configChangeListener);
 
     // Quick Menu Command (Status Bar Click)
     const quickMenuCommand = vscode.commands.registerCommand('stacker.showQuickMenu', async () => {
@@ -393,7 +387,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
 
         if (uri) {
-            await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(data, null, 2)));
+            await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(JSON.stringify(data, null, 2)));
             vscode.window.showInformationMessage('StackerClient data exported successfully!');
         }
     });
@@ -496,7 +490,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.ViewColumn.One,
             { enableScripts: true }
         );
-        panel.webview.html = getHelpContent();
+        panel.webview.html = getHelpContent(context);
     });
 
     context.subscriptions.push(
@@ -620,20 +614,20 @@ function parseCurl(curlCommand: string): any {
             if (equalIndex > 0) {
                 const key = formStr.substring(0, equalIndex).trim();
                 const value = formStr.substring(equalIndex + 1).trim();
-                
+
                 if (value.startsWith('@')) {
                     // File upload
-                    formParts.push({ 
-                        key, 
-                        value: value.substring(1), 
+                    formParts.push({
+                        key,
+                        value: value.substring(1),
                         type: 'file',
                         filename: value.substring(1).split(/[\/\\]/).pop() || 'file'
                     });
                 } else if (value.startsWith('<')) {
                     // File content as text
-                    formParts.push({ 
-                        key, 
-                        value: value.substring(1), 
+                    formParts.push({
+                        key,
+                        value: value.substring(1),
                         type: 'file',
                         filename: value.substring(1).split(/[\/\\]/).pop() || 'file'
                     });
@@ -673,12 +667,12 @@ function parseCurl(curlCommand: string): any {
     // Parse URL - handle various formats
     // 1. Try --url flag
     let urlMatch = cmd.match(/--url\s+(?:'([^']+)'|"([^"]+)"|([^\s]+))/i);
-    
+
     // 2. Try quoted URLs
     if (!urlMatch) {
         urlMatch = cmd.match(/['"](https?:\/\/[^'"]+)['"]/);
     }
-    
+
     // 3. Try unquoted URL (usually at the end or beginning)
     if (!urlMatch) {
         // Remove flags and their values to isolate URL
@@ -693,13 +687,13 @@ function parseCurl(curlCommand: string): any {
             .replace(/--(?:compressed|insecure|L|location)\b/gi, '')
             .replace(/-(?:L|k)\b/gi, '')
             .trim();
-        
+
         urlMatch = withoutFlags.match(/(https?:\/\/[^\s'"]+)/);
     }
 
     if (urlMatch) {
         let cleanUrl = (urlMatch[1] || urlMatch[2] || urlMatch[3] || urlMatch[0]).trim();
-        
+
         // Remove trailing quotes or special chars
         cleanUrl = cleanUrl.replace(/['"]+$/, '').replace(/\\+$/, '');
 
@@ -708,7 +702,7 @@ function parseCurl(curlCommand: string): any {
             // Handle URLs with hash fragments
             const hashIndex = cleanUrl.indexOf('#');
             const urlWithoutHash = hashIndex >= 0 ? cleanUrl.substring(0, hashIndex) : cleanUrl;
-            
+
             const urlObj = new URL(urlWithoutHash);
             const queryParams: Array<{ key: string, value: string }> = [];
 
@@ -756,7 +750,7 @@ function parseCurl(curlCommand: string): any {
     const authMatch = cmd.match(/-(?:u|user)\s+['"]*([^'"\s]+)['"]?/i);
     if (authMatch) {
         const credentials = authMatch[1];
-        const base64 = Buffer.from(credentials).toString('base64');
+        const base64 = btoa(credentials);
         const hasAuth = request.headers.some((h: any) => h.key.toLowerCase() === 'authorization');
         if (!hasAuth) {
             request.headers.push({ key: 'Authorization', value: 'Basic ' + base64 });
@@ -789,202 +783,23 @@ function parseCurl(curlCommand: string): any {
     return request;
 }
 
-function getHelpContent(): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StackerClient - Help & About</title>
-    <style>
-        :root {
-            --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
-            --vscode-font-size: 13px;
-        }
+function getHelpContent(context: vscode.ExtensionContext): string {
+    const version = vscode.extensions.getExtension('yasinkuyu.stacker-client')?.packageJSON.version || '1.1.3';
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    // Read help.html from media folder
+    const helpPath = vscode.Uri.file(path.join(context.extensionPath, 'media', 'help.html'));
 
-        body {
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
-            background-color: var(--vscode-editor-background);
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 24px;
-        }
-
-        h1 {
-            color: var(--vscode-foreground);
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .subtitle {
-            color: var(--vscode-descriptionForeground);
-            font-size: 16px;
-            margin-bottom: 32px;
-        }
-
-        h2 {
-            color: var(--vscode-foreground);
-            font-size: 20px;
-            font-weight: 600;
-            margin-top: 40px;
-            margin-bottom: 16px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--vscode-panel-border);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 16px;
-        }
-
-        .feature {
-            background: var(--vscode-sideBar-background);
-            border: 1px solid var(--vscode-panel-border);
-            padding: 20px;
-            border-radius: 8px;
-            transition: border-color 0.2s;
-        }
-
-        .feature:hover {
-            border-color: var(--vscode-focusBorder);
-        }
-
-        .feature h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: var(--vscode-textLink-foreground);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .feature p {
-            color: var(--vscode-foreground);
-            opacity: 0.9;
-            font-size: 13px;
-        }
-
-        code {
-            background: var(--vscode-textCodeBlock-background);
-            color: var(--vscode-textPreformat-foreground);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 12px;
-        }
-
-        .author-card {
-            margin-top: 60px;
-            padding: 32px;
-            background: linear-gradient(135deg, var(--vscode-button-background) 0%, #8b5cf6 100%);
-            color: var(--vscode-button-foreground);
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        .author-card h3 {
-            margin-bottom: 8px;
-            font-size: 20px;
-        }
-
-        .author-card p {
-            opacity: 0.9;
-            margin-bottom: 16px;
-        }
-
-        .author-card a {
-            color: #fbbf24;
-            text-decoration: none;
-            font-weight: 600;
-            margin: 0 10px;
-            transition: opacity 0.2s;
-        }
-
-        .author-card a:hover {
-            text-decoration: underline;
-            opacity: 0.8;
-        }
-
-        .version-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 12px;
-            vertical-align: middle;
-        }
-    </style>
-</head>
-<body>
-    <h1>⚡ StackerClient <span class="version-badge">v1.0.0</span></h1>
-    <p class="subtitle">Modern REST API Client for VS Code, Cursor & Antigravity IDE</p>
-    
-    <h2>🚀 Quick Start</h2>
-    <div class="feature">
-        <h3>Keyboard Shortcut</h3>
-        <p>Press <code>Ctrl+Shift+R</code> (Mac: <code>Cmd+Shift+R</code>) to open StackerClient instantly.</p>
-    </div>
-    
-    <h2>✨ Features</h2>
-    <div class="grid">
-        <div class="feature">
-            <h3>🌐 Send HTTP Requests</h3>
-            <p>Support for GET, POST, PUT, PATCH, DELETE methods with custom headers and body.</p>
-        </div>
-        <div class="feature">
-            <h3>🔐 Authentication</h3>
-            <p>Built-in support for Bearer tokens, Basic Auth, and API Keys. Save tokens securely for reuse.</p>
-        </div>
-        <div class="feature">
-            <h3>💾 Request History</h3>
-            <p>Save and organize your requests. Filter by name, URL, or method.</p>
-        </div>
-        <div class="feature">
-            <h3>📥 Import cURL</h3>
-            <p>Paste any cURL command to automatically convert it to a StackerClient request.</p>
-        </div>
-        <div class="feature">
-            <h3>🌍 Environments</h3>
-            <p>Manage multiple environments and variables for easy testing across different stages.</p>
-        </div>
-        <div class="feature">
-            <h3>📁 Collections</h3>
-            <p>Organize your requests into folders and share them with your team.</p>
-        </div>
-    </div>
-    
-    <div class="author-card">
-        <h3>Created by Insya - Yasin Kuyu</h3>
-        <p>Building tools for developers with ❤️</p>
-        <div class="links">
-            <a href="https://insya.com">Website</a>
-            <a href="https://github.com/yasinkuyu">GitHub</a>
-            <a href="https://twitter.com/yasinkuyu">Twitter</a>
-        </div>
-    </div>
-</body>
-</html>`;
+    // Asynchrony in synchronous function: readFileSync
+    // Since getHelpContent is called in async parent, we could make it async, but for simplicity:
+    try {
+        const fs = require('fs');
+        let html = fs.readFileSync(helpPath.fsPath, 'utf8');
+        html = html.replace('{{VERSION}}', version);
+        return html;
+    } catch (e) {
+        console.error('Error reading help.html', e);
+        return `<html><body><h1>StackerClient v${version}</h1><p>Error loading help content.</p></body></html>`;
+    }
 }
 
 async function saveAuthToken(token: string, name: string, context: vscode.ExtensionContext) {
@@ -1023,7 +838,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
     panel.webview.html = getWebviewContent();
 
     // Setup message handlers for this independent panel
-    panel.webview.onDidReceiveMessage(async (message) => {
+    const msgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
         switch (message.command) {
             case 'sendRequest':
                 await handleSendRequest(message.request, panel, requestManager);
@@ -1078,20 +893,14 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
                 }
                 break;
             case 'updateTitle':
-                // Update panel title based on URL/method
-                if (message.url) {
-                    try {
-                        const url = new URL(message.url);
-                        const path = url.pathname || '/';
-                        panel.title = `#${nextRequestNumber} ${message.method} ${path}`;
-                    } catch {
-                        panel.title = `#${nextRequestNumber} ${message.method} ${message.url.substring(0, 30)}`;
-                    }
-                } else {
-                    panel.title = `#${nextRequestNumber} StackerClient`;
-                }
+                updatePanelTitle(panel, message.method, message.url, `#${nextRequestNumber} `);
                 break;
         }
+    });
+
+    // Cleanup on panel dispose
+    panel.onDidDispose(() => {
+        msgDisposable.dispose();
     });
 
     return panel;
@@ -1122,7 +931,7 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
         if (settings.autoSaveRequests && requestManager) {
             const savedRequest: SavedRequest = {
                 id: Date.now().toString(),
-                name: request.name || new URL(request.url).pathname || 'Untitled',
+                name: request.name || (() => { try { return new URL(request.url).pathname || 'Untitled'; } catch { return 'Untitled'; } })(),
                 method: request.method,
                 url: request.url,
                 headers: request.headers || [],
@@ -1182,8 +991,38 @@ function getSettings() {
         editorWordWrap: config.get<boolean>('editor.wordWrap', true),
         proxyEnabled: config.get<boolean>('proxy.enabled', false),
         proxyUrl: config.get<string>('proxy.url', ''),
-        theme: config.get<string>('theme', 'auto')
+        theme: config.get<string>('theme', 'auto'),
+        tabTitleFormat: config.get<string>('tabTitleFormat', 'full')
     };
+}
+
+// Update panel title helper
+// Update panel title helper
+function updatePanelTitle(panel: vscode.WebviewPanel, method: string, urlStr: string, prefix: string = '') {
+    if (urlStr) {
+        const settings = getSettings();
+        try {
+            const url = new URL(urlStr);
+            let displayUrl = '';
+
+            if (settings.tabTitleFormat === 'path') {
+                displayUrl = url.pathname !== '/' ? url.pathname : '/';
+            } else {
+                displayUrl = url.hostname + (url.pathname !== '/' ? url.pathname : '');
+            }
+
+            panel.title = `${prefix}${method} ${displayUrl} `;
+        } catch {
+            panel.title = `${prefix}${method} ${urlStr.substring(0, 30)} `;
+        }
+    } else {
+        panel.title = `${prefix} StackerClient`;
+    }
+}
+
+// Escape regex special characters in a string
+function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // Environment variable interpolation - replaces {{variable}} with actual values
@@ -1196,7 +1035,8 @@ function interpolateEnvironmentVariables(text: string, variables: Array<{ key: s
     const enabledVars = variables.filter(v => v.enabled !== false);
 
     for (const variable of enabledVars) {
-        const pattern = new RegExp(`\\{\\{\\s*${variable.key}\\s*\\}\\}`, 'g');
+        const escapedKey = escapeRegex(variable.key);
+        const pattern = new RegExp(`\\{\\{\\s*${escapedKey}\\s*\\}\\}`, 'g');
         result = result.replace(pattern, variable.value);
     }
 
@@ -1215,21 +1055,75 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
 
     // Interpolate query parameters and rebuild URL
     if (request.queryParams && Array.isArray(request.queryParams) && request.queryParams.length > 0) {
-        const urlObj = new URL(interpolatedUrl);
-        urlObj.search = ''; // Clear existing query string
-        
-        request.queryParams.forEach((param: any) => {
-            if (param.key && param.checked !== false) {
-                const interpolatedKey = interpolateEnvironmentVariables(param.key, envVariables);
-                const interpolatedValue = interpolateEnvironmentVariables(param.value || '', envVariables);
-                urlObj.searchParams.append(interpolatedKey, interpolatedValue);
+        try {
+            const urlObj = new URL(interpolatedUrl);
+            urlObj.search = ''; // Clear existing query string
+
+            request.queryParams.forEach((param: any) => {
+                if (param.key && param.checked !== false) {
+                    const interpolatedKey = interpolateEnvironmentVariables(param.key, envVariables);
+                    const interpolatedValue = interpolateEnvironmentVariables(param.value || '', envVariables);
+                    urlObj.searchParams.append(interpolatedKey, interpolatedValue);
+                }
+            });
+
+            interpolatedUrl = urlObj.toString();
+        } catch {
+            // URL parsing failed, append params manually
+            const params = request.queryParams
+                .filter((p: any) => p.key && p.checked !== false)
+                .map((p: any) => {
+                    const k = interpolateEnvironmentVariables(p.key, envVariables);
+                    const v = interpolateEnvironmentVariables(p.value || '', envVariables);
+                    return `${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+                })
+                .join('&');
+            if (params) {
+                interpolatedUrl += (interpolatedUrl.includes('?') ? '&' : '?') + params;
             }
-        });
-        
-        interpolatedUrl = urlObj.toString();
+        }
     }
 
     const headers: Record<string, string> = {};
+
+    // 1. Determine User-Agent
+    let selectedUA = 'StackerClient/1.1.3';
+    if (request.userAgent) {
+        selectedUA = getUserAgentString(request.userAgent);
+    } else if (request.bypassWAF) {
+        // Default stealth UA if bypass is on but no specific UA is selected
+        selectedUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    }
+    headers['User-Agent'] = selectedUA;
+
+    // 2. Apply Bypass / Stealth Headers if enabled
+    if (request.bypassWAF) {
+        // Modern Browser Headers
+        headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7';
+        headers['Accept-Language'] = 'en-US,en;q=0.9,tr-TR;q=0.8,tr;q=0.7';
+        headers['Accept-Encoding'] = 'gzip, deflate, br';
+        headers['Upgrade-Insecure-Requests'] = '1';
+        headers['Sec-Fetch-Dest'] = 'document';
+        headers['Sec-Fetch-Mode'] = 'navigate';
+        headers['Sec-Fetch-Site'] = 'none';
+        headers['Sec-Fetch-User'] = '?1';
+        headers['DNT'] = '1';
+        headers['Cache-Control'] = 'max-age=0';
+
+        // Intelligent Client Hints based on selected UA
+        headers['Sec-Ch-Ua'] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
+        headers['Sec-Ch-Ua-Mobile'] = selectedUA.includes('Mobile') || selectedUA.includes('iPhone') || selectedUA.includes('Android') ? '?1' : '?0';
+
+        let platform = '"Windows"';
+        if (selectedUA.includes('Macintosh') || selectedUA.includes('iPhone')) {
+            platform = '"macOS"';
+        } else if (selectedUA.includes('Android')) {
+            platform = '"Android"';
+        } else if (selectedUA.includes('Linux')) {
+            platform = '"Linux"';
+        }
+        headers['Sec-Ch-Ua-Platform'] = platform;
+    }
 
     // Add default headers from settings
     if (settings.defaultHeaders && settings.defaultHeaders.length > 0) {
@@ -1280,7 +1174,7 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         // Set proxy via environment variable for fetch to use
         // Note: Node.js native fetch doesn't support proxy directly,
         // but we can hint the user or use undici dispatcher in future
-        console.log(`Proxy configured: ${settings.proxyUrl}`);
+        console.log(`Proxy configured: ${settings.proxyUrl} `);
     }
 
     if (interpolatedBody && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
@@ -1302,27 +1196,115 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         const response = await fetch(interpolatedUrl, fetchOptions);
         clearTimeout(timeout);
 
-        const responseHeaders: Record<string, string> = {};
+        const responseHeaders: Record<string, any> = {};
         response.headers.forEach((value, key) => {
-            responseHeaders[key] = value;
+            if (key.toLowerCase() !== 'set-cookie') {
+                responseHeaders[key] = value;
+            }
         });
 
-        let responseBody: any;
-        const responseText = await response.text();
-
-        // Check response size
-        if (responseText.length > settings.responseMaxSize) {
-            responseBody = `Response too large (${(responseText.length / 1024 / 1024).toFixed(2)} MB). Max size: ${(settings.responseMaxSize / 1024 / 1024).toFixed(2)} MB`;
+        // Always try getSetCookie() separately — forEach may skip or merge set-cookie
+        if (typeof (response.headers as any).getSetCookie === 'function') {
+            const cookies = (response.headers as any).getSetCookie();
+            if (cookies && cookies.length > 0) {
+                responseHeaders['set-cookie'] = cookies;
+            }
         } else {
-            const contentType = response.headers.get('content-type') || '';
+            // Fallback: use .get() which may join multiple cookies with comma
+            const raw = response.headers.get('set-cookie');
+            if (raw) {
+                responseHeaders['set-cookie'] = raw;
+            }
+        }
 
-            if (contentType.includes('application/json')) {
+        let responseBody: any;
+        const contentType = response.headers.get('content-type') || '';
+
+        // Binary content-type detection
+        const binaryTypes = [
+            'image/', 'audio/', 'video/', 'application/pdf',
+            'application/zip', 'application/x-rar', 'application/x-zip',
+            'application/octet-stream', 'application/gzip', 'application/x-gzip',
+            'application/x-tar', 'application/x-7z'
+        ];
+
+        const isBinary = binaryTypes.some(type => contentType.includes(type)) ||
+                         contentType.includes('binary');
+
+        // Get arrayBuffer first (needed for hex and can be converted to text)
+        let responseArrayBuffer: ArrayBuffer;
+        try {
+            responseArrayBuffer = await response.arrayBuffer();
+        } catch {
+            responseArrayBuffer = new TextEncoder().encode('').buffer;
+        }
+
+        // Generate hex representation for ALL responses
+        let hexBody: { __hex__: boolean; hex: string; size: number; truncated: boolean; mimeType: string } | undefined;
+        try {
+            const uint8Array = new Uint8Array(responseArrayBuffer);
+            const maxBytes = 1024 * 1024; // 1MB max
+            const bytesToConvert = uint8Array.slice(0, maxBytes);
+            const hexString = Array.from(bytesToConvert)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join(' ');
+
+            hexBody = {
+                __hex__: true,
+                hex: hexString,
+                size: uint8Array.length,
+                truncated: uint8Array.length > maxBytes,
+                mimeType: contentType
+            };
+        } catch {
+            // Hex generation failed, continue without hex
+        }
+
+        // Get response text from arrayBuffer
+        let responseText: string;
+        try {
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+            responseText = decoder.decode(responseArrayBuffer);
+        } catch {
+            responseText = '';
+        }
+
+        // Handle response body based on content type
+        if (isBinary) {
+            // Binary responses already handled above with hex in body
+            responseBody = {
+                __hex__: true,
+                hex: hexBody?.hex || '',
+                size: hexBody?.size || 0,
+                truncated: hexBody?.truncated || false,
+                mimeType: contentType
+            };
+        } else {
+            // Check response size
+            if (responseText.length > settings.responseMaxSize) {
+                responseBody = `Response too large (${(responseText.length / 1024 / 1024).toFixed(2)} MB). Max size: ${(settings.responseMaxSize / 1024 / 1024).toFixed(2)} MB`;
+            } else if (contentType.includes('application/json')) {
                 try {
                     responseBody = JSON.parse(responseText);
                     if (settings.prettyPrintResponse && typeof responseBody === 'object') {
-                        responseBody = responseBody; // Will be formatted in webview
+                        responseBody = responseBody;
                     }
                 } catch {
+                    responseBody = responseText;
+                }
+            } else if (contentType.includes('multipart/form-data')) {
+                // Handle multipart/form-data responses
+                const boundaryMatch = contentType.match(/boundary=(.+)/);
+                const boundary = boundaryMatch ? boundaryMatch[1] : null;
+
+                if (boundary) {
+                    responseBody = {
+                        __formData__: true,
+                        raw: responseText,
+                        boundary: boundary,
+                        parts: parseMultipartFormData(responseText, boundary)
+                    };
+                } else {
                     responseBody = responseText;
                 }
             } else {
@@ -1330,21 +1312,84 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
             }
         }
 
+        // Detect transfer encoding
+        const transferEncoding = response.headers.get('transfer-encoding') || '';
+        const isChunked = transferEncoding.toLowerCase().includes('chunked');
+
         return {
             status: response.status,
             statusText: response.statusText,
             headers: responseHeaders,
             body: responseBody,
+            hexBody: hexBody,
             time: Date.now() - startTime,
             size: responseText.length,
-            interpolatedUrl: interpolatedUrl !== request.url ? interpolatedUrl : undefined
+            interpolatedUrl: interpolatedUrl !== request.url ? interpolatedUrl : undefined,
+            isChunked: isChunked,
+            transferEncoding: transferEncoding || undefined
         };
     } catch (error: any) {
         clearTimeout(timeout);
         if (error.name === 'AbortError') {
-            throw new Error(`Request timeout (${timeoutMs / 1000}s)`);
+            throw new Error(`Request timeout(${timeoutMs / 1000}s)`);
         }
         throw error;
     }
+}
+
+function getUserAgentString(key: string): string {
+    const agents: Record<string, string> = {
+        'chrome_win': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'chrome_mac': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'firefox_win': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'firefox_mac': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'safari_mac': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+        'edge_win': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+        'iphone': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
+        'android': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        'googlebot': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'bingbot': 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+        'yandexbot': 'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)',
+        'duckduckgo': 'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)'
+    };
+    return agents[key] || '';
+}
+
+// Parse multipart/form-data response
+function parseMultipartFormData(body: string, boundary: string): any[] {
+    const parts: any[] = [];
+    const delimiter = '--' + boundary;
+    const sections = body.split(delimiter);
+
+    sections.forEach(section => {
+        const trimmed = section.trim();
+        if (!trimmed || trimmed === '--' || trimmed === '') return;
+
+        const [headersPart, ...bodyParts] = trimmed.split('\r\n\r\n');
+        const bodyContent = bodyParts.join('\r\n\r\n').trim();
+
+        const headers: Record<string, string> = {};
+        headersPart.split('\r\n').forEach(line => {
+            const [key, ...valueParts] = line.split(':');
+            if (key && valueParts.length > 0) {
+                headers[key.trim().toLowerCase()] = valueParts.join(':').trim();
+            }
+        });
+
+        // Check if part is a file
+        const contentDisposition = headers['content-disposition'] || '';
+        const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+        const nameMatch = contentDisposition.match(/name="?([^";\n]+)"?/);
+
+        parts.push({
+            headers: headers,
+            name: nameMatch ? nameMatch[1] : null,
+            filename: filenameMatch ? filenameMatch[1] : null,
+            contentType: headers['content-type'] || null,
+            body: bodyContent
+        });
+    });
+
+    return parts;
 }
 
