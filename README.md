@@ -176,21 +176,7 @@ StackerClient automatically adapts to your VS Code theme with beautiful purple a
 2. Search "StackerClient REST API"
 3. Click Install
 
-## 📝 Keywords
-
-Find this extension using these keywords:
-- REST Client
-- API Testing
-- HTTP Client
-- Postman Alternative
-- Insomnia Alternative
-- Thunder Client
-- API Debugger
-- HTTP Request
-- REST API Tool
-- API Development
-- Web Service Testing
-- Endpoint Testing
+REST Client, API Testing, HTTP Client, Postman Alternative, Insomnia Alternative, Thunder Client, API Debugger, HTTP Request, REST API Tool, API Development, Web Service Testing, Endpoint Testing
 
 ## 🤝 Contributing
 
