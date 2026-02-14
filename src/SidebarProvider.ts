@@ -96,9 +96,25 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             const config = vscode.workspace.getConfiguration('stacker');
             const defaultView = config.get<string>('sidebar.defaultView', 'recent');
 
-            const requests = defaultView === 'saved'
-                ? this._requestManager.getAllRequests()
-                : this._requestManager.getHistory();
+            let requests;
+            if (defaultView === 'saved') {
+                requests = this._requestManager.getAllRequests();
+            } else if (defaultView === 'recentSaved') {
+                // Combine history and saved requests
+                const history = this._requestManager.getHistory();
+                const saved = this._requestManager.getAllRequests();
+                // Merge and remove duplicates by id
+                const seen = new Set<string>();
+                requests = [];
+                for (const req of [...history, ...saved]) {
+                    if (!seen.has(req.id)) {
+                        seen.add(req.id);
+                        requests.push(req);
+                    }
+                }
+            } else {
+                requests = this._requestManager.getHistory();
+            }
 
             this._view.webview.postMessage({
                 type: 'refresh',

@@ -953,6 +953,8 @@
                 <div class="source-toggle">
                     <button id="source-recent" class="source-btn active"
                         onclick="setViewSource('recent')">Recent</button>
+                    <button id="source-recentSaved" class="source-btn"
+                        onclick="setViewSource('recentSaved')">Recent Saved</button>
                     <button id="source-saved" class="source-btn" onclick="setViewSource('saved')">Saved</button>
                 </div>
             </div>
@@ -1004,7 +1006,7 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" class="saved-search-input" id="filterInput" placeholder="Search requests...">
+                    <input type="text" class="saved-search-input" id="filterInput" placeholder="Search requests...x">
                 </div>
             </div>
 
@@ -1142,6 +1144,11 @@
         }
 
         function setViewSource(source) {
+            // Update button active states
+            document.querySelectorAll('.source-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('source-' + source);
+            if (activeBtn) activeBtn.classList.add('active');
+
             vscode.postMessage({
                 type: 'setViewSource',
                 source: source
