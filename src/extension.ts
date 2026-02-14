@@ -1139,7 +1139,7 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
     const headers: Record<string, string> = {};
 
     // 1. Determine User-Agent
-    let selectedUA = 'StackerClient/1.1.5';
+    let selectedUA = 'StackerClient/1.1.7';
     if (request.userAgent) {
         const mappedUA = getUserAgentString(request.userAgent);
         selectedUA = mappedUA || request.userAgent;
@@ -1187,9 +1187,9 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
     // Add default headers from settings
     if (settings.defaultHeaders && settings.defaultHeaders.length > 0) {
         settings.defaultHeaders.forEach((h: any) => {
-            if (h.key && h.value) {
+            if (h.key) {
                 const interpolatedKey = interpolateEnvironmentVariables(h.key, envVariables);
-                const interpolatedValue = interpolateEnvironmentVariables(h.value, envVariables);
+                const interpolatedValue = interpolateEnvironmentVariables(h.value || '', envVariables);
                 headers[interpolatedKey] = interpolatedValue;
             }
         });
@@ -1198,9 +1198,9 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
     // Add request-specific headers (override defaults)
     if (request.headers && Array.isArray(request.headers)) {
         request.headers.forEach((h: any) => {
-            if (h.key && h.value) {
+            if (h.key) {
                 const interpolatedKey = interpolateEnvironmentVariables(h.key, envVariables);
-                const interpolatedValue = interpolateEnvironmentVariables(h.value, envVariables);
+                const interpolatedValue = interpolateEnvironmentVariables(h.value || '', envVariables);
                 headers[interpolatedKey] = interpolatedValue;
             }
         });

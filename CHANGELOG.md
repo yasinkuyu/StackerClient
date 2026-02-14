@@ -2,6 +2,13 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.7] - 2026-02-14
+
+### Fixed
+- **User-Agent Version**: Default User-Agent string now correctly reflects the current version.
+- **Empty-Value Headers**: Headers with a key but empty value (e.g. `Cookie:`, `X-API-Key:`) are now sent to the server instead of being silently dropped.
+- **Duplicate Auth Headers**: Applying Bearer Token, Basic Auth, or using a saved token now replaces any existing Authorization header instead of creating duplicates.
+
 ## [1.1.6] - 2026-02-14
 
 ### Added

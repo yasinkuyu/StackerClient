@@ -37,6 +37,16 @@ function initApp() {
         });
     });
 
+    function removeExistingHeader(headerKey) {
+        const rows = document.querySelectorAll('#headersContainer .key-value-row');
+        rows.forEach(row => {
+            const keyInput = row.querySelector('.header-key');
+            if (keyInput && keyInput.value.trim().toLowerCase() === headerKey.toLowerCase()) {
+                row.remove();
+            }
+        });
+    }
+
     window.addAuthHeader = function (type, desc) {
         let key = 'Authorization';
         let value = '';
@@ -53,6 +63,11 @@ function initApp() {
                 break;
         }
 
+        if (type === 'API Key') {
+            removeExistingHeader('X-API-Key');
+        } else {
+            removeExistingHeader('Authorization');
+        }
         addHeaderRow(key, value);
 
         // Switch to headers tab
@@ -70,6 +85,7 @@ function initApp() {
             showToast('Please enter a token');
             return;
         }
+        removeExistingHeader('Authorization');
         addHeaderRow('Authorization', 'Bearer ' + token);
         showToast('Bearer token applied to headers');
 
@@ -91,6 +107,7 @@ function initApp() {
             return;
         }
         try {
+            removeExistingHeader('Authorization');
             const base64 = btoa(user + ':' + pass);
             addHeaderRow('Authorization', 'Basic ' + base64);
             showToast('Basic Auth applied to headers');
@@ -869,6 +886,7 @@ function initApp() {
     function useToken(name) {
         const token = authTokens[name];
         if (token) {
+            removeExistingHeader('Authorization');
             addHeaderRow('Authorization', 'Bearer ' + token);
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
