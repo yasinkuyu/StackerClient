@@ -41,6 +41,12 @@
     --vscode-tab-activeForeground: #ffffff;
     --vscode-tab-inactiveForeground: rgba(255, 255, 255, 0.5);
     --vscode-tab-activeBorderTop: #007acc;
+    --vscode-menu-background: #252526;
+    --vscode-menu-foreground: #cccccc;
+    --vscode-menu-border: #454545;
+    --vscode-menu-separatorBackground: #454545;
+    --vscode-menu-selectionBackground: #094771;
+    --vscode-menu-selectionForeground: #ffffff;
 }
 
 * {
@@ -76,7 +82,7 @@ body {
     background: var(--vscode-input-background);
     border: 1px solid var(--vscode-input-border);
     border-radius: 4px;
-    overflow: hidden;
+    overflow: visible;
     transition: border-color 0.2s;
 }
 
@@ -96,7 +102,7 @@ body {
 }
 
 .method-select {
-    background: transparent !important;
+    background-color: transparent !important;
     color: var(--vscode-dropdown-foreground);
     border-right: 1px solid var(--vscode-panel-border) !important;
     padding: 0 28px 0 12px;
@@ -108,6 +114,7 @@ body {
     background-repeat: no-repeat;
     background-position: right 8px center;
     min-width: 90px;
+    border-radius: 4px 0 0 4px !important;
 }
 
 .method-select:focus {
@@ -271,6 +278,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 0 4px 4px 0 !important;
 }
 
 .examples-btn:hover {
@@ -392,9 +400,9 @@ body {
 .btn-apply {
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
-    border: none;
-    padding: 0 12px;
-    border-radius: 3px;
+    border: 1px solid transparent;
+    padding: 0 10px;
+    border-radius: 4px;
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
@@ -561,6 +569,8 @@ body {
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 4px;
 }
 
 .btn-secondary {
@@ -582,6 +592,7 @@ body {
     opacity: 0.6;
     transition: all 0.15s;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .btn-icon-sm:hover {
