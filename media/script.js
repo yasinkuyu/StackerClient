@@ -18,6 +18,7 @@ const COMMON_HEADERS = [
     { key: 'X-Requested-With', value: 'XMLHttpRequest', desc: 'AJAX request' }
 ];
 let savedRequests = [];
+let requestHistory = [];
 let authTokens = {};
 let isLoading = false;
 let isSyncing = false;
@@ -389,7 +390,7 @@ function initApp() {
         });
     }
 
-    // User-Agent custom handler
+    // User-Agent and Referer custom handler
     const userAgentSelect = document.getElementById('userAgentSelect');
     const customUserAgentRow = document.getElementById('customUserAgentRow');
     if (userAgentSelect) {
@@ -399,6 +400,19 @@ function initApp() {
                 document.getElementById('customUserAgentInput').focus();
             } else {
                 customUserAgentRow.style.display = 'none';
+            }
+        });
+    }
+
+    const refererSelect = document.getElementById('refererSelect');
+    const customRefererRow = document.getElementById('customRefererRow');
+    if (refererSelect) {
+        refererSelect.addEventListener('change', () => {
+            if (refererSelect.value === 'custom') {
+                customRefererRow.style.display = 'block';
+                document.getElementById('customRefererInput').focus();
+            } else {
+                customRefererRow.style.display = 'none';
             }
         });
     }
@@ -423,60 +437,72 @@ function initApp() {
     }
 
     function getCurrentRequest() {
-        // Sadece checked olan header'ları topla
+        // Tüm header'ları topla (checked durumu ile birlikte)
         const headerRows = document.querySelectorAll('#headersContainer .key-value-row');
-        const requestHeaders = [];
+        const allHeaders = [];
+        const activeHeaders = [];
 
         headerRows.forEach(row => {
             const checkbox = row.querySelector('.row-checkbox');
-            if (checkbox && checkbox.checked) {
-                const keyInput = row.querySelector('.header-key');
-                const valueInput = row.querySelector('.header-value');
-                const key = keyInput?.value.trim();
-                const value = valueInput?.value.trim();
-                if (key) {
-                    requestHeaders.push({ key, value });
+            const keyInput = row.querySelector('.header-key');
+            const valueInput = row.querySelector('.header-value');
+            const key = keyInput?.value.trim();
+            const value = valueInput?.value.trim();
+            const checked = checkbox ? checkbox.checked : true;
+            if (key) {
+                allHeaders.push({ key, value, checked });
+                if (checked) {
+                    activeHeaders.push({ key, value });
                 }
             }
         });
 
-        // Sadece checked olan query parametrelerini topla
+        // Tüm query parametrelerini topla (checked durumu ile birlikte)
         const queryRows = document.querySelectorAll('#queryContainer .key-value-row');
-        const queryParams = [];
+        const allQueryParams = [];
+        const activeQueryParams = [];
 
         queryRows.forEach(row => {
             const checkbox = row.querySelector('.row-checkbox');
-            if (checkbox && checkbox.checked) {
-                const keyInput = row.querySelector('.query-key');
-                const valueInput = row.querySelector('.query-value');
-                const key = keyInput?.value.trim();
-                const value = valueInput?.value.trim();
-                if (key) {
-                    queryParams.push({ key, value });
+            const keyInput = row.querySelector('.query-key');
+            const valueInput = row.querySelector('.query-value');
+            const key = keyInput?.value.trim();
+            const value = valueInput?.value.trim();
+            const checked = checkbox ? checkbox.checked : true;
+            if (key) {
+                allQueryParams.push({ key, value, checked });
+                if (checked) {
+                    activeQueryParams.push({ key, value });
                 }
             }
         });
 
-        // URL'e query parametrelerini ekle
+        // URL'e sadece aktif query parametrelerini ekle (gönderim için)
         let url = document.getElementById('url').value.trim();
         // Mevcut query string'i temizle
-        url = url.split('?')[0];
-        if (queryParams.length > 0) {
-            const queryString = queryParams.map(p => encodeURIComponent(p.key) + '=' + encodeURIComponent(p.value)).join('&');
-            url = url + '?' + queryString;
+        const baseUrl = url.split('?')[0];
+        let fullUrl = baseUrl;
+        if (activeQueryParams.length > 0) {
+            const queryString = activeQueryParams.map(p => encodeURIComponent(p.key) + '=' + encodeURIComponent(p.value)).join('&');
+            fullUrl = baseUrl + '?' + queryString;
         }
 
         return {
             method: document.getElementById('method').value,
-            url: url,
-            headers: requestHeaders,
+            url: fullUrl,
+            baseUrl: baseUrl,
+            headers: activeHeaders,
+            allHeaders: allHeaders,
             contentType: document.getElementById('contentType').value,
             body: document.getElementById('bodyInput').value,
-            queryParams: queryParams,
+            queryParams: allQueryParams,
             bypassWAF: document.getElementById('bypassWAF')?.checked || false,
             userAgent: userAgentSelect?.value === 'custom'
                 ? document.getElementById('customUserAgentInput')?.value.trim()
-                : (userAgentSelect?.value || '')
+                : (userAgentSelect?.value || ''),
+            referer: refererSelect?.value === 'custom'
+                ? document.getElementById('customRefererInput')?.value.trim()
+                : (refererSelect?.value || '')
         };
     }
 
@@ -672,12 +698,20 @@ function initApp() {
                 defaultName = 'request-' + new Date().toLocaleTimeString();
             }
 
-            // Kullanıcıdan isim al
-            vscode.postMessage({
-                command: 'showInputBox',
-                prompt: 'Enter request name',
-                value: currentRequestId ? undefined : defaultName
-            });
+            // Eğer mevcut bir request güncelliyorsak, isim sormadan doğrudan kaydet
+            if (currentRequestId) {
+                // Mevcut request'in ismini bul
+                const existingReq = savedRequests.find(r => r.id === currentRequestId);
+                const existingName = existingReq ? existingReq.name : defaultName;
+                window.handleInputBoxResponse(existingName);
+            } else {
+                // Yeni kayıt — isim sor
+                vscode.postMessage({
+                    command: 'showInputBox',
+                    prompt: 'Enter request name',
+                    value: defaultName
+                });
+            }
         });
     }
 
@@ -692,16 +726,22 @@ function initApp() {
             id: currentRequestId || Date.now().toString(),
             name: name || defaultName,
             method: request.method,
-            url: request.url,
-            headers: request.headers,
+            url: request.baseUrl || request.url,
+            headers: request.allHeaders || request.headers,
             contentType: request.contentType,
             body: request.body,
-            queryParams: request.queryParams
+            queryParams: request.queryParams,
+            bypassWAF: request.bypassWAF,
+            userAgent: request.userAgent,
+            referer: request.referer
         };
 
+        const isUpdate = !!currentRequestId;
         currentRequestId = requestToSave.id;
         vscode.postMessage({ command: 'saveRequest', request: requestToSave });
-        showToast(currentRequestId ? 'Request updated!' : 'Request saved!');
+        showToast(isUpdate ? 'Request updated!' : 'Request saved!');
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) saveBtn.textContent = 'Update';
     };
 
     window.addEventListener('message', event => {
@@ -720,7 +760,6 @@ function initApp() {
                 displaySavedRequests();
                 break;
             case 'requestSaved':
-                showToast('Request saved successfully!');
                 break;
             case 'inputBoxResponse':
                 if (window.handleIntervalResponse) {
@@ -745,6 +784,10 @@ function initApp() {
                 break;
             case 'activeEnvironment':
                 displayActiveEnvironment(message.environment);
+                break;
+            case 'history':
+                requestHistory = message.history || [];
+                displayHistory();
                 break;
         }
     });
@@ -1936,14 +1979,52 @@ function initApp() {
                 displayUrl = url.hostname + (url.pathname !== '/' ? url.pathname : '') + (url.search || '');
             } catch { }
 
+            // Build details content
+            let detailsHtml = '';
+
+            if (req.headers && req.headers.length > 0) {
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Headers</span>';
+                req.headers.forEach(h => {
+                    const checkedClass = h.checked === false ? ' history-unchecked' : '';
+                    detailsHtml += '<div class="history-detail-row' + checkedClass + '"><span class="history-detail-key">' + escapeHtml(h.key) + ':</span> <span class="history-detail-value">' + escapeHtml(h.value) + '</span></div>';
+                });
+                detailsHtml += '</div>';
+            }
+
+            if (req.queryParams && req.queryParams.length > 0) {
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Query Params</span>';
+                req.queryParams.forEach(p => {
+                    const checkedClass = p.checked === false ? ' history-unchecked' : '';
+                    detailsHtml += '<div class="history-detail-row' + checkedClass + '"><span class="history-detail-key">' + escapeHtml(p.key) + ':</span> <span class="history-detail-value">' + escapeHtml(p.value) + '</span></div>';
+                });
+                detailsHtml += '</div>';
+            }
+
+            if (req.body) {
+                const bodyPreview = req.body.length > 200 ? req.body.substring(0, 200) + '...' : req.body;
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Body</span><div class="history-detail-body">' + escapeHtml(bodyPreview) + '</div></div>';
+            }
+
+            const settings = [];
+            if (req.bypassWAF) settings.push('Bypass WAF');
+            if (req.userAgent) settings.push('UA: ' + req.userAgent);
+            if (req.referer) settings.push('Referer: ' + req.referer);
+            if (settings.length > 0) {
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Settings</span><div class="history-detail-row">' + escapeHtml(settings.join(' · ')) + '</div></div>';
+            }
+
             item.innerHTML = '<div class="saved-req-id">#' + displayId + '</div>' +
                 '<div class="saved-req-main">' +
                 '<div class="saved-req-header">' +
                 '<span class="method method-' + req.method.toLowerCase() + '">' + req.method + '</span>' +
                 '<span class="saved-req-name" title="' + escapeHtml(req.name) + '">' + escapeHtml(req.name) + '</span>' +
                 '<span class="saved-req-time">' + timeAgo + '</span>' +
+                '<svg class="history-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
                 '</div>' +
                 '<div class="saved-req-url" title="' + escapeHtml(req.url) + '">' + escapeHtml(displayUrl) + '</div>' +
+                '<div class="history-details" style="display:none;">' + detailsHtml +
+                '<button class="history-load-btn" title="Load this request">Load Request</button>' +
+                '</div>' +
                 '</div>' +
                 '<button class="saved-req-delete" title="Delete">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
@@ -1951,7 +2032,19 @@ function initApp() {
                 '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
                 '</svg>' +
                 '</button>';
-            item.querySelector('.saved-req-main').onclick = function () { loadRequestById(req.id); };
+
+            item.querySelector('.saved-req-header').onclick = function (e) {
+                e.stopPropagation();
+                const details = item.querySelector('.history-details');
+                const chevron = item.querySelector('.history-chevron');
+                const isOpen = details.style.display !== 'none';
+                details.style.display = isOpen ? 'none' : 'block';
+                chevron.classList.toggle('history-chevron-open', !isOpen);
+            };
+            item.querySelector('.history-load-btn').onclick = function (e) {
+                e.stopPropagation();
+                loadRequestById(req.id);
+            };
             item.querySelector('.saved-req-delete').onclick = function (e) { e.stopPropagation(); deleteRequestById(req.id, e); };
             container.appendChild(item);
         });
@@ -1993,6 +2086,126 @@ function initApp() {
         displaySavedRequests();
     });
 
+    document.getElementById('recentFilterInput')?.addEventListener('input', () => {
+        displayHistory();
+    });
+
+    function displayHistory() {
+        const container = document.getElementById('recentRequestsContainer');
+        const statsEl = document.getElementById('recentStats');
+        const filterText = (document.getElementById('recentFilterInput')?.value || '').toLowerCase();
+
+        const filteredHistory = requestHistory.filter(req =>
+            req.url.toLowerCase().includes(filterText) ||
+            req.method.toLowerCase().includes(filterText)
+        );
+
+        statsEl.textContent = filteredHistory.length + ' requests';
+
+        if (filteredHistory.length === 0) {
+            container.innerHTML = '<div class="empty-state">No request history found</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        filteredHistory.forEach((req, idx) => {
+            const item = document.createElement('div');
+            item.className = 'saved-request-item';
+            const timeAgo = formatTime(req.createdAt);
+
+            let displayUrl = req.url;
+            try {
+                const url = new URL(req.url);
+                displayUrl = url.hostname + (url.pathname !== '/' ? url.pathname : '') + (url.search || '');
+            } catch { }
+
+            // Build details content
+            let detailsHtml = '';
+
+            // Headers
+            if (req.headers && req.headers.length > 0) {
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Headers</span>';
+                req.headers.forEach(h => {
+                    const checkedClass = h.checked === false ? ' history-unchecked' : '';
+                    detailsHtml += '<div class="history-detail-row' + checkedClass + '"><span class="history-detail-key">' + escapeHtml(h.key) + ':</span> <span class="history-detail-value">' + escapeHtml(h.value) + '</span></div>';
+                });
+                detailsHtml += '</div>';
+            }
+
+            // Query params
+            if (req.queryParams && req.queryParams.length > 0) {
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Query Params</span>';
+                req.queryParams.forEach(p => {
+                    const checkedClass = p.checked === false ? ' history-unchecked' : '';
+                    detailsHtml += '<div class="history-detail-row' + checkedClass + '"><span class="history-detail-key">' + escapeHtml(p.key) + ':</span> <span class="history-detail-value">' + escapeHtml(p.value) + '</span></div>';
+                });
+                detailsHtml += '</div>';
+            }
+
+            // Body
+            if (req.body) {
+                const bodyPreview = req.body.length > 200 ? req.body.substring(0, 200) + '...' : req.body;
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Body</span><div class="history-detail-body">' + escapeHtml(bodyPreview) + '</div></div>';
+            }
+
+            // Settings
+            const settings = [];
+            if (req.bypassWAF) settings.push('Bypass WAF');
+            if (req.userAgent) settings.push('UA: ' + req.userAgent);
+            if (req.referer) settings.push('Referer: ' + req.referer);
+            if (settings.length > 0) {
+                detailsHtml += '<div class="history-detail-section"><span class="history-detail-label">Settings</span><div class="history-detail-row">' + escapeHtml(settings.join(' · ')) + '</div></div>';
+            }
+
+            item.innerHTML = '<div class="saved-req-id">#' + (idx + 1) + '</div>' +
+                '<div class="saved-req-main">' +
+                '<div class="saved-req-header">' +
+                '<span class="method method-' + req.method.toLowerCase() + '">' + req.method + '</span>' +
+                '<span class="saved-req-name" title="' + escapeHtml(req.name || displayUrl) + '">' + escapeHtml(req.name || displayUrl) + '</span>' +
+                '<span class="saved-req-time">' + timeAgo + '</span>' +
+                '<svg class="history-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+                '</div>' +
+                '<div class="saved-req-url" title="' + escapeHtml(req.url) + '">' + escapeHtml(displayUrl) + '</div>' +
+                '<div class="history-details" style="display:none;">' + detailsHtml +
+                '<button class="history-load-btn" title="Load this request">Load Request</button>' +
+                '</div>' +
+                '</div>' +
+                '<button class="saved-req-delete" title="Delete">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                '<polyline points="3 6 5 6 21 6"></polyline>' +
+                '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
+                '</svg>' +
+                '</button>';
+
+            // Toggle expand/collapse on header click
+            item.querySelector('.saved-req-header').onclick = function (e) {
+                e.stopPropagation();
+                const details = item.querySelector('.history-details');
+                const chevron = item.querySelector('.history-chevron');
+                const isOpen = details.style.display !== 'none';
+                details.style.display = isOpen ? 'none' : 'block';
+                chevron.classList.toggle('history-chevron-open', !isOpen);
+            };
+            // Load request button
+            item.querySelector('.history-load-btn').onclick = function (e) {
+                e.stopPropagation();
+                loadRequest(req);
+            };
+            item.querySelector('.saved-req-delete').onclick = function (e) {
+                e.stopPropagation();
+                vscode.postMessage({ command: 'deleteHistoryItem', id: req.id });
+            };
+            container.appendChild(item);
+        });
+    }
+
+    window.clearHistory = function () {
+        vscode.postMessage({ command: 'clearHistory' });
+    };
+
+    // Load initial history
+    vscode.postMessage({ command: 'loadHistory' });
+
     // Update panel title when URL or method changes
     function updatePanelTitle() {
         const url = document.getElementById('url').value.trim();
@@ -2008,9 +2221,56 @@ function initApp() {
     document.getElementById('method')?.addEventListener('change', updatePanelTitle);
 
     function loadRequest(req, activateTab = 'headers') {
+        // Track loaded request ID for update-on-save
+        if (req.id) {
+            currentRequestId = req.id;
+            const saveBtn = document.getElementById('saveBtn');
+            if (saveBtn) saveBtn.textContent = 'Update';
+        }
+
         document.getElementById('method').value = req.method;
         document.getElementById('url').value = req.url;
         document.getElementById('contentType').value = req.contentType || 'application/json';
+
+        // Set Stealth / Bypass WAF (always reset)
+        const bypassEl = document.getElementById('bypassWAF');
+        if (bypassEl) bypassEl.checked = !!req.bypassWAF;
+
+        // Set User-Agent (always reset)
+        if (userAgentSelect) {
+            if (!req.userAgent) {
+                userAgentSelect.value = '';
+                customUserAgentRow.style.display = 'none';
+            } else {
+                const isCustomUA = !userAgentSelect.querySelector(`option[value="${req.userAgent}"]`);
+                if (isCustomUA) {
+                    userAgentSelect.value = 'custom';
+                    customUserAgentRow.style.display = 'block';
+                    document.getElementById('customUserAgentInput').value = req.userAgent;
+                } else {
+                    userAgentSelect.value = req.userAgent;
+                    customUserAgentRow.style.display = 'none';
+                }
+            }
+        }
+
+        // Set Referer (always reset)
+        if (refererSelect) {
+            if (!req.referer) {
+                refererSelect.value = '';
+                customRefererRow.style.display = 'none';
+            } else {
+                const isCustomReferer = !refererSelect.querySelector(`option[value="${req.referer}"]`);
+                if (isCustomReferer) {
+                    refererSelect.value = 'custom';
+                    customRefererRow.style.display = 'block';
+                    document.getElementById('customRefererInput').value = req.referer;
+                } else {
+                    refererSelect.value = req.referer;
+                    customRefererRow.style.display = 'none';
+                }
+            }
+        }
 
         // Handle form data from cURL import
         if (req.formData && req.formData.length > 0) {

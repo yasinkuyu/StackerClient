@@ -839,19 +839,23 @@ body {
     gap: 0;
     background: var(--vscode-tab-inactiveBackground);
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding: 6px 8px 0 8px;
-    /* Added 6px top padding */
+    padding: 2px 2px 0 2px;
+    height: 30px;
+    align-items: flex-end;
 }
 
 .tab {
-    padding: 8px 16px;
+    padding: 6px 16px;
     cursor: pointer;
     border: none;
     background: transparent;
     color: var(--vscode-tab-inactiveForeground);
-    font-size: 12px;
+    font-size: 11px;
     font-family: var(--vscode-font-family);
     border-bottom: 2px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 .tab:hover {
@@ -1356,9 +1360,14 @@ textarea:focus {
 
 .header-row {
     display: flex;
-    padding: 3px 8px;
+    padding: 4px 8px;
     border-bottom: 1px solid var(--vscode-panel-border);
-    font-size: 12px;
+    font-size: 11px;
+    transition: background-color 0.1s;
+}
+
+.header-row:hover {
+    background: var(--vscode-list-hoverBackground);
 }
 
 .header-row:last-child {
@@ -1366,10 +1375,12 @@ textarea:focus {
 }
 
 .header-key {
-    min-width: 200px;
-    font-weight: 600;
+    min-width: 140px;
+    max-width: 200px;
+    font-weight: 500;
     color: var(--vscode-foreground);
-    font-family: 'Consolas', 'Monaco', monospace;
+    font-family: var(--vscode-editor-font-family, monospace);
+    opacity: 0.9;
 }
 
 .header-value {
@@ -2374,4 +2385,107 @@ body.theme-dark {
     color: var(--vscode-descriptionForeground);
     margin-bottom: 12px;
     line-height: 1.5;
+}
+
+.btn-link-sm {
+    background: transparent;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 4px;
+    text-decoration: none;
+    font-family: var(--vscode-font-family);
+}
+
+.btn-link-sm:hover {
+    text-decoration: underline;
+    color: var(--vscode-textLink-activeForeground);
+    background: transparent;
+}
+
+/* Expandable history/saved items */
+.history-chevron {
+    margin-left: auto;
+    transition: transform 0.15s ease;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.history-chevron-open {
+    transform: rotate(180deg);
+    opacity: 0.8;
+}
+
+.history-details {
+    margin-top: 8px;
+    padding: 8px 0 4px 0;
+    border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.2));
+}
+
+.history-detail-section {
+    margin-bottom: 6px;
+}
+
+.history-detail-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--vscode-descriptionForeground);
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.history-detail-row {
+    font-size: 11px;
+    color: var(--vscode-foreground);
+    padding: 1px 0;
+    word-break: break-all;
+}
+
+.history-detail-key {
+    color: var(--vscode-debugTokenExpression-name, #9cdcfe);
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+}
+
+.history-detail-value {
+    color: var(--vscode-debugTokenExpression-string, #ce9178);
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+}
+
+.history-unchecked {
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+
+.history-detail-body {
+    font-size: 11px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    color: var(--vscode-foreground);
+    background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.1));
+    padding: 4px 6px;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.history-load-btn {
+    margin-top: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.history-load-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
 }

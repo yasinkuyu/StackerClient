@@ -2,6 +2,35 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.6] - 2026-02-14
+
+### Added
+- **Expandable Request Details**: Saved and Recent items now expand on click to show headers, query params, body, and settings with a "Load Request" button.
+- **History Deduplication**: Identical requests (same URL, method, headers, body, settings) appear only once in Recent, with the timestamp updated.
+
+### Fixed
+- **Save/Load Completeness**: All request properties (headers, query params, body, bypassWAF, userAgent, referer) are now correctly saved and restored including checked/unchecked state.
+- **Clear All Button**: Fixed "Clear All" in Recent tab (was blocked by `confirm()` which doesn't work in VS Code webviews).
+- **Duplicate on Re-save**: Loading a saved request and saving again now updates the existing entry instead of creating a duplicate.
+- **Field Reset on Load**: bypassWAF, userAgent, and referer fields are now properly reset when loading a request that doesn't have them.
+- **Recent Tab Not Working**: Added missing history message handlers for new panels.
+- **Duplicate Toast**: Removed duplicate "Request saved successfully!" toast.
+
+### Improved
+- **Smart Save/Update Button**: Save button changes to "Update" when editing a loaded request; skips name prompt and saves directly.
+- **Recent Tab Path Display**: Recent items now show the request path/name alongside the time, matching the Saved tab layout.
+
+## [1.1.5] - 2026-02-14
+
+### Added
+- **Referer Support**: Added a new Referer dropdown with predefined options (Google, Bing, GitHub, etc.) and custom URL support.
+- **Settings Tab**: Promoted request settings (Stealth, User-Agent, Referer) to a top-level tab for easier access.
+- **Recent History**: Added a new "Recent" tab that tracks all sent requests automatically.
+
+### Improved
+- **User-Agent**: User-Agent and Stealth settings moved to the new dedicated Settings tab.
+- **Architecture**: Better separation between Authorization (credentials) and Request Settings (metadata/stealth).
+
 ## [1.1.4] - 2026-02-14
 
 ### Added

@@ -5,17 +5,22 @@ export interface SavedRequest {
     name: string;
     method: string;
     url: string;
-    headers: Array<{ key: string; value: string }>;
+    headers: Array<{ key: string; value: string; checked?: boolean }>;
     contentType: string;
     body: string;
     createdAt?: number;
     folderId?: string;
+    bypassWAF?: boolean;
+    userAgent?: string;
+    referer?: string;
+    queryParams?: Array<{ key: string; value: string; checked?: boolean }>;
 }
 
 export class RequestManager {
     private readonly storageKey = 'stackerSavedRequests';
+    private readonly historyKey = 'stackerRequestHistory';
 
-    constructor(private context: vscode.ExtensionContext) {}
+    constructor(private context: vscode.ExtensionContext) { }
 
     private getMaxHistoryItems(): number {
         return vscode.workspace.getConfiguration('stacker').get<number>('maxHistoryItems', 100);
@@ -142,5 +147,60 @@ export class RequestManager {
             vscode.window.showErrorMessage('Failed to import requests: Invalid JSON format');
             return 0;
         }
+    }
+
+    /**
+     * Get recent request history
+     */
+    getHistory(): SavedRequest[] {
+        return this.context.globalState.get<SavedRequest[]>(this.historyKey, []);
+    }
+
+    /**
+     * Add a request to history
+     */
+    addToHistory(request: SavedRequest): void {
+        let history = this.getHistory();
+
+        // Deduplicate: remove existing entry if same request content
+        history = history.filter(existing => {
+            const sameMethod = existing.method === request.method;
+            const sameUrl = existing.url === request.url;
+            const sameBody = (existing.body || '') === (request.body || '');
+            const sameContentType = (existing.contentType || '') === (request.contentType || '');
+            const sameBypass = !!existing.bypassWAF === !!request.bypassWAF;
+            const sameUA = (existing.userAgent || '') === (request.userAgent || '');
+            const sameReferer = (existing.referer || '') === (request.referer || '');
+            const sameHeaders = JSON.stringify(existing.headers || []) === JSON.stringify(request.headers || []);
+            const sameQuery = JSON.stringify(existing.queryParams || []) === JSON.stringify(request.queryParams || []);
+            return !(sameMethod && sameUrl && sameBody && sameContentType && sameBypass && sameUA && sameReferer && sameHeaders && sameQuery);
+        });
+
+        request.createdAt = Date.now();
+        history.unshift(request);
+
+        // Limit history size
+        const maxItems = this.getMaxHistoryItems();
+        if (history.length > maxItems) {
+            history = history.slice(0, maxItems);
+        }
+
+        this.context.globalState.update(this.historyKey, history);
+    }
+
+    /**
+     * Clear history
+     */
+    clearHistory(): void {
+        this.context.globalState.update(this.historyKey, []);
+    }
+
+    /**
+     * Delete a history item
+     */
+    deleteHistoryItem(id: string): void {
+        const history = this.getHistory();
+        const filtered = history.filter(r => r.id !== id);
+        this.context.globalState.update(this.historyKey, filtered);
     }
 }

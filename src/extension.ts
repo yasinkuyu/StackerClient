@@ -123,6 +123,17 @@ export function activate(context: vscode.ExtensionContext) {
                 case 'updateTitle':
                     updatePanelTitle(panelRef, message.method, message.url);
                     break;
+                case 'loadHistory':
+                    handleLoadHistory(requestManager, panelRef);
+                    break;
+                case 'deleteHistoryItem':
+                    requestManager.deleteHistoryItem(message.id);
+                    handleLoadHistory(requestManager, panelRef);
+                    break;
+                case 'clearHistory':
+                    requestManager.clearHistory();
+                    handleLoadHistory(requestManager, panelRef);
+                    break;
             }
         });
 
@@ -784,7 +795,7 @@ function parseCurl(curlCommand: string): any {
 }
 
 function getHelpContent(context: vscode.ExtensionContext): string {
-    const version = vscode.extensions.getExtension('yasinkuyu.stacker-client')?.packageJSON.version || '1.1.3';
+    const version = vscode.extensions.getExtension('yasinkuyu.stacker-client')?.packageJSON.version || '1.1.5';
 
     // Read help.html from media folder
     const helpPath = vscode.Uri.file(path.join(context.extensionPath, 'media', 'help.html'));
@@ -895,6 +906,17 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
             case 'updateTitle':
                 updatePanelTitle(panel, message.method, message.url, `#${nextRequestNumber} `);
                 break;
+            case 'loadHistory':
+                handleLoadHistory(requestManager, panel);
+                break;
+            case 'deleteHistoryItem':
+                requestManager.deleteHistoryItem(message.id);
+                handleLoadHistory(requestManager, panel);
+                break;
+            case 'clearHistory':
+                requestManager.clearHistory();
+                handleLoadHistory(requestManager, panel);
+                break;
         }
     });
 
@@ -926,6 +948,25 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
             response: response
         });
 
+        // Always save to history
+        if (requestManager) {
+            const historyRequest: SavedRequest = {
+                id: Date.now().toString(),
+                name: request.name || (() => { try { return new URL(request.url).pathname || 'Untitled'; } catch { return 'Untitled'; } })(),
+                method: request.method,
+                url: request.baseUrl || request.url,
+                headers: request.allHeaders || request.headers || [],
+                contentType: request.contentType,
+                body: request.body || '',
+                bypassWAF: request.bypassWAF,
+                userAgent: request.userAgent,
+                referer: request.referer,
+                queryParams: request.queryParams
+            };
+            requestManager.addToHistory(historyRequest);
+            handleLoadHistory(requestManager, panel);
+        }
+
         // Auto-save if enabled
         const settings = getSettings();
         if (settings.autoSaveRequests && requestManager) {
@@ -933,10 +974,14 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
                 id: Date.now().toString(),
                 name: request.name || (() => { try { return new URL(request.url).pathname || 'Untitled'; } catch { return 'Untitled'; } })(),
                 method: request.method,
-                url: request.url,
-                headers: request.headers || [],
+                url: request.baseUrl || request.url,
+                headers: request.allHeaders || request.headers || [],
                 contentType: request.contentType,
-                body: request.body || ''
+                body: request.body || '',
+                bypassWAF: request.bypassWAF,
+                userAgent: request.userAgent,
+                referer: request.referer,
+                queryParams: request.queryParams
             };
             requestManager.saveRequest(savedRequest);
             sidebarProvider.refresh();
@@ -962,6 +1007,13 @@ function handleLoadRequests(requestManager: RequestManager, panel: vscode.Webvie
     panel.webview.postMessage({
         command: 'requests',
         requests: requestManager.getAllRequests()
+    });
+}
+
+function handleLoadHistory(requestManager: RequestManager, panel: vscode.WebviewPanel) {
+    panel.webview.postMessage({
+        command: 'history',
+        history: requestManager.getHistory()
     });
 }
 
@@ -1087,14 +1139,21 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
     const headers: Record<string, string> = {};
 
     // 1. Determine User-Agent
-    let selectedUA = 'StackerClient/1.1.3';
+    let selectedUA = 'StackerClient/1.1.5';
     if (request.userAgent) {
-        selectedUA = getUserAgentString(request.userAgent);
+        const mappedUA = getUserAgentString(request.userAgent);
+        selectedUA = mappedUA || request.userAgent;
     } else if (request.bypassWAF) {
         // Default stealth UA if bypass is on but no specific UA is selected
         selectedUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     }
     headers['User-Agent'] = selectedUA;
+
+    // Add Referer
+    if (request.referer) {
+        const mappedReferer = getRefererString(request.referer);
+        headers['Referer'] = mappedReferer || request.referer;
+    }
 
     // 2. Apply Bypass / Stealth Headers if enabled
     if (request.bypassWAF) {
@@ -1229,12 +1288,12 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         ];
 
         const isBinary = binaryTypes.some(type => contentType.includes(type)) ||
-                         contentType.includes('binary');
+            contentType.includes('binary');
 
         // Get arrayBuffer first (needed for hex and can be converted to text)
-        let responseArrayBuffer: ArrayBuffer;
+        let responseArrayBuffer: any;
         try {
-            responseArrayBuffer = await response.arrayBuffer();
+            responseArrayBuffer = await response.arrayBuffer() as ArrayBuffer;
         } catch {
             responseArrayBuffer = new TextEncoder().encode('').buffer;
         }
@@ -1353,6 +1412,17 @@ function getUserAgentString(key: string): string {
         'duckduckgo': 'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)'
     };
     return agents[key] || '';
+}
+
+function getRefererString(key: string): string {
+    const referers: Record<string, string> = {
+        'google': 'https://www.google.com/',
+        'bing': 'https://www.bing.com/',
+        'github': 'https://github.com/',
+        'facebook': 'https://www.facebook.com/',
+        'twitter': 'https://twitter.com/'
+    };
+    return referers[key] || '';
 }
 
 // Parse multipart/form-data response
