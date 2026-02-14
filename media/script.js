@@ -28,14 +28,80 @@ function initApp() {
 
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
-        console.log('Adding tab listener:', tab.dataset.tab);
         tab.addEventListener('click', () => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             tab.classList.add('active');
             document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+            updateTabCounts();
         });
     });
+
+    function updateBadge(id, count) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = count > 0 ? count : '';
+            el.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    window.updateTabCounts = function () {
+        // Headers
+        const headerCount = Array.from(document.querySelectorAll('#headersContainer .key-value-row'))
+            .filter(row => {
+                const k = row.querySelector('.header-key')?.value.trim();
+                const v = row.querySelector('.header-value')?.value.trim();
+                return k || v;
+            }).length;
+        updateBadge('headersTabCount', headerCount);
+
+        // Query
+        const queryCount = Array.from(document.querySelectorAll('#queryContainer .key-value-row'))
+            .filter(row => {
+                const k = row.querySelector('.query-key')?.value.trim();
+                const v = row.querySelector('.query-value')?.value.trim();
+                return k || v;
+            }).length;
+        updateBadge('queryTabCount', queryCount);
+
+        // Body
+        const activeBodyType = document.querySelector('input[name="bodyType"]:checked')?.value;
+        let bodyCount = 0;
+        if (activeBodyType === 'form-data' || activeBodyType === 'urlencoded') {
+            const containerId = activeBodyType === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
+            const container = document.getElementById(containerId);
+            if (container) {
+                bodyCount = Array.from(container.querySelectorAll('.key-value-row'))
+                    .filter(row => {
+                        const k = row.querySelector('input[class*="-key"]')?.value.trim();
+                        const v = row.querySelector('input[class*="-value"]')?.value.trim();
+                        return k || v;
+                    }).length;
+            }
+        }
+        updateBadge('bodyTabCount', bodyCount);
+    };
+
+    window.autoExpandKey = function (input) {
+        if (!input) return;
+        const span = document.createElement('span');
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'pre';
+        span.style.font = window.getComputedStyle(input).font;
+        span.textContent = input.value || input.placeholder || '';
+        document.body.appendChild(span);
+
+        const width = Math.max(150, span.offsetWidth + 32);
+        input.style.width = width + 'px';
+
+        // If it's inside an autocomplete container, expand that too
+        if (input.parentElement.classList.contains('autocomplete-container')) {
+            input.parentElement.style.width = width + 'px';
+        }
+
+        document.body.removeChild(span);
+    };
 
     function removeExistingHeader(headerKey) {
         const rows = document.querySelectorAll('#headersContainer .key-value-row');
@@ -47,84 +113,158 @@ function initApp() {
         });
     }
 
-    window.addAuthHeader = function (type, desc) {
-        let key = 'Authorization';
-        let value = '';
+    window.showAuthFields = function (type) {
+        document.querySelectorAll('.auth-fields').forEach(f => f.classList.remove('active'));
+        const activeField = document.getElementById('authFields_' + type);
+        if (activeField) {
+            activeField.classList.add('active');
+        }
+    };
+
+    window.toggleSavedTokens = function () {
+        const panel = document.getElementById('savedTokensPanel');
+        const chevron = document.getElementById('savedTokensChevron');
+        const isHidden = panel.style.display === 'none';
+        panel.style.display = isHidden ? 'block' : 'none';
+        chevron.classList.toggle('expanded', isHidden);
+    };
+
+    function getAuthData() {
+        const type = document.getElementById('authTypeSelect').value;
+        const data = { type: type };
 
         switch (type) {
-            case 'Bearer':
-                value = 'Bearer ';
+            case 'bearer':
+                data.token = document.getElementById('authBearerToken').value.trim();
+                data.prefix = document.getElementById('authBearerPrefix').value.trim();
                 break;
-            case 'Basic':
-                value = 'Basic ';
+            case 'basic':
+                data.username = document.getElementById('authBasicUser').value.trim();
+                data.password = document.getElementById('authBasicPass').value.trim();
                 break;
-            case 'API Key':
-                key = 'X-API-Key';
+            case 'apikey':
+                data.key = document.getElementById('authApiKeyKey').value.trim();
+                data.value = document.getElementById('authApiKeyValue').value.trim();
+                data.addTo = document.getElementById('authApiKeyAddTo').value;
+                break;
+            case 'digest':
+                data.username = document.getElementById('authDigestUser').value.trim();
+                data.password = document.getElementById('authDigestPass').value.trim();
+                break;
+            case 'oauth2':
+                data.token = document.getElementById('authOAuth2Token').value.trim();
+                data.prefix = document.getElementById('authOAuth2Prefix').value.trim();
+                data.addTo = document.getElementById('authOAuth2TokenType').value;
+                break;
+            case 'custom':
+                data.key = document.getElementById('authCustomKey').value.trim();
+                data.value = document.getElementById('authCustomValue').value.trim();
                 break;
         }
+        return data;
+    }
+    window.showBodyFields = function (type) {
+        document.querySelectorAll('.body-fields').forEach(f => f.classList.remove('active'));
+        const activeField = document.getElementById('bodyFields_' + type);
+        if (activeField) {
+            activeField.classList.add('active');
 
-        if (type === 'API Key') {
-            removeExistingHeader('X-API-Key');
-        } else {
-            removeExistingHeader('Authorization');
+            // Add default row if empty for form-data or urlencoded
+            if (type === 'form-data' || type === 'urlencoded') {
+                const containerId = type === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
+                const container = document.getElementById(containerId);
+                if (container && container.children.length === 0) {
+                    addBodyRow(type);
+                }
+            }
         }
-        addHeaderRow(key, value);
-
-        // Switch to headers tab
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelector('[data-tab="headers"]').classList.add('active');
-        document.getElementById('headersTab').classList.add('active');
-
-        showToast(type + ' header added. Paste your token.');
+        updateTabCounts();
     };
 
-    window.applyBearerToken = function () {
-        const token = document.getElementById('bearerTokenInput').value.trim();
-        if (!token) {
-            showToast('Please enter a token');
-            return;
-        }
-        removeExistingHeader('Authorization');
-        addHeaderRow('Authorization', 'Bearer ' + token);
-        showToast('Bearer token applied to headers');
+    window.addBodyRow = function (type, key = '', value = '', checked = true) {
+        const containerId = type === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
+        const container = document.getElementById(containerId);
+        const row = document.createElement('div');
+        row.className = 'key-value-row';
 
-        // Switch to headers tab to show results
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelector('[data-tab="headers"]').classList.add('active');
-        document.getElementById('headersTab').classList.add('active');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'row-checkbox';
+        checkbox.checked = checked;
+        checkbox.addEventListener('change', () => {
+            row.style.opacity = checkbox.checked ? '1' : '0.5';
+            keyInput.disabled = !checkbox.checked;
+            valInput.disabled = !checkbox.checked;
+        });
 
-        // Clear input
-        document.getElementById('bearerTokenInput').value = '';
+        const keyInput = document.createElement('input');
+        keyInput.type = 'text';
+        keyInput.placeholder = 'Key';
+        keyInput.className = type === 'form-data' ? 'form-data-key' : 'urlencoded-key';
+        keyInput.value = key;
+        keyInput.addEventListener('input', () => {
+            autoExpandKey(keyInput);
+            updateTabCounts();
+        });
+        setTimeout(() => autoExpandKey(keyInput), 0);
+
+        const valInput = document.createElement('input');
+        valInput.type = 'text';
+        valInput.placeholder = 'Value';
+        valInput.className = type === 'form-data' ? 'form-data-value' : 'urlencoded-value';
+        valInput.value = value;
+        valInput.addEventListener('input', () => updateTabCounts());
+        valInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addBodyRow(type);
+            }
+        });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn-remove';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = () => {
+            row.remove();
+            updateTabCounts();
+        };
+
+        row.appendChild(checkbox);
+        row.appendChild(keyInput);
+        row.appendChild(valInput);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+        keyInput.focus();
+        updateTabCounts();
     };
 
-    window.applyBasicAuth = function () {
-        const user = document.getElementById('basicUser').value.trim();
-        const pass = document.getElementById('basicPass').value.trim();
-        if (!user) {
-            showToast('Please enter a username');
-            return;
-        }
-        try {
-            removeExistingHeader('Authorization');
-            const base64 = btoa(user + ':' + pass);
-            addHeaderRow('Authorization', 'Basic ' + base64);
-            showToast('Basic Auth applied to headers');
-
-            // Switch to headers tab to show results
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector('[data-tab="headers"]').classList.add('active');
-            document.getElementById('headersTab').classList.add('active');
-
-            // Clear inputs
-            document.getElementById('basicUser').value = '';
-            document.getElementById('basicPass').value = '';
-        } catch (e) {
-            showToast('Error encoding credentials');
-        }
+    window.updateRawContentType = function (value) {
+        // Option to handle placeholder changes here if needed
     };
+
+    function getBodyData() {
+        const type = document.querySelector('input[name="bodyType"]:checked')?.value || 'none';
+        const data = { type: type };
+
+        if (type === 'form-data' || type === 'urlencoded') {
+            const containerId = type === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
+            const rows = document.querySelectorAll(`#${containerId} .key-value-row`);
+            const items = [];
+            rows.forEach(row => {
+                const keyInput = row.querySelector('input[type="text"]:first-of-type');
+                const valInput = row.querySelector('input[type="text"]:last-of-type');
+                const key = keyInput ? keyInput.value.trim() : '';
+                const value = valInput ? valInput.value.trim() : '';
+                const checked = row.querySelector('.row-checkbox').checked;
+                if (key) items.push({ key, value, checked });
+            });
+            data.items = items;
+        } else if (type === 'raw') {
+            data.value = document.getElementById('bodyInput').value;
+            data.contentType = document.getElementById('bodyRawType').value;
+        }
+        return data;
+    }
 
     function createAutocompleteInput(placeholder, onSelect) {
         const container = document.createElement('div');
@@ -221,7 +361,7 @@ function initApp() {
         return { container, input };
     }
 
-    function addHeaderRow(key = '', value = '', checked = true) {
+    window.addHeaderRow = function (key = '', value = '', checked = true) {
         const container = document.getElementById('headersContainer');
         const row = document.createElement('div');
         row.className = 'key-value-row';
@@ -242,10 +382,14 @@ function initApp() {
             valueInput.value = item.value;
         });
         keyContainer.className = 'autocomplete-container';
-        keyContainer.style.flex = '1';
         keyInput.value = key;
         keyInput.className = 'header-key';
+        keyInput.addEventListener('input', () => {
+            autoExpandKey(keyInput);
+            updateTabCounts();
+        });
         if (!checked) keyInput.disabled = true;
+        setTimeout(() => autoExpandKey(keyInput), 0);
 
         const valueInput = document.createElement('input');
         valueInput.type = 'text';
@@ -253,12 +397,22 @@ function initApp() {
         valueInput.className = 'header-value';
         valueInput.value = value;
         if (!checked) valueInput.disabled = true;
+        valueInput.addEventListener('input', () => updateTabCounts());
+        valueInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addHeaderRow();
+            }
+        });
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'btn-remove';
         removeBtn.innerHTML = '×';
         removeBtn.title = 'Remove header';
-        removeBtn.addEventListener('click', () => row.remove());
+        removeBtn.addEventListener('click', () => {
+            row.remove();
+            updateTabCounts();
+        });
 
         row.appendChild(checkbox);
         row.appendChild(keyContainer);
@@ -267,9 +421,10 @@ function initApp() {
         container.appendChild(row);
 
         keyInput.focus();
-    }
+        updateTabCounts();
+    };
 
-    function addQueryRow(key = '', value = '', checked = true) {
+    window.addQueryRow = function (key = '', value = '', checked = true) {
         const container = document.getElementById('queryContainer');
         const row = document.createElement('div');
         row.className = 'key-value-row';
@@ -292,18 +447,30 @@ function initApp() {
         keyInput.placeholder = 'Parameter name';
         keyInput.className = 'query-key';
         keyInput.value = key;
-        keyInput.style.flex = '1';
         if (!checked) keyInput.disabled = true;
-        keyInput.addEventListener('input', () => syncQueryToUrl());
+        keyInput.addEventListener('input', () => {
+            syncQueryToUrl();
+            autoExpandKey(keyInput);
+            updateTabCounts();
+        });
+        setTimeout(() => autoExpandKey(keyInput), 0);
 
         const valueInput = document.createElement('input');
         valueInput.type = 'text';
         valueInput.placeholder = 'Value';
         valueInput.className = 'query-value';
         valueInput.value = value;
-        valueInput.style.flex = '1.5';
         if (!checked) valueInput.disabled = true;
-        valueInput.addEventListener('input', () => syncQueryToUrl());
+        valueInput.addEventListener('input', () => {
+            syncQueryToUrl();
+            updateTabCounts();
+        });
+        valueInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addQueryRow();
+            }
+        });
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'btn-remove';
@@ -312,6 +479,7 @@ function initApp() {
         removeBtn.addEventListener('click', () => {
             row.remove();
             syncQueryToUrl();
+            updateTabCounts();
         });
 
         row.appendChild(checkbox);
@@ -321,7 +489,8 @@ function initApp() {
         container.appendChild(row);
 
         keyInput.focus();
-    }
+        updateTabCounts();
+    };
 
     function syncUrlToQuery() {
         if (isSyncing) return;
@@ -390,22 +559,7 @@ function initApp() {
         return div.innerHTML;
     }
 
-    // Setup button handlers with null checks
-    const addHeaderBtn = document.getElementById('addHeaderBtn');
-    console.log('addHeaderBtn element:', addHeaderBtn);
-    if (addHeaderBtn) {
-        addHeaderBtn.addEventListener('click', () => {
-            console.log('Add Header clicked!');
-            addHeaderRow();
-        });
-    }
-
-    const addQueryBtn = document.getElementById('addQueryBtn');
-    if (addQueryBtn) {
-        addQueryBtn.addEventListener('click', () => {
-            addQueryRow();
-        });
-    }
+    // Button handlers removed - now using inline onclick in body.html
 
     // User-Agent and Referer custom handler
     const userAgentSelect = document.getElementById('userAgentSelect');
@@ -431,6 +585,17 @@ function initApp() {
             } else {
                 customRefererRow.style.display = 'none';
             }
+        });
+    }
+
+    const sidebarDefaultView = document.getElementById('sidebarDefaultView');
+    if (sidebarDefaultView) {
+        sidebarDefaultView.addEventListener('change', () => {
+            vscode.postMessage({
+                command: 'updateSetting',
+                key: 'stacker.sidebar.defaultView',
+                value: sidebarDefaultView.value
+            });
         });
     }
 
@@ -513,6 +678,8 @@ function initApp() {
             contentType: document.getElementById('contentType').value,
             body: document.getElementById('bodyInput').value,
             queryParams: allQueryParams,
+            auth: getAuthData(),
+            bodyData: getBodyData(),
             bypassWAF: document.getElementById('bypassWAF')?.checked || false,
             userAgent: userAgentSelect?.value === 'custom'
                 ? document.getElementById('customUserAgentInput')?.value.trim()
@@ -840,6 +1007,12 @@ function initApp() {
             document.body.classList.add('theme-' + settings.theme);
         }
 
+        // Apply sidebar default view
+        if (settings.sidebarDefaultView) {
+            const sidebarEl = document.getElementById('sidebarDefaultView');
+            if (sidebarEl) sidebarEl.value = settings.sidebarDefaultView;
+        }
+
         // Store for later use
         window.appSettings = settings;
     }
@@ -886,13 +1059,10 @@ function initApp() {
     function useToken(name) {
         const token = authTokens[name];
         if (token) {
-            removeExistingHeader('Authorization');
-            addHeaderRow('Authorization', 'Bearer ' + token);
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector('[data-tab="headers"]').classList.add('active');
-            document.getElementById('headersTab').classList.add('active');
-            showToast('Token "' + name + '" added to headers');
+            document.getElementById('authTypeSelect').value = 'bearer';
+            showAuthFields('bearer');
+            document.getElementById('authBearerToken').value = token;
+            showToast('Token "' + name + '" applied to Bearer Token auth');
         }
     }
 
@@ -950,7 +1120,11 @@ function initApp() {
     function displayResponse(response) {
         currentResponse = response;
         const responseEl = document.getElementById('response');
-        responseEl.style.display = 'block';
+        if (responseEl) {
+            responseEl.style.display = 'block';
+            // Scroll to response for better visibility
+            responseEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
 
         // Status
         const statusEl = document.getElementById('responseStatus');
@@ -1926,7 +2100,9 @@ function initApp() {
 
     function displayError(error) {
         const responseEl = document.getElementById('response');
-        responseEl.style.display = 'block';
+        if (responseEl) {
+            responseEl.style.display = 'block';
+        }
 
         const statusEl = document.getElementById('responseStatus');
         statusEl.textContent = 'Error';
@@ -2250,11 +2426,96 @@ function initApp() {
         document.getElementById('url').value = req.url;
         document.getElementById('contentType').value = req.contentType || 'application/json';
 
+        // Set Auth (New System)
+        if (req.auth) {
+            const authTypeSelect = document.getElementById('authTypeSelect');
+            if (authTypeSelect) {
+                authTypeSelect.value = req.auth.type || 'none';
+                showAuthFields(req.auth.type || 'none');
+
+                // Fill fields based on type
+                switch (req.auth.type) {
+                    case 'bearer':
+                        document.getElementById('authBearerToken').value = req.auth.token || '';
+                        document.getElementById('authBearerPrefix').value = req.auth.prefix || 'Bearer';
+                        break;
+                    case 'basic':
+                        document.getElementById('authBasicUser').value = req.auth.username || '';
+                        document.getElementById('authBasicPass').value = req.auth.password || '';
+                        break;
+                    case 'apikey':
+                        document.getElementById('authApiKeyKey').value = req.auth.key || 'X-API-Key';
+                        document.getElementById('authApiKeyValue').value = req.auth.value || '';
+                        document.getElementById('authApiKeyAddTo').value = req.auth.addTo || 'header';
+                        break;
+                    case 'digest':
+                        document.getElementById('authDigestUser').value = req.auth.username || '';
+                        document.getElementById('authDigestPass').value = req.auth.password || '';
+                        break;
+                    case 'oauth2':
+                        document.getElementById('authOAuth2Token').value = req.auth.token || '';
+                        document.getElementById('authOAuth2Prefix').value = req.auth.prefix || 'Bearer';
+                        document.getElementById('authOAuth2TokenType').value = req.auth.addTo || 'header';
+                        break;
+                    case 'custom':
+                        document.getElementById('authCustomKey').value = req.auth.key || '';
+                        document.getElementById('authCustomValue').value = req.auth.value || '';
+                        break;
+                }
+            }
+        }
+
+        // Set Body (New System)
+        if (req.bodyData) {
+            const bodyTypeRadio = document.querySelector(`input[name="bodyType"][value="${req.bodyData.type}"]`);
+            if (bodyTypeRadio) {
+                bodyTypeRadio.checked = true;
+                showBodyFields(req.bodyData.type);
+            }
+
+            if (req.bodyData.type === 'form-data' || req.bodyData.type === 'urlencoded') {
+                const containerId = req.bodyData.type === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
+                document.getElementById(containerId).innerHTML = '';
+                if (req.bodyData.items && req.bodyData.items.length > 0) {
+                    req.bodyData.items.forEach(item => {
+                        addBodyRow(req.bodyData.type, item.key, item.value, item.checked !== false);
+                    });
+                } else {
+                    addBodyRow(req.bodyData.type);
+                }
+            } else if (req.bodyData.type === 'raw') {
+                document.getElementById('bodyInput').value = req.bodyData.value || '';
+                document.getElementById('bodyRawType').value = req.bodyData.contentType || 'application/json';
+            }
+        } else {
+            // Backward compatibility
+            document.getElementById('bodyInput').value = req.body || '';
+            const isUrlEncoded = req.contentType === 'application/x-www-form-urlencoded';
+            const isFormData = req.contentType === 'multipart/form-data';
+
+            if (isUrlEncoded || isFormData) {
+                const type = isUrlEncoded ? 'urlencoded' : 'form-data';
+                document.querySelector(`input[name="bodyType"][value="${type}"]`).checked = true;
+                showBodyFields(type);
+                // Convert body string to rows if possible
+                const parts = (req.body || '').split('&');
+                parts.forEach(p => {
+                    const [k, v] = p.split('=');
+                    if (k) addBodyRow(type, decodeURIComponent(k), decodeURIComponent(v || ''));
+                });
+            } else {
+                document.querySelector('input[name="bodyType"][value="raw"]').checked = true;
+                showBodyFields('raw');
+            }
+        }
+
         // Set Stealth / Bypass WAF (always reset)
         const bypassEl = document.getElementById('bypassWAF');
         if (bypassEl) bypassEl.checked = !!req.bypassWAF;
 
         // Set User-Agent (always reset)
+        const userAgentSelect = document.getElementById('userAgentSelect');
+        const customUserAgentRow = document.getElementById('customUserAgentRow');
         if (userAgentSelect) {
             if (!req.userAgent) {
                 userAgentSelect.value = '';
@@ -2273,6 +2534,8 @@ function initApp() {
         }
 
         // Set Referer (always reset)
+        const refererSelect = document.getElementById('refererSelect');
+        const customRefererRow = document.getElementById('customRefererRow');
         if (refererSelect) {
             if (!req.referer) {
                 refererSelect.value = '';
@@ -2290,20 +2553,6 @@ function initApp() {
             }
         }
 
-        // Handle form data from cURL import
-        if (req.formData && req.formData.length > 0) {
-            // Form data varsa body'yi form formatında göster
-            const formBody = req.formData.map(function (f) {
-                if (f.type === 'file') {
-                    return f.key + '=@[' + (f.filename || 'file') + ']';
-                }
-                return f.key + '=' + f.value;
-            }).join('\n');
-            document.getElementById('bodyInput').value = formBody;
-        } else {
-            document.getElementById('bodyInput').value = req.body || '';
-        }
-
         // Handle file upload indicator in body
         if (req.bodyFile) {
             showToast('Note: File upload "@' + req.bodyFile + '" needs manual handling');
@@ -2312,15 +2561,19 @@ function initApp() {
         // Headers'ı yükle
         const headersContainer = document.getElementById('headersContainer');
         headersContainer.innerHTML = '';
-        if (req.headers && Array.isArray(req.headers)) {
+        if (req.headers && Array.isArray(req.headers) && req.headers.length > 0) {
             req.headers.forEach(h => addHeaderRow(h.key, h.value, h.checked !== false));
+        } else {
+            addHeaderRow();
         }
 
         // Query parametrelerini yükle
         const queryContainer = document.getElementById('queryContainer');
         queryContainer.innerHTML = '';
-        if (req.queryParams && Array.isArray(req.queryParams)) {
+        if (req.queryParams && Array.isArray(req.queryParams) && req.queryParams.length > 0) {
             req.queryParams.forEach(p => addQueryRow(p.key, p.value, p.checked !== false));
+        } else {
+            addQueryRow();
         }
 
         // Tab switching logic
@@ -2349,6 +2602,7 @@ function initApp() {
 
         showToast('Request loaded: ' + req.method + ' ' + req.url);
         updatePanelTitle();
+        updateTabCounts();
     }
 
     // Load on startup
@@ -2983,6 +3237,7 @@ function initApp() {
 
     // Handle initial state
     updatePanelTitle();
+    updateTabCounts();
 }
 
 // Wait for DOM to be ready

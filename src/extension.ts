@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { RequestManager, SavedRequest } from './RequestManager';
 import { SidebarProvider } from './SidebarProvider';
 import { getWebviewContent } from './webviewContent';
+import { URL, URLSearchParams } from 'url';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 let sidebarProvider: SidebarProvider;
@@ -61,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         );
 
-        currentPanel.iconPath = new vscode.ThemeIcon('debug-alt');
+        currentPanel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'icon.svg');
         currentPanel.webview.html = getWebviewContent();
 
         const panelRef = currentPanel;
@@ -122,6 +124,10 @@ export function activate(context: vscode.ExtensionContext) {
                     break;
                 case 'updateTitle':
                     updatePanelTitle(panelRef, message.method, message.url);
+                    break;
+                case 'updateSetting':
+                    const config = vscode.workspace.getConfiguration();
+                    config.update(message.key, message.value, vscode.ConfigurationTarget.Global);
                     break;
                 case 'loadHistory':
                     handleLoadHistory(requestManager, panelRef);
@@ -244,7 +250,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.StatusBarAlignment.Left,
         100
     );
-    statusBarItem.text = "$(zap) StackerClient";
+    statusBarItem.text = "$(symbol-interface) StackerClient";
     statusBarItem.tooltip = "Click to open StackerClient or view recent requests";
     statusBarItem.command = 'stacker.showQuickMenu';
 
@@ -263,6 +269,9 @@ export function activate(context: vscode.ExtensionContext) {
             } else {
                 statusBarItem.hide();
             }
+        }
+        if (e.affectsConfiguration('stacker.sidebar.defaultView')) {
+            sidebarProvider.refresh();
         }
     });
     context.subscriptions.push(configChangeListener);
@@ -845,7 +854,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
         vscode.ViewColumn.One,
         { enableScripts: true, retainContextWhenHidden: true }
     );
-    panel.iconPath = new vscode.ThemeIcon('debug-alt');
+    panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'icon.svg');
     panel.webview.html = getWebviewContent();
 
     // Setup message handlers for this independent panel
@@ -965,6 +974,7 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
             };
             requestManager.addToHistory(historyRequest);
             handleLoadHistory(requestManager, panel);
+            sidebarProvider.refresh();
         }
 
         // Auto-save if enabled
@@ -1044,32 +1054,94 @@ function getSettings() {
         proxyEnabled: config.get<boolean>('proxy.enabled', false),
         proxyUrl: config.get<string>('proxy.url', ''),
         theme: config.get<string>('theme', 'auto'),
-        tabTitleFormat: config.get<string>('tabTitleFormat', 'full')
+        tabTitleFormat: config.get<string>('tabTitleFormat', 'full'),
+        sidebarDefaultView: config.get<string>('sidebar.defaultView', 'recent')
     };
+}
+
+/**
+ * Partial implementation of RFC 2617 Digestive Authentication
+ */
+function parseDigestHeader(header: string): Record<string, string> {
+    const params: Record<string, string> = {};
+    const matches = header.matchAll(/(\w+)[:=] ?"?([^",]+)"?/g);
+    for (const match of matches) {
+        params[match[1]] = match[2];
+    }
+    return params;
+}
+
+function calculateDigestResponse(
+    method: string,
+    uri: string,
+    params: Record<string, string>,
+    user: string,
+    pass: string
+): string {
+    const md5 = (str: string) => crypto.createHash('md5').update(str).digest('hex');
+
+    const realm = params.realm;
+    const nonce = params.nonce;
+    const qop = params.qop;
+    const opaque = params.opaque;
+    const nc = '00000001';
+    const cnonce = crypto.randomBytes(8).toString('hex');
+
+    const ha1 = md5(`${user}:${realm}:${pass}`);
+    const ha2 = md5(`${method}:${uri}`);
+
+    let response: string;
+    if (qop === 'auth') {
+        response = md5(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`);
+    } else {
+        response = md5(`${ha1}:${nonce}:${ha2}`);
+    }
+
+    let authHeader = `Digest username="${user}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${response}"`;
+    if (opaque) authHeader += `, opaque="${opaque}"`;
+    if (qop) authHeader += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"`;
+
+    return authHeader;
 }
 
 // Update panel title helper
 // Update panel title helper
 function updatePanelTitle(panel: vscode.WebviewPanel, method: string, urlStr: string, prefix: string = '') {
+    const settings = getSettings();
+    let display = 'New Request';
+
     if (urlStr) {
-        const settings = getSettings();
         try {
-            const url = new URL(urlStr);
-            let displayUrl = '';
-
-            if (settings.tabTitleFormat === 'path') {
-                displayUrl = url.pathname !== '/' ? url.pathname : '/';
+            // Check if it's a full URL or just a path
+            if (urlStr.startsWith('http') || urlStr.includes('://')) {
+                const url = new URL(urlStr);
+                if (settings.tabTitleFormat === 'path') {
+                    display = url.pathname !== '/' ? url.pathname : '/';
+                } else {
+                    // hostname + path
+                    const host = url.hostname;
+                    const path = url.pathname !== '/' ? url.pathname : '';
+                    display = host + path;
+                }
             } else {
-                displayUrl = url.hostname + (url.pathname !== '/' ? url.pathname : '');
+                // It's likely a relative path or environment variable
+                display = urlStr;
             }
-
-            panel.title = `${prefix}${method} ${displayUrl} `;
         } catch {
-            panel.title = `${prefix}${method} ${urlStr.substring(0, 30)} `;
+            display = urlStr;
         }
-    } else {
-        panel.title = `${prefix} StackerClient`;
     }
+
+    if (!display || display === '/') {
+        display = urlStr || 'New Request';
+    }
+
+    // Truncate if too long (max 30 symbols)
+    if (display.length > 30) {
+        display = display.substring(0, 30) + '...';
+    }
+
+    panel.title = `${prefix}${method} ${display}`;
 }
 
 // Escape regex special characters in a string
@@ -1206,6 +1278,66 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         });
     }
 
+    // 3. APPLY AUTH (New System)
+    if (request.auth && request.auth.type !== 'none') {
+        const auth = request.auth;
+        switch (auth.type) {
+            case 'bearer':
+                if (auth.token) {
+                    const prefix = auth.prefix || 'Bearer';
+                    headers['Authorization'] = `${prefix} ${interpolateEnvironmentVariables(auth.token, envVariables)}`;
+                }
+                break;
+            case 'basic':
+                if (auth.username) {
+                    const user = interpolateEnvironmentVariables(auth.username, envVariables);
+                    const pass = interpolateEnvironmentVariables(auth.password || '', envVariables);
+                    const base64 = Buffer.from(`${user}:${pass}`).toString('base64');
+                    headers['Authorization'] = `Basic ${base64}`;
+                }
+                break;
+            case 'apikey':
+                if (auth.key && auth.value) {
+                    const key = interpolateEnvironmentVariables(auth.key, envVariables);
+                    const val = interpolateEnvironmentVariables(auth.value, envVariables);
+                    if (auth.addTo === 'query') {
+                        try {
+                            const urlObj = new URL(interpolatedUrl);
+                            urlObj.searchParams.append(key, val);
+                            interpolatedUrl = urlObj.toString();
+                        } catch {
+                            interpolatedUrl += (interpolatedUrl.includes('?') ? '&' : '?') + `${encodeURIComponent(key)}=${encodeURIComponent(val)}`;
+                        }
+                    } else {
+                        headers[key] = val;
+                    }
+                }
+                break;
+            case 'oauth2':
+                if (auth.token) {
+                    const prefix = auth.prefix || 'Bearer';
+                    const token = interpolateEnvironmentVariables(auth.token, envVariables);
+                    if (auth.addTo === 'query') {
+                        try {
+                            const urlObj = new URL(interpolatedUrl);
+                            urlObj.searchParams.append('access_token', token);
+                            interpolatedUrl = urlObj.toString();
+                        } catch {
+                            interpolatedUrl += (interpolatedUrl.includes('?') ? '&' : '?') + `access_token=${encodeURIComponent(token)}`;
+                        }
+                    } else {
+                        headers['Authorization'] = `${prefix} ${token}`;
+                    }
+                }
+                break;
+            case 'custom':
+                if (auth.key && auth.value) {
+                    headers[interpolateEnvironmentVariables(auth.key, envVariables)] = interpolateEnvironmentVariables(auth.value, envVariables);
+                }
+                break;
+        }
+    }
+
     if (request.contentType) {
         headers['Content-Type'] = request.contentType;
     }
@@ -1218,11 +1350,66 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         redirect: settings.followRedirects ? 'follow' : 'manual'
     };
 
+    // 4. PROCESS BODY (New System)
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+        if (request.bodyData && request.bodyData.type !== 'none') {
+            const bodyData = request.bodyData;
+            if (bodyData.type === 'form-data') {
+                // For Node.js fetch, we building simple multipart manually or use URLSearchParams if possible
+                // Better: Use URLSearchParams for x-www-form-urlencoded, but for multipart we need Boundary
+                const boundary = '----StackerClientBoundary' + Math.random().toString(16).slice(2);
+                headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
+
+                let multipartBody = '';
+                if (bodyData.items) {
+                    bodyData.items.forEach((item: any) => {
+                        if (item.key && item.checked !== false) {
+                            const k = interpolateEnvironmentVariables(item.key, envVariables);
+                            const v = interpolateEnvironmentVariables(item.value || '', envVariables);
+                            multipartBody += `--${boundary}\r\n`;
+                            multipartBody += `Content-Disposition: form-data; name="${k}"\r\n\r\n`;
+                            multipartBody += `${v}\r\n`;
+                        }
+                    });
+                }
+                multipartBody += `--${boundary}--\r\n`;
+                fetchOptions.body = multipartBody;
+            } else if (bodyData.type === 'urlencoded') {
+                const params = new URLSearchParams();
+                if (bodyData.items) {
+                    bodyData.items.forEach((item: any) => {
+                        if (item.key && item.checked !== false) {
+                            params.append(
+                                interpolateEnvironmentVariables(item.key, envVariables),
+                                interpolateEnvironmentVariables(item.value || '', envVariables)
+                            );
+                        }
+                    });
+                }
+                fetchOptions.body = params.toString();
+                headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            } else if (bodyData.type === 'raw') {
+                fetchOptions.body = interpolateEnvironmentVariables(bodyData.value || '', envVariables);
+                headers['Content-Type'] = bodyData.contentType || 'application/json';
+            }
+        } else if (interpolatedBody) {
+            // Backward Compatibility
+            if (request.contentType === 'application/json') {
+                try {
+                    JSON.parse(interpolatedBody);
+                    fetchOptions.body = interpolatedBody;
+                } catch {
+                    throw new Error('Invalid JSON in request body');
+                }
+            } else {
+                fetchOptions.body = interpolatedBody;
+            }
+        }
+    }
+
     // Handle SSL validation (Node.js 18+ fetch doesn't support agent directly,
     // but we set the environment variable as a fallback hint)
     if (!settings.validateSSL) {
-        // Note: Modern Node.js fetch may require undici dispatcher for this
-        // For now, we set NODE_TLS_REJECT_UNAUTHORIZED as a hint
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     } else {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
@@ -1230,29 +1417,37 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
 
     // Handle proxy (if enabled and configured)
     if (settings.proxyEnabled && settings.proxyUrl) {
-        // Set proxy via environment variable for fetch to use
-        // Note: Node.js native fetch doesn't support proxy directly,
-        // but we can hint the user or use undici dispatcher in future
         console.log(`Proxy configured: ${settings.proxyUrl} `);
-    }
-
-    if (interpolatedBody && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
-        if (request.contentType === 'application/json') {
-            try {
-                JSON.parse(interpolatedBody);
-                fetchOptions.body = interpolatedBody;
-            } catch {
-                throw new Error('Invalid JSON in request body');
-            }
-        } else {
-            fetchOptions.body = interpolatedBody;
-        }
     }
 
     const startTime = Date.now();
 
     try {
-        const response = await fetch(interpolatedUrl, fetchOptions);
+        let response = await fetch(interpolatedUrl, fetchOptions);
+
+        // Handle Digest Auth challenge
+        if (response.status === 401 && request.auth?.type === 'digest') {
+            const wwwAuth = response.headers.get('www-authenticate');
+            if (wwwAuth && wwwAuth.includes('Digest')) {
+                const digestParams = parseDigestHeader(wwwAuth);
+                const user = interpolateEnvironmentVariables(request.auth.username || '', envVariables);
+                const pass = interpolateEnvironmentVariables(request.auth.password || '', envVariables);
+                const urlObj = new URL(interpolatedUrl);
+
+                const digestHeader = calculateDigestResponse(
+                    request.method,
+                    urlObj.pathname + urlObj.search,
+                    digestParams,
+                    user,
+                    pass
+                );
+
+                // Update headers and retry
+                fetchOptions.headers['Authorization'] = digestHeader;
+                response = await fetch(interpolatedUrl, fetchOptions);
+            }
+        }
+
         clearTimeout(timeout);
 
         const responseHeaders: Record<string, any> = {};

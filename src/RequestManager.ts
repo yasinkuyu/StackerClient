@@ -14,6 +14,8 @@ export interface SavedRequest {
     userAgent?: string;
     referer?: string;
     queryParams?: Array<{ key: string; value: string; checked?: boolean }>;
+    auth?: any;
+    bodyData?: any;
 }
 
 export class RequestManager {
@@ -173,7 +175,9 @@ export class RequestManager {
             const sameReferer = (existing.referer || '') === (request.referer || '');
             const sameHeaders = JSON.stringify(existing.headers || []) === JSON.stringify(request.headers || []);
             const sameQuery = JSON.stringify(existing.queryParams || []) === JSON.stringify(request.queryParams || []);
-            return !(sameMethod && sameUrl && sameBody && sameContentType && sameBypass && sameUA && sameReferer && sameHeaders && sameQuery);
+            const sameAuth = JSON.stringify(existing.auth || {}) === JSON.stringify(request.auth || {});
+            const sameBodyData = JSON.stringify(existing.bodyData || {}) === JSON.stringify(request.bodyData || {});
+            return !(sameMethod && sameUrl && sameBody && sameContentType && sameBypass && sameUA && sameReferer && sameHeaders && sameQuery && sameAuth && sameBodyData);
         });
 
         request.createdAt = Date.now();

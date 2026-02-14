@@ -836,26 +836,48 @@ body {
 /* Tabs */
 .tabs {
     display: flex;
-    gap: 0;
     background: var(--vscode-tab-inactiveBackground);
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding: 2px 2px 0 2px;
-    height: 30px;
-    align-items: flex-end;
 }
 
 .tab {
-    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
     cursor: pointer;
     border: none;
     background: transparent;
     color: var(--vscode-tab-inactiveForeground);
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--vscode-font-family);
     border-bottom: 2px solid transparent;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    color: var(--vscode-tab-activeForeground);
+}
+
+.tab.active {
+    color: var(--vscode-tab-activeForeground);
+    border-bottom-color: var(--vscode-focusBorder);
+}
+
+.tab-count,
+.tab-badge {
+    font-size: 10px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    font-weight: 600;
+    line-height: normal;
+}
+
+.tab-count {
+    display: none;
+    /* Hidden when zero */
 }
 
 .tab:hover {
@@ -884,7 +906,7 @@ body {
 .section-title {
     font-size: 11px;
     font-weight: 600;
-    text-transform: uppercase;
+    /* text-transform: uppercase; removed */
     letter-spacing: 0.5px;
     color: var(--vscode-descriptionForeground);
     margin-bottom: 8px;
@@ -998,10 +1020,14 @@ body {
     background: transparent;
     color: var(--vscode-input-foreground);
     border: none;
-    padding: 6px 10px;
-    font-size: 13px;
+    padding: 6px 12px;
+    font-size: 12px;
     font-family: var(--vscode-font-family);
-    height: 28px;
+    height: 32px;
+}
+
+.key-value-row input:first-of-type {
+    border-right: 1px solid var(--vscode-input-border);
 }
 
 .key-value-row input:focus {
@@ -1010,24 +1036,33 @@ body {
 
 .row-checkbox {
     position: absolute;
-    left: 6px;
+    left: 8px;
     top: 50%;
     transform: translateY(-50%);
     margin: 0;
     cursor: pointer;
-    width: 16px;
-    height: 16px;
-    accent-color: #8b5cf6;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--vscode-button-background);
 }
 
-.header-key {
-    flex: 1;
-    min-width: 140px;
-    border-right: 1px solid var(--vscode-panel-border);
+.form-data-key,
+.urlencoded-key,
+.header-key,
+.query-key,
+.auth-key {
+    width: 150px;
+    min-width: 150px;
+    flex: 0 0 auto !important;
+    border-right: 1px solid var(--vscode-input-border) !important;
 }
 
-.header-value {
-    flex: 1.5;
+.form-data-value,
+.urlencoded-value,
+.header-value,
+.query-value,
+.auth-value {
+    flex: 1 !important;
 }
 
 .btn-remove {
@@ -1053,26 +1088,35 @@ body {
     border-radius: 4px;
 }
 
-.btn-small {
+.btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
     background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
     border: none;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-family: var(--vscode-font-family);
-    cursor: pointer;
     border-radius: 3px;
-    margin-top: 8px;
+    color: var(--vscode-button-secondaryForeground);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 10px;
 }
 
-.btn-small:hover {
+.btn-add:hover {
     background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-add svg {
+    opacity: 0.8;
 }
 
 /* Autocomplete */
 .autocomplete-container {
     position: relative;
-    flex: 1;
+    width: 150px;
+    min-width: 150px;
+    flex: 0 0 auto;
 }
 
 .autocomplete-list {
@@ -1253,7 +1297,7 @@ textarea:focus {
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     white-space: pre-wrap;
     word-wrap: break-word;
-    max-height: 400px;
+    max-height: calc(100vh - 200px);
     overflow-y: auto;
     font-size: 13px;
     margin: 0;
@@ -1270,7 +1314,7 @@ textarea:focus {
 .response-preview {
     width: 100%;
     height: 400px;
-    background: white;
+    background: var(--vscode-editor-background);
     border: none;
 }
 
@@ -1278,7 +1322,7 @@ textarea:focus {
     width: 100%;
     height: 100%;
     border: none;
-    background: white;
+    background: var(--vscode-editor-background);
 }
 
 /* Headers Raw View */
@@ -1335,14 +1379,7 @@ textarea:focus {
     border-radius: 3px;
 }
 
-.tab-badge {
-    font-size: 10px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
-    padding: 1px 5px;
-    border-radius: 8px;
-    margin-left: 4px;
-}
+/* Standardized badge - moved to top */
 
 .chunked-badge {
     font-size: 10px;
@@ -1375,8 +1412,6 @@ textarea:focus {
 }
 
 .header-key {
-    min-width: 140px;
-    max-width: 200px;
     font-weight: 500;
     color: var(--vscode-foreground);
     font-family: var(--vscode-editor-font-family, monospace);
@@ -1384,7 +1419,6 @@ textarea:focus {
 }
 
 .header-value {
-    flex: 1;
     color: var(--vscode-descriptionForeground);
     font-family: 'Consolas', 'Monaco', monospace;
     word-break: break-all;
@@ -2338,46 +2372,106 @@ body.theme-dark {
 }
 
 
-/* Auth Tabs (Sub-tabs) */
-.auth-tabs {
+/* New Auth Styles */
+.auth-type-selector {
     display: flex;
-    gap: 2px;
-    margin-bottom: 16px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding-bottom: 2px;
 }
 
-.auth-sub-tab {
-    padding: 4px 12px;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--vscode-descriptionForeground);
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-}
-
-.auth-sub-tab:hover {
-    color: var(--vscode-foreground);
-}
-
-.auth-sub-tab.active {
-    color: var(--vscode-foreground);
-    border-bottom-color: var(--vscode-focusBorder);
-    font-weight: 500;
-}
-
-.auth-tab-content {
+.auth-fields {
     display: none;
 }
 
-.auth-tab-content.active {
+.auth-fields.active {
     display: block;
 }
 
-.pin-section {
-    padding: 4px 0;
+.auth-field-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+}
+
+.auth-info-msg {
+    padding: 20px;
+    text-align: center;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    background: var(--vscode-editor-background);
+    border-radius: 4px;
+    border: 1px dashed var(--vscode-panel-border);
+}
+
+.auth-saved-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--vscode-panel-border);
+}
+
+.saved-tokens-panel {
+    margin-top: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.chevron-icon {
+    display: inline-block;
+    transition: transform 0.2s;
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+/* Body Tab Styles */
+.body-type-selector {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    flex-wrap: wrap;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.radio-label input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.body-fields {
+    display: none;
+}
+
+.body-fields.active {
+    display: block;
+}
+
+.raw-type-selector {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.body-fields .section-title {
+    margin-bottom: 12px;
 }
 
 .pin-desc {

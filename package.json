@@ -32,7 +32,11 @@
     "testing",
     "api-testing",
     "rest-client",
-    "http-client"
+    "http-client",
+    "rest-api",
+    "postman",
+    "insomnia",
+    "thunder-client"
   ],
   "engines": {
     "vscode": "^1.74.0"
@@ -282,6 +286,19 @@
             "Display path only (e.g., /api)"
           ],
           "description": "Format of the URL displayed in the tab title"
+        },
+        "stacker.sidebar.defaultView": {
+          "type": "string",
+          "default": "recent",
+          "enum": [
+            "recent",
+            "saved"
+          ],
+          "enumDescriptions": [
+            "Show recent request history",
+            "Show saved requests"
+          ],
+          "description": "Default view for the sidebar requests tab"
         }
       }
     },

@@ -20,6 +20,7 @@
                 <option value="TRACE">TRACE</option>
             </select>
             <input type="text" id="url" class="url-input" placeholder="https://api.example.com/users">
+            <input type="hidden" id="contentType" value="application/json">
             <div class="send-group">
                 <button id="sendBtn" class="send-btn">Send</button>
                 <div class="split-dropdown">
@@ -252,9 +253,10 @@
 
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab active" data-tab="headers">Headers</button>
-            <button class="tab" data-tab="query">Query</button>
-            <button class="tab" data-tab="body">Body</button>
+            <button class="tab active" data-tab="headers">Headers <span id="headersTabCount"
+                    class="tab-count"></span></button>
+            <button class="tab" data-tab="query">Query <span id="queryTabCount" class="tab-count"></span></button>
+            <button class="tab" data-tab="body">Body <span id="bodyTabCount" class="tab-count"></span></button>
             <button class="tab" data-tab="auth">Auth</button>
             <button class="tab" data-tab="settings">Settings</button>
             <button class="tab" data-tab="saved">Saved</button>
@@ -270,7 +272,13 @@
                 </span>
             </div>
             <div id="headersContainer"></div>
-            <button id="addHeaderBtn" class="btn-small">+ Add Header</button>
+            <button id="addHeaderBtn" class="btn-add" onclick="addHeaderRow()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Header
+            </button>
         </div>
 
         <!-- Query Tab -->
@@ -282,73 +290,220 @@
                 </span>
             </div>
             <div id="queryContainer"></div>
-            <button id="addQueryBtn" class="btn-small">+ Add Parameter</button>
+            <button id="addQueryBtn" class="btn-add" onclick="addQueryRow()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Parameter
+            </button>
         </div>
 
         <!-- Body Tab -->
         <div id="bodyTab" class="tab-content">
-            <div class="section-title">Content Type</div>
-            <select id="contentType" class="content-type-select">
-                <option value="application/json">application/json</option>
-                <option value="text/plain">text/plain</option>
-                <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
-                <option value="multipart/form-data">multipart/form-data</option>
-            </select>
-            <div class="section-title">Request Body</div>
-            <textarea id="bodyInput" placeholder='{"name": "John Doe", "email": "john@example.com"}'></textarea>
+            <div class="body-type-selector">
+                <label class="radio-label"><input type="radio" name="bodyType" value="none" checked
+                        onchange="showBodyFields(this.value)"> None</label>
+                <label class="radio-label"><input type="radio" name="bodyType" value="form-data"
+                        onchange="showBodyFields(this.value)"> Form Data</label>
+                <label class="radio-label"><input type="radio" name="bodyType" value="urlencoded"
+                        onchange="showBodyFields(this.value)"> x-www-form-urlencoded</label>
+                <label class="radio-label"><input type="radio" name="bodyType" value="raw"
+                        onchange="showBodyFields(this.value)"> Raw</label>
+                <label class="radio-label"><input type="radio" name="bodyType" value="binary"
+                        onchange="showBodyFields(this.value)"> Binary</label>
+            </div>
+
+            <!-- Body: None -->
+            <div id="bodyFields_none" class="body-fields active">
+                <div class="auth-info-msg">This request does not have a body.</div>
+            </div>
+
+            <!-- Body: Form Data -->
+            <div id="bodyFields_form-data" class="body-fields">
+                <div class="section-title">Form Data</div>
+                <div id="formDataContainer" class="key-value-container">
+                    <!-- Dynamic rows will be added here -->
+                </div>
+                <button class="btn-add" onclick="addBodyRow('form-data')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Field
+                </button>
+            </div>
+
+            <!-- Body: x-www-form-urlencoded -->
+            <div id="bodyFields_urlencoded" class="body-fields">
+                <div class="section-title">URL Encoded</div>
+                <div id="urlencodedContainer" class="key-value-container">
+                    <!-- Dynamic rows will be added here -->
+                </div>
+                <button class="btn-add" onclick="addBodyRow('urlencoded')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Field
+                </button>
+            </div>
+
+            <!-- Body: Raw -->
+            <div id="bodyFields_raw" class="body-fields">
+                <div class="raw-type-selector">
+                    <select id="bodyRawType" class="compact-select" onchange="updateRawContentType(this.value)">
+                        <option value="application/json">JSON</option>
+                        <option value="text/plain">Text</option>
+                        <option value="application/javascript">JavaScript</option>
+                        <option value="application/xml">XML</option>
+                        <option value="text/html">HTML</option>
+                    </select>
+                </div>
+                <textarea id="bodyInput" placeholder='{"name": "John Doe", "email": "john@example.com"}'></textarea>
+            </div>
+
+            <!-- Body: Binary -->
+            <div id="bodyFields_binary" class="body-fields">
+                <div class="body-info-msg">Binary body support (file upload) is coming soon.</div>
+            </div>
         </div>
 
         <!-- Auth Tab -->
         <div id="authTab" class="tab-content">
-            <div class="section-title">Authorization</div>
-
-            <!-- Auth Sub-tabs -->
-            <div class="auth-tabs">
-                <button class="auth-sub-tab active" onclick="showAuthTab('authCredentials', event)">Credentials</button>
-                <button class="auth-sub-tab" onclick="showAuthTab('authSaved', event)">Saved</button>
-                <button class="auth-sub-tab" onclick="showAuthTab('authQuickAdd', event)">Quick Add</button>
+            <div class="auth-type-selector">
+                <label class="auth-label">Type:</label>
+                <select id="authTypeSelect" onchange="showAuthFields(this.value)">
+                    <option value="none">No Auth</option>
+                    <option value="bearer">Bearer Token</option>
+                    <option value="basic">Basic Auth</option>
+                    <option value="apikey">API Key</option>
+                    <option value="digest">Digest Auth</option>
+                    <option value="oauth2">OAuth 2.0</option>
+                    <option value="custom">Custom Header</option>
+                </select>
             </div>
 
-            <!-- Credentials Sub-tab -->
-            <div id="authCredentials" class="auth-tab-content active">
-                <!-- Bearer Token Section -->
-                <div class="section-title">Bearer Token</div>
-                <div class="auth-row">
-                    <input type="password" id="bearerTokenInput" placeholder="Paste your token here..."
-                        class="auth-field">
-                    <button class="btn-apply" onclick="applyBearerToken()">Apply</button>
-                </div>
-
-                <!-- Basic Auth Section -->
-                <div class="section-title">Basic Auth</div>
-                <div class="auth-row">
-                    <input type="text" id="basicUser" placeholder="Username" class="auth-field">
-                    <input type="password" id="basicPass" placeholder="Password" class="auth-field">
-                    <button class="btn-apply" onclick="applyBasicAuth()">Apply</button>
-                </div>
+            <!-- None -->
+            <div id="authFields_none" class="auth-fields active">
+                <div class="auth-info-msg">This request does not use any authorization.</div>
             </div>
 
-            <!-- Saved Tokens Sub-tab -->
-            <div id="authSaved" class="auth-tab-content">
-                <div class="section-title">Saved Tokens</div>
-                <div id="tokenList" class="token-list">
-                    <div class="empty-state">No saved tokens. Use Command Palette to add tokens.</div>
+            <!-- Bearer Token -->
+            <div id="authFields_bearer" class="auth-fields">
+                <div class="key-value-row">
+                    <input type="text" value="Token" class="auth-key" readonly>
+                    <input type="password" id="authBearerToken" placeholder="Paste your token here..."
+                        class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Prefix" class="auth-key" readonly>
+                    <input type="text" id="authBearerPrefix" placeholder="Bearer" value="Bearer" class="auth-value">
                 </div>
             </div>
 
-            <!-- Quick Add Sub-tab -->
-            <div id="authQuickAdd" class="auth-tab-content">
-                <div class="section-title">Quick Add Headers</div>
-                <div class="auth-row" style="flex-wrap: wrap; gap: 4px;">
-                    <button class="auth-btn" onclick="addAuthHeader('Bearer', 'Bearer token')">+ Bearer</button>
-                    <button class="auth-btn" onclick="addAuthHeader('Basic', 'Basic credentials')">+ Basic</button>
-                    <button class="auth-btn" onclick="addAuthHeader('API Key', 'API key')">+ API Key</button>
+            <!-- Basic Auth -->
+            <div id="authFields_basic" class="auth-fields">
+                <div class="key-value-row">
+                    <input type="text" value="Username" class="auth-key" readonly>
+                    <input type="text" id="authBasicUser" placeholder="Username" class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Password" class="auth-key" readonly>
+                    <input type="password" id="authBasicPass" placeholder="Password" class="auth-value">
+                </div>
+            </div>
+
+            <!-- API Key -->
+            <div id="authFields_apikey" class="auth-fields">
+                <div class="key-value-row">
+                    <input type="text" value="Key" class="auth-key" readonly>
+                    <input type="text" id="authApiKeyKey" placeholder="X-API-Key" value="X-API-Key" class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Value" class="auth-key" readonly>
+                    <input type="text" id="authApiKeyValue" placeholder="Your API key..." class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Add to" class="auth-key" readonly>
+                    <select id="authApiKeyAddTo" class="compact-select auth-value">
+                        <option value="header">Header</option>
+                        <option value="query">Query Params</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Digest Auth -->
+            <div id="authFields_digest" class="auth-fields">
+                <div class="key-value-row">
+                    <input type="text" value="Username" class="auth-key" readonly>
+                    <input type="text" id="authDigestUser" placeholder="Username" class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Password" class="auth-key" readonly>
+                    <input type="password" id="authDigestPass" placeholder="Password" class="auth-value">
+                </div>
+            </div>
+
+            <!-- OAuth 2.0 -->
+            <div id="authFields_oauth2" class="auth-fields">
+                <div class="key-value-row">
+                    <input type="text" value="Access Token" class="auth-key" readonly>
+                    <input type="password" id="authOAuth2Token" placeholder="Paste access token..." class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Header Prefix" class="auth-key" readonly>
+                    <input type="text" id="authOAuth2Prefix" placeholder="Bearer" value="Bearer" class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Token Type" class="auth-key" readonly>
+                    <select id="authOAuth2TokenType" class="compact-select auth-value">
+                        <option value="header">Add to Header</option>
+                        <option value="query">Add to Query (access_token)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom Header -->
+            <div id="authFields_custom" class="auth-fields">
+                <div class="key-value-row">
+                    <input type="text" value="Key" class="auth-key" readonly>
+                    <input type="text" id="authCustomKey" placeholder="X-Auth-Token" class="auth-value">
+                </div>
+                <div class="key-value-row">
+                    <input type="text" value="Value" class="auth-key" readonly>
+                    <input type="text" id="authCustomValue" placeholder="Value..." class="auth-value">
+                </div>
+            </div>
+
+            <!-- Saved Tokens -->
+            <div class="auth-saved-section">
+                <div class="section-title" style="cursor: pointer; user-select: none;" onclick="toggleSavedTokens()">
+                    <span id="savedTokensChevron" class="chevron-icon">▶</span> Saved Tokens
+                </div>
+                <div id="savedTokensPanel" class="saved-tokens-panel" style="display: none;">
+                    <div id="tokenList" class="token-list">
+                        <div class="empty-state">No saved tokens.</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Settings Tab -->
         <div id="settingsTab" class="tab-content">
+            <div class="section-title">Sidebar</div>
+            <div class="security-options" style="margin-bottom: 20px;">
+                <div class="auth-row">
+                    <span class="auth-label">Default View:</span>
+                    <select id="sidebarDefaultView" class="compact-select" style="width: 220px; margin-left: 8px;">
+                        <option value="recent">Recent Requests (History)</option>
+                        <option value="saved">Saved Requests</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="section-title">Bypass & Stealth</div>
             <div class="security-options">
                 <label class="checkbox-container" style="margin-bottom: 12px;">
@@ -469,7 +624,7 @@
             <div class="response-tabs">
                 <button class="res-tab active" onclick="showResTab('resBody', event)">Body</button>
                 <button class="res-tab" onclick="showResTab('resHeaders', event)">Headers <span id="headersCount"
-                        class="tab-badge"></span></button>
+                        class="tab-count"></span></button>
                 <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
                 <button class="res-tab" onclick="showResTab('resTests', event)">Tests</button>
                 <button class="res-tab" onclick="showResTab('resHex', event)">Hex</button>
@@ -511,8 +666,7 @@
                         <!-- Templates Header -->
                         <div class="templates-header" onclick="toggleTemplatesList()"
                             style="cursor: pointer; display: flex; align-items: center; gap: 4px; margin-top: 8px; opacity: 0.7; user-select: none;">
-                            <span
-                                style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Templates</span>
+                            <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">Templates</span>
                             <svg id="templatesChevron" class="chevron" width="10" height="10" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="3" style="transition: transform 0.2s;">
                                 <polyline points="6 9 12 15 18 9"></polyline>
