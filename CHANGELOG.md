@@ -2,6 +2,17 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.4] - 2026-02-14
+
+### Added
+- **Repeat Request**: New feature to automatically repeat requests at custom intervals (1s to 60s or custom).
+- **Example Requests**: Added more example requests to the modal.
+
+### Improved
+- **UI Aesthetics**: Refined styling for buttons, input groups, select elements, and the new request button.
+- **Theming**: Integrated VS Code menu theme variables for better UI consistency.
+
+
 ## [1.1.3] - 2026-02-13
 
 ### Added
