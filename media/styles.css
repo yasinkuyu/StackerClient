@@ -58,23 +58,48 @@ body {
     padding: 12px 16px;
 }
 
+.main-container {
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    padding: 16px;
+    background: var(--vscode-editor-background);
+    min-height: calc(100vh - 24px);
+}
+
 /* URL Bar */
 .url-bar {
     display: flex;
+    align-items: stretch;
+    height: 32px;
     gap: 0;
     margin-bottom: 12px;
     background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--vscode-input-border);
     border-radius: 4px;
     overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.url-bar:focus-within {
+    border-color: var(--vscode-focusBorder);
+}
+
+.method-select,
+.url-input,
+.send-btn,
+.split-btn,
+.save-btn,
+.examples-btn {
+    border: none !important;
+    border-radius: 0 !important;
+    height: 100% !important;
 }
 
 .method-select {
-    background: var(--vscode-dropdown-background);
+    background: transparent !important;
     color: var(--vscode-dropdown-foreground);
-    border: none;
-    border-right: 1px solid var(--vscode-panel-border);
-    padding: 8px 28px 8px 12px;
+    border-right: 1px solid var(--vscode-panel-border) !important;
+    padding: 0 28px 0 12px;
     font-size: 13px;
     font-family: var(--vscode-font-family);
     cursor: pointer;
@@ -87,17 +112,17 @@ body {
 
 .method-select:focus {
     outline: none;
-    background-color: var(--vscode-list-activeSelectionBackground);
+    background-color: transparent !important;
 }
 
 .url-input {
     flex: 1;
-    background: transparent;
+    background: transparent !important;
     color: var(--vscode-input-foreground);
-    border: none;
-    padding: 8px 12px;
+    padding: 0 12px;
     font-size: 13px;
     font-family: var(--vscode-font-family);
+    outline: none;
 }
 
 .url-input:focus {
@@ -108,19 +133,33 @@ body {
     color: var(--vscode-input-placeholderForeground);
 }
 
+.send-group {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    background: var(--vscode-button-background);
+    overflow: visible;
+    position: relative;
+    box-sizing: border-box;
+}
+
 .send-btn {
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
     border: none;
-    padding: 8px 20px;
+    padding: 6px 16px;
+    /* Reduced side padding slightly to make room */
     font-size: 13px;
     font-family: var(--vscode-font-family);
     cursor: pointer;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .send-btn:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--vscode-button-hoverBackground) !important;
+    color: var(--vscode-button-foreground) !important;
+    filter: brightness(1.15);
 }
 
 .send-btn:disabled {
@@ -128,11 +167,88 @@ body {
     cursor: not-allowed;
 }
 
+.send-btn.repeating:hover {
+    background: var(--vscode-errorForeground) !important;
+    filter: brightness(1.1);
+}
+
+.split-dropdown {
+    position: relative;
+    display: flex;
+    height: 100%;
+}
+
+.split-btn {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.split-btn:hover {
+    background: var(--vscode-button-hoverBackground) !important;
+    color: var(--vscode-button-foreground) !important;
+    filter: brightness(1.15);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+    min-width: 140px;
+    margin-top: 4px;
+    padding: 4px 0;
+    font-family: var(--vscode-font-family);
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-title {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 6px 12px 4px;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dropdown-item {
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--vscode-menu-foreground);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+    background: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--vscode-menu-separatorBackground);
+    margin: 4px 0;
+}
+
 .save-btn {
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
     border: none;
-    padding: 8px 16px;
+    padding: 6px 16px;
     font-size: 13px;
     font-family: var(--vscode-font-family);
     cursor: pointer;
@@ -147,7 +263,7 @@ body {
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
     border: none;
-    padding: 8px 10px;
+    padding: 6px 10px;
     font-size: 13px;
     font-family: var(--vscode-font-family);
     cursor: pointer;
@@ -291,7 +407,9 @@ body {
 }
 
 .btn-apply:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    color: white !important;
+    filter: brightness(1.1);
 }
 
 .auth-options {
@@ -710,7 +828,8 @@ body {
     gap: 0;
     background: var(--vscode-tab-inactiveBackground);
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding: 0 8px;
+    padding: 6px 8px 0 8px;
+    /* Added 6px top padding */
 }
 
 .tab {
@@ -901,7 +1020,7 @@ body {
     color: var(--vscode-foreground);
     border: none;
     border-left: 1px solid var(--vscode-panel-border);
-    padding: 0 10px;
+    padding: 0;
     cursor: pointer;
     font-size: 14px;
     display: flex;
@@ -909,7 +1028,8 @@ body {
     justify-content: center;
     opacity: 0.6;
     transition: all 0.1s;
-    width: 32px;
+    width: 28px;
+    height: 28px;
 }
 
 .btn-remove:hover {
@@ -2136,6 +2256,11 @@ body.theme-light {
     --vscode-tab-inactiveBackground: #f5f5f5;
     --vscode-tab-activeBackground: #ffffff;
     --vscode-list-hoverBackground: #f0f0f0;
+}
+
+body.theme-light .response-body,
+body.theme-light .headers-raw {
+    background: #f8f8f8 !important;
 }
 
 body.theme-dark {

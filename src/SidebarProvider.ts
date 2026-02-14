@@ -468,7 +468,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         .new-request-btn {
             flex: 1;
             width: 100%;
-            padding: 7px 14px;
+            padding: 5px 14px;
             background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
             color: white;
             border: none;
@@ -481,11 +481,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             justify-content: center;
             gap: 6px;
             transition: all 0.2s;
+            box-shadow: none !important;
         }
 
         .new-request-btn:hover {
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+            filter: brightness(1.1) contrast(1.1);
+            box-shadow: none !important;
+            outline: none !important;
         }
 
         .new-request-btn svg {

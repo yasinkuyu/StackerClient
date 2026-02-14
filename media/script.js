@@ -382,6 +382,13 @@ function initApp() {
         });
     }
 
+    const addQueryBtn = document.getElementById('addQueryBtn');
+    if (addQueryBtn) {
+        addQueryBtn.addEventListener('click', () => {
+            addQueryRow();
+        });
+    }
+
     // User-Agent custom handler
     const userAgentSelect = document.getElementById('userAgentSelect');
     const customUserAgentRow = document.getElementById('customUserAgentRow');
@@ -473,29 +480,143 @@ function initApp() {
         };
     }
 
-    // Send button handler with null check
+    // Repeat Request Logic
+    let repeatTimerId = null;
+    let countdownTimerId = null;
+    let countdownValue = 0;
+
+    function stopRepeat() {
+        if (repeatTimerId) {
+            clearInterval(repeatTimerId);
+            repeatTimerId = null;
+        }
+        if (countdownTimerId) {
+            clearInterval(countdownTimerId);
+            countdownTimerId = null;
+        }
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            sendBtn.innerHTML = 'Send';
+            sendBtn.classList.remove('repeating');
+        }
+    }
+
+    function startRepeat(intervalSeconds) {
+        stopRepeat(); // Ensure clean start
+
+        const sendBtn = document.getElementById('sendBtn');
+        if (!sendBtn) return;
+
+        sendBtn.classList.add('repeating');
+
+        // Initial request
+        executeRequest();
+
+        countdownValue = intervalSeconds;
+
+        const updateButtonText = () => {
+            sendBtn.innerHTML = `Stop (${Math.ceil(countdownValue)}s)`;
+        };
+
+        updateButtonText();
+
+        countdownTimerId = setInterval(() => {
+            countdownValue -= 1;
+            if (countdownValue <= 0) {
+                if (!isLoading) {
+                    executeRequest();
+                }
+                countdownValue = intervalSeconds;
+            }
+            updateButtonText();
+        }, 1000);
+    }
+
+    function executeRequest() {
+        const request = getCurrentRequest();
+
+        if (!request.url) {
+            showToast('Please enter a URL');
+            const urlInput = document.getElementById('url');
+            if (urlInput) urlInput.focus();
+            stopRepeat();
+            return;
+        }
+
+        if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
+            showToast('URL must start with http:// or https://');
+            const urlInput = document.getElementById('url');
+            if (urlInput) urlInput.focus();
+            stopRepeat();
+            return;
+        }
+
+        clearResponse();
+        setLoading(true);
+        vscode.postMessage({ command: 'sendRequest', request });
+    }
+
+    // Send button handler
     const sendBtn = document.getElementById('sendBtn');
     console.log('sendBtn element:', sendBtn);
     if (sendBtn) {
         sendBtn.addEventListener('click', () => {
             console.log('Send button clicked!');
-            const request = getCurrentRequest();
 
-            if (!request.url) {
-                showToast('Please enter a URL');
-                document.getElementById('url').focus();
+            // Eğer tekrarlayan moddaysak ve buton üzerinde "Stop" yazıyorsa (veya repeating class'ı varsa) durdur
+            if (sendBtn.classList.contains('repeating')) {
+                stopRepeat();
                 return;
             }
 
-            if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
-                showToast('URL must start with http:// or https://');
-                document.getElementById('url').focus();
-                return;
-            }
-
-            setLoading(true);
-            vscode.postMessage({ command: 'sendRequest', request });
+            executeRequest();
         });
+    }
+
+    // Dropdown handlers
+    const repeatBtn = document.getElementById('repeatBtn');
+    const repeatMenu = document.getElementById('repeatMenu');
+
+    if (repeatBtn && repeatMenu) {
+        repeatBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            repeatMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', () => {
+            repeatMenu.classList.remove('show');
+        });
+
+        repeatMenu.querySelectorAll('.dropdown-item[data-interval]').forEach(item => {
+            item.addEventListener('click', () => {
+                const interval = parseInt(item.dataset.interval);
+                startRepeat(interval);
+                repeatMenu.classList.remove('show');
+            });
+        });
+
+        const customIntervalBtn = document.getElementById('customIntervalBtn');
+        if (customIntervalBtn) {
+            customIntervalBtn.addEventListener('click', () => {
+                repeatMenu.classList.remove('show');
+                vscode.postMessage({
+                    command: 'showInputBox',
+                    prompt: 'Enter repeat interval in seconds',
+                    value: '60'
+                });
+
+                // Set a temporary callback for custom interval
+                window.handleIntervalResponse = function (value) {
+                    const seconds = parseInt(value);
+                    if (!isNaN(seconds) && seconds > 0) {
+                        startRepeat(seconds);
+                    } else if (value !== undefined) {
+                        showToast('Invalid interval');
+                    }
+                    window.handleIntervalResponse = null;
+                };
+            });
+        }
     }
 
     // Auth Sub-tab switching
@@ -602,7 +723,9 @@ function initApp() {
                 showToast('Request saved successfully!');
                 break;
             case 'inputBoxResponse':
-                if (window.handleInputBoxResponse) {
+                if (window.handleIntervalResponse) {
+                    window.handleIntervalResponse(message.result);
+                } else if (window.handleInputBoxResponse) {
                     window.handleInputBoxResponse(message.result);
                 }
                 break;
@@ -1956,27 +2079,7 @@ function initApp() {
     vscode.postMessage({ command: 'getSettings' });
     console.log('initApp completed successfully');
 
-    // Clear all form data and response
-    function clearAllData() {
-        // Clear URL
-        document.getElementById('url').value = '';
-
-        // Reset method to GET
-        document.getElementById('method').value = 'GET';
-
-        // Clear headers
-        document.getElementById('headersContainer').innerHTML = '';
-
-        // Clear query params
-        document.getElementById('queryContainer').innerHTML = '';
-
-        // Clear body
-        document.getElementById('bodyInput').value = '';
-
-        // Reset content type
-        document.getElementById('contentType').value = 'application/json';
-
-        // Clear response
+    function clearResponse() {
         const responseEl = document.getElementById('response');
         if (responseEl) {
             responseEl.style.display = 'none';
@@ -2004,8 +2107,42 @@ function initApp() {
         if (responseHeaders) {
             responseHeaders.innerHTML = '';
         }
+    }
 
-        // Reset view modes
+    // Global toggle for Word Wrap
+    window.toggleWordWrap = function () {
+        const responseBody = document.getElementById('responseBody');
+        if (!responseBody) return;
+
+        const isWrapped = responseBody.style.whiteSpace === 'pre-wrap';
+        responseBody.style.wordWrap = isWrapped ? 'normal' : 'break-word';
+        responseBody.style.whiteSpace = isWrapped ? 'pre' : 'pre-wrap';
+
+        const btn = document.getElementById('wordWrapToggle');
+        if (btn) btn.classList.toggle('active', !isWrapped);
+    };
+
+    // Clear all form data and response
+    function clearAllData() {
+        // Clear URL
+        document.getElementById('url').value = '';
+
+        // Reset method to GET
+        document.getElementById('method').value = 'GET';
+
+        // Clear headers
+        document.getElementById('headersContainer').innerHTML = '';
+
+        // Clear query params
+        document.getElementById('queryContainer').innerHTML = '';
+
+        // Clear body
+        document.getElementById('bodyInput').value = '';
+
+        // Reset content type
+        document.getElementById('contentType').value = 'application/json';
+
+        clearResponse();
         bodyViewMode = 'raw';
         headersViewMode = 'table';
 
