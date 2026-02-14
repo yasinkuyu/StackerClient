@@ -164,20 +164,12 @@ export class RequestManager {
     addToHistory(request: SavedRequest): void {
         let history = this.getHistory();
 
-        // Deduplicate: remove existing entry if same request content
+        // Deduplicate: remove existing entry if same method and url only
+        // This allows modified requests (body, headers, etc.) to appear as new entries
         history = history.filter(existing => {
             const sameMethod = existing.method === request.method;
             const sameUrl = existing.url === request.url;
-            const sameBody = (existing.body || '') === (request.body || '');
-            const sameContentType = (existing.contentType || '') === (request.contentType || '');
-            const sameBypass = !!existing.bypassWAF === !!request.bypassWAF;
-            const sameUA = (existing.userAgent || '') === (request.userAgent || '');
-            const sameReferer = (existing.referer || '') === (request.referer || '');
-            const sameHeaders = JSON.stringify(existing.headers || []) === JSON.stringify(request.headers || []);
-            const sameQuery = JSON.stringify(existing.queryParams || []) === JSON.stringify(request.queryParams || []);
-            const sameAuth = JSON.stringify(existing.auth || {}) === JSON.stringify(request.auth || {});
-            const sameBodyData = JSON.stringify(existing.bodyData || {}) === JSON.stringify(request.bodyData || {});
-            return !(sameMethod && sameUrl && sameBody && sameContentType && sameBypass && sameUA && sameReferer && sameHeaders && sameQuery && sameAuth && sameBodyData);
+            return !(sameMethod && sameUrl);
         });
 
         request.createdAt = Date.now();

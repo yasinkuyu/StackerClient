@@ -2,6 +2,18 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.8] - 2026-02-15
+
+### Added
+- **Recent Saved View**: New sidebar filter that merges recent history and saved requests into a single unified list.
+- **Tab Content Badges**: Added visual count badges to Headers, Query, and Body tabs for better context.
+- **Advanced Authentication**: Expanded support for various authentication methods.
+- **Structured Body Input**: Improved handling and input for structured request bodies.
+
+### Changed
+- **UI Refresh**: Modernized the interface with new gradient buttons (purple/indigo), improved active tab visibility, and consistent panel backgrounds.
+- **Sidebar Selection**: Unified source selection with a 3-way toggle (Recent, Recent Saved, Saved).
+
 ## [1.1.7] - 2026-02-14
 
 ### Fixed

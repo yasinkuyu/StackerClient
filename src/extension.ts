@@ -172,7 +172,14 @@ export function activate(context: vscode.ExtensionContext) {
     const loadRequestCommand = vscode.commands.registerCommand('stacker.loadRequest', (item: any) => {
         const id = item?.id || item;
         if (id) {
-            const request = requestManager.getRequest(id);
+            // First check saved requests, then history
+            let request = requestManager.getRequest(id);
+            if (!request) {
+                // Check in history
+                const history = requestManager.getHistory();
+                request = history.find(r => r.id === id);
+            }
+
             if (request && currentPanel) {
                 currentPanel.webview.postMessage({
                     command: 'loadRequest',
@@ -1211,7 +1218,7 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
     const headers: Record<string, string> = {};
 
     // 1. Determine User-Agent
-    let selectedUA = 'StackerClient/1.1.7';
+    let selectedUA = 'StackerClient/1.1.8';
     if (request.userAgent) {
         const mappedUA = getUserAgentString(request.userAgent);
         selectedUA = mappedUA || request.userAgent;

@@ -296,7 +296,7 @@
             background: transparent;
             border: none;
             color: var(--vscode-foreground);
-            padding: 4px 6px;
+            padding: 4px 8px;
             border-radius: 3px;
             cursor: pointer;
             display: flex;
@@ -304,6 +304,9 @@
             justify-content: center;
             opacity: 0.5;
             transition: all 0.15s;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
         }
 
         .view-btn-icon:hover {
@@ -343,41 +346,63 @@
             padding: 6px 10px;
             border-bottom: 1px solid var(--vscode-panel-border);
             background: var(--vscode-sideBar-background);
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .saved-search {
-            flex: 1;
             position: relative;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0.5;
-            pointer-events: none;
-            color: var(--vscode-foreground);
-        }
-
-        .saved-search-input {
-            width: 100%;
-            height: 28px;
-            padding: 6px 10px 6px 32px;
+            display: flex;
+            align-items: center;
             background: var(--vscode-input-background);
             border: 1px solid var(--vscode-input-border);
             border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .saved-search:focus-within {
+            border-color: #8b5cf6;
+        }
+
+        .search-icon {
+            padding: 0 8px;
+            opacity: 0.5;
+            color: var(--vscode-foreground);
+            display: flex;
+            align-items: center;
+            margin-right: 4px;
+        }
+
+        .saved-search-input {
+            flex: 1;
+            height: 28px;
+            padding: 0 8px 0 4px;
+            background: transparent;
+            border: none;
             color: var(--vscode-input-foreground);
             font-size: 13px;
             outline: none;
-            transition: border-color 0.2s;
         }
 
-        .saved-search-input:focus {
-            border-color: #8b5cf6;
+        .source-toggle {
+            display: flex;
+            background: var(--vscode-button-secondaryBackground);
+            padding: 2px;
+            gap: 1px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+
+        .source-toggle .view-btn-icon {
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 3px;
+            background: transparent;
+        }
+
+        .source-toggle .view-btn-icon.active {
+            background: var(--vscode-sideBar-background);
+            color: var(--vscode-foreground);
+            opacity: 1;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
         .saved-search-input::placeholder {
@@ -948,17 +973,6 @@
     <div class="content">
         <!-- History Tab -->
         <div class="tab-content active" id="historyTab">
-            <!-- Source Selector Bar -->
-            <div class="source-bar">
-                <div class="source-toggle">
-                    <button id="source-recent" class="source-btn active"
-                        onclick="setViewSource('recent')">Recent</button>
-                    <button id="source-recentSaved" class="source-btn"
-                        onclick="setViewSource('recentSaved')">Recent Saved</button>
-                    <button id="source-saved" class="source-btn" onclick="setViewSource('saved')">Saved</button>
-                </div>
-            </div>
-
             <!-- View Options Bar -->
             <div class="view-options">
 
@@ -1006,7 +1020,11 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" class="saved-search-input" id="filterInput" placeholder="Search requests...x">
+                    <input type="text" class="saved-search-input" id="filterInput" placeholder="Search requests...">
+                    <div class="source-toggle">
+                        <button class="view-btn-icon active" id="viewSourceRecent" onclick="setViewSource('recent')">Recent</button>
+                        <button class="view-btn-icon" id="viewSourceSaved" onclick="setViewSource('saved')">Saved</button>
+                    </div>
                 </div>
             </div>
 
@@ -1144,10 +1162,8 @@
         }
 
         function setViewSource(source) {
-            // Update button active states
-            document.querySelectorAll('.source-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = document.getElementById('source-' + source);
-            if (activeBtn) activeBtn.classList.add('active');
+            document.getElementById('viewSourceRecent').classList.toggle('active', source === 'recent');
+            document.getElementById('viewSourceSaved').classList.toggle('active', source === 'saved');
 
             vscode.postMessage({
                 type: 'setViewSource',
@@ -1562,10 +1578,10 @@
 
 
                 // Update source selector
-                const viewMode = message.viewMode || 'recent';
-                document.querySelectorAll('.source-btn').forEach(btn => btn.classList.remove('active'));
-                const activeBtn = document.getElementById('source-' + viewMode);
-                if (activeBtn) activeBtn.classList.add('active');
+                const viewSourceSelect = document.getElementById('viewSourceSelect');
+                if (viewSourceSelect) {
+                    viewSourceSelect.value = message.viewMode || 'recent';
+                }
 
 
                 renderRequests();
