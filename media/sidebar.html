@@ -236,45 +236,6 @@
         }
 
         /* Source Selector */
-        .source-bar {
-            display: flex;
-            padding: 6px 12px;
-            background: var(--vscode-sideBar-background);
-            border-bottom: 1px solid var(--vscode-panel-border);
-        }
-
-        .source-toggle {
-            display: flex;
-            width: 100%;
-            background: var(--vscode-button-secondaryBackground);
-            padding: 2px;
-            border-radius: 6px;
-            gap: 2px;
-        }
-
-        .source-btn {
-            flex: 1;
-            padding: 4px 8px;
-            border: none;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 500;
-            background: transparent;
-            color: var(--vscode-foreground);
-            cursor: pointer;
-            transition: all 0.2s;
-            opacity: 0.7;
-        }
-
-        .source-btn:hover {
-            opacity: 1;
-        }
-
-        .source-btn.active {
-            background: var(--vscode-sideBar-background);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            opacity: 1;
-        }
 
 
         .view-options {
@@ -388,6 +349,7 @@
             border-radius: 4px;
             margin-left: auto;
             margin-right: 4px;
+            flex-shrink: 0;
         }
 
         .source-toggle .view-btn-icon {
