@@ -14,7 +14,7 @@
  </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/VS%20Code-%5E1.74.0-blue.svg" alt="VS Code">
   <img src="https://img.shields.io/badge/Cursor-Compatible-blue.svg" alt="Cursor">
   <img src="https://img.shields.io/badge/Antigravity-Compatible-blue.svg" alt="Antigravity">

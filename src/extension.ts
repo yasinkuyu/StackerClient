@@ -41,6 +41,9 @@ const COMMON_HEADERS = [
 export function activate(context: vscode.ExtensionContext) {
     const requestManager = new RequestManager(context);
 
+    // Migrate auth tokens to SecretStorage if needed
+    migrateAuthTokens(context);
+
     // Sidebar WebviewView Provider
     sidebarProvider = new SidebarProvider(context.extensionUri, requestManager, context);
     context.subscriptions.push(
@@ -93,6 +96,14 @@ export function activate(context: vscode.ExtensionContext) {
                 case 'deleteAuthToken':
                     await deleteAuthToken(message.name, context);
                     await loadAuthTokens(panelRef, context);
+                    break;
+                case 'getAuthTokenValue':
+                    const tokenValue = await getAuthTokenValue(message.name, context);
+                    panelRef.webview.postMessage({
+                        command: 'authTokenValue',
+                        name: message.name,
+                        token: tokenValue
+                    });
                     break;
                 case 'showInputBox':
                     const result = await vscode.window.showInputBox({
@@ -222,8 +233,7 @@ export function activate(context: vscode.ExtensionContext) {
             await saveAuthToken(token, name, context);
             vscode.window.showInformationMessage(`Token "${name}" saved!`);
         } else if (action === 'View Saved Tokens') {
-            const tokens = context.globalState.get<Record<string, string>>('stackerAuthTokens', {});
-            const tokenNames = Object.keys(tokens);
+            const tokenNames = context.globalState.get<string[]>('stackerAuthTokenIndex', []);
             if (tokenNames.length === 0) {
                 vscode.window.showInformationMessage('No saved tokens');
                 return;
@@ -232,12 +242,14 @@ export function activate(context: vscode.ExtensionContext) {
                 placeHolder: 'Select token to copy'
             });
             if (selected) {
-                await vscode.env.clipboard.writeText(tokens[selected]);
-                vscode.window.showInformationMessage(`Token "${selected}" copied to clipboard!`);
+                const tokenVal = await getAuthTokenValue(selected, context);
+                if (tokenVal) {
+                    await vscode.env.clipboard.writeText(tokenVal);
+                    vscode.window.showInformationMessage(`Token "${selected}" copied to clipboard!`);
+                }
             }
         } else if (action === 'Delete Token') {
-            const tokens = context.globalState.get<Record<string, string>>('stackerAuthTokens', {});
-            const tokenNames = Object.keys(tokens);
+            const tokenNames = context.globalState.get<string[]>('stackerAuthTokenIndex', []);
             if (tokenNames.length === 0) {
                 vscode.window.showInformationMessage('No saved tokens');
                 return;
@@ -248,6 +260,11 @@ export function activate(context: vscode.ExtensionContext) {
             if (selected) {
                 await deleteAuthToken(selected, context);
                 vscode.window.showInformationMessage(`Token "${selected}" deleted!`);
+                // Refresh all open webviews
+                if (currentPanel) {
+                    await loadAuthTokens(currentPanel, context);
+                }
+                sidebarProvider.refresh();
             }
         }
     });
@@ -830,23 +847,71 @@ function getHelpContent(context: vscode.ExtensionContext): string {
 }
 
 async function saveAuthToken(token: string, name: string, context: vscode.ExtensionContext) {
-    const tokens = context.globalState.get<Record<string, string>>('stackerAuthTokens', {});
-    tokens[name] = token;
-    await context.globalState.update('stackerAuthTokens', tokens);
+    // Store name in index
+    const index = context.globalState.get<string[]>('stackerAuthTokenIndex', []);
+    if (!index.includes(name)) {
+        index.push(name);
+        await context.globalState.update('stackerAuthTokenIndex', index);
+    }
+    // Store secret
+    await context.secrets.store(`stackerAuthToken_${name}`, token);
 }
 
 async function loadAuthTokens(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
-    const tokens = context.globalState.get<Record<string, string>>('stackerAuthTokens', {});
+    const index = context.globalState.get<string[]>('stackerAuthTokenIndex', []);
+    const tokens: Record<string, string> = {};
+
+    // Only send names and masked values to webview for UI
+    for (const name of index) {
+        tokens[name] = '********'; // Masked value
+    }
+
     panel.webview.postMessage({
         command: 'authTokens',
         tokens: tokens
     });
 }
 
+async function getAuthTokenValue(name: string, context: vscode.ExtensionContext): Promise<string | undefined> {
+    return await context.secrets.get(`stackerAuthToken_${name}`);
+}
+
 async function deleteAuthToken(name: string, context: vscode.ExtensionContext) {
-    const tokens = context.globalState.get<Record<string, string>>('stackerAuthTokens', {});
-    delete tokens[name];
-    await context.globalState.update('stackerAuthTokens', tokens);
+    // Remove from index
+    const index = context.globalState.get<string[]>('stackerAuthTokenIndex', []);
+    const newIndex = index.filter(n => n !== name);
+    await context.globalState.update('stackerAuthTokenIndex', newIndex);
+
+    // Remove secret
+    await context.secrets.delete(`stackerAuthToken_${name}`);
+}
+
+async function migrateAuthTokens(context: vscode.ExtensionContext) {
+    const oldTokens = context.globalState.get<Record<string, string>>('stackerAuthTokens');
+    if (oldTokens) {
+        const index = context.globalState.get<string[]>('stackerAuthTokenIndex', []);
+        for (const [name, token] of Object.entries(oldTokens)) {
+            if (!index.includes(name)) {
+                index.push(name);
+                await context.secrets.store(`stackerAuthToken_${name}`, token);
+            }
+        }
+        await context.globalState.update('stackerAuthTokenIndex', index);
+        // Remove old plaintext tokens
+        await context.globalState.update('stackerAuthTokens', undefined);
+        console.log('Migrated auth tokens to SecretStorage');
+    }
+}
+
+function sanitizeAuth(auth: any): any {
+    if (!auth) return auth;
+    const sanitized = { ...auth };
+    if (sanitized.token) sanitized.token = '********';
+    if (sanitized.password) sanitized.password = '********';
+    if (sanitized.value && (sanitized.type === 'apikey' || sanitized.type === 'custom')) {
+        sanitized.value = '********';
+    }
+    return sanitized;
 }
 
 // Create a new independent panel (not affecting currentPanel singleton)
@@ -890,6 +955,14 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
             case 'deleteAuthToken':
                 await deleteAuthToken(message.name, context);
                 await loadAuthTokens(panel, context);
+                break;
+            case 'getAuthTokenValue':
+                const tokenVal = await getAuthTokenValue(message.name, context);
+                panel.webview.postMessage({
+                    command: 'authTokenValue',
+                    name: message.name,
+                    token: tokenVal
+                });
                 break;
             case 'showInputBox':
                 const result = await vscode.window.showInputBox({
@@ -994,7 +1067,9 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
                 bypassWAF: request.bypassWAF,
                 userAgent: request.userAgent,
                 referer: request.referer,
-                queryParams: request.queryParams
+                queryParams: request.queryParams,
+                auth: sanitizeAuth(request.auth),
+                bodyData: request.bodyData
             };
             requestManager.addToHistory(historyRequest);
             handleLoadHistory(requestManager, panel);
@@ -1015,7 +1090,9 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
                 bypassWAF: request.bypassWAF,
                 userAgent: request.userAgent,
                 referer: request.referer,
-                queryParams: request.queryParams
+                queryParams: request.queryParams,
+                auth: sanitizeAuth(request.auth),
+                bodyData: request.bodyData
             };
             requestManager.saveRequest(savedRequest);
             sidebarProvider.refresh();
@@ -1029,6 +1106,9 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
 }
 
 function handleSaveRequest(request: SavedRequest, requestManager: RequestManager, panel: vscode.WebviewPanel) {
+    if (request.auth) {
+        request.auth = sanitizeAuth(request.auth);
+    }
     requestManager.saveRequest(request);
     panel.webview.postMessage({
         command: 'requestSaved',

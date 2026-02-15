@@ -1,4 +1,25 @@
 const vscode = acquireVsCodeApi();
+
+// ===== Global Error Handler =====
+window.onerror = function (msg, source, lineno, colno, error) {
+    console.error('[StackerClient Error]', msg, 'at', source + ':' + lineno);
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+        errorEl.textContent = 'Error: ' + msg;
+        errorEl.style.display = 'block';
+    }
+    return false;
+};
+
+window.onunhandledrejection = function (event) {
+    console.error('[StackerClient Unhandled Promise Rejection]', event.reason);
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+        errorEl.textContent = 'Error: ' + (event.reason?.message || event.reason);
+        errorEl.style.display = 'block';
+    }
+};
+
 const COMMON_HEADERS = [
     { key: 'Accept', value: 'application/json', desc: 'Accepted response format' },
     { key: 'Accept', value: 'text/html', desc: 'Accepted response format' },
@@ -1590,6 +1611,16 @@ function initApp() {
                     }
                 }
                 break;
+            case 'authTokenValue':
+                if (message.token) {
+                    document.getElementById('authTypeSelect').value = 'bearer';
+                    showAuthFields('bearer');
+                    document.getElementById('authBearerToken').value = message.token;
+                    showToast('Token "' + message.name + '" applied to Bearer Token auth');
+                } else {
+                    showToast('Could not retrieve token value');
+                }
+                break;
         }
     });
 
@@ -1676,13 +1707,7 @@ function initApp() {
     }
 
     function useToken(name) {
-        const token = authTokens[name];
-        if (token) {
-            document.getElementById('authTypeSelect').value = 'bearer';
-            showAuthFields('bearer');
-            document.getElementById('authBearerToken').value = token;
-            showToast('Token "' + name + '" applied to Bearer Token auth');
-        }
+        vscode.postMessage({ command: 'getAuthTokenValue', name: name });
     }
 
     function deleteToken(name) {
@@ -1991,8 +2016,16 @@ function initApp() {
         const headersRawEl = document.getElementById('responseHeadersRaw');
         const headerKeys = Object.keys(response.headers);
         const headersCountEl = document.getElementById('headersCount');
+
+        let totalHeaders = 0;
+        headerKeys.forEach(key => {
+            const val = response.headers[key];
+            totalHeaders += Array.isArray(val) ? val.length : 1;
+        });
+
         if (headersCountEl) {
-            headersCountEl.textContent = headerKeys.length;
+            headersCountEl.textContent = totalHeaders;
+            headersCountEl.style.display = totalHeaders > 0 ? 'inline-block' : 'none';
         }
 
         let headersHtml = '';
@@ -2012,12 +2045,15 @@ function initApp() {
         }
 
         headerKeys.forEach(function (key) {
-            const value = response.headers[key];
-            const valueClass = getHeaderValueClass(value);
-            headersHtml += '<div class="header-row">';
-            headersHtml += '<span class="header-key">' + escapeHtml(key) + '</span>';
-            headersHtml += '<span class="header-value ' + valueClass + '">' + escapeHtml(String(value)) + '</span>';
-            headersHtml += '</div>';
+            const values = Array.isArray(response.headers[key]) ? response.headers[key] : [response.headers[key]];
+
+            values.forEach(value => {
+                const valueClass = getHeaderValueClass(value);
+                headersHtml += '<div class="header-row">';
+                headersHtml += '<span class="header-key">' + escapeHtml(key) + '</span>';
+                headersHtml += '<span class="header-value ' + valueClass + '">' + escapeHtml(String(value)) + '</span>';
+                headersHtml += '</div>';
+            });
         });
         headersContainer.innerHTML = headersHtml;
 
@@ -2035,10 +2071,9 @@ function initApp() {
         const cookiesResult = parseCookies(response.headers);
         const cookiesCountEl = document.getElementById('cookiesCount');
         if (cookiesCountEl) {
-            cookiesCountEl.textContent = cookiesResult.length > 0 ? cookiesResult.length : '';
+            cookiesCountEl.textContent = cookiesResult.length;
             cookiesCountEl.style.display = cookiesResult.length > 0 ? 'inline-block' : 'none';
         }
-        displayCookies(cookiesResult);
 
         // Detect tech stack
         const techStack = detectTechStack(response);
@@ -2047,7 +2082,6 @@ function initApp() {
             stackCountEl.textContent = techStack.length > 0 ? techStack.length : '';
             stackCountEl.style.display = techStack.length > 0 ? 'inline-block' : 'none';
         }
-        displayTechStack(techStack);
 
         // Body viewing handles high-level state, specific rendering happens in updateBodyView
         // This resolves the synchronization issue where labels and content didn't match.
@@ -2256,10 +2290,7 @@ function initApp() {
         }
 
         // Reset to Body tab
-        document.querySelectorAll('.res-tab').forEach(function (t) { t.classList.remove('active'); });
-        document.querySelectorAll('.res-tab-content').forEach(function (c) { c.classList.remove('active'); });
-        document.querySelector('.res-tab').classList.add('active');
-        document.getElementById('resBody').classList.add('active');
+        showResTab('resBody');
 
         // Reset view modes
         headersViewMode = 'table';

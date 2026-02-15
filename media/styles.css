@@ -55,6 +55,16 @@
     box-sizing: border-box;
 }
 
+.error-banner {
+    background: #dc2626;
+    color: white;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 body {
     font-family: var(--vscode-font-family);
     font-size: var(--vscode-font-size);
@@ -87,7 +97,7 @@ body {
 }
 
 .url-bar:focus-within {
-    border-color: var(--vscode-focusBorder);
+    border-color: #8b5cf6;
 }
 
 .method-select,
@@ -386,7 +396,7 @@ body {
 }
 
 .auth-field:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: #8b5cf6;
     outline: none;
 }
 
@@ -2849,102 +2859,122 @@ body.theme-dark {
 }
 
 /* Category Specific Colors */
-.category-frontend .tech-dot, .category-frontend .tech-category-name {
+.category-frontend .tech-dot,
+.category-frontend .tech-category-name {
     background: #10b981;
     color: #10b981;
 }
 
-.category-backend .tech-dot, .category-backend .tech-category-name {
+.category-backend .tech-dot,
+.category-backend .tech-category-name {
     background: #3b82f6;
     color: #3b82f6;
 }
 
-.category-security .tech-dot, .category-security .tech-category-name {
+.category-security .tech-dot,
+.category-security .tech-category-name {
     background: #ef4444;
     color: #ef4444;
 }
 
-.category-cdn .tech-dot, .category-cdn .tech-category-name {
+.category-cdn .tech-dot,
+.category-cdn .tech-category-name {
     background: #f59e0b;
     color: #f59e0b;
 }
 
-.category-cms .tech-dot, .category-cms .tech-category-name {
+.category-cms .tech-dot,
+.category-cms .tech-category-name {
     background: #8b5cf6;
     color: #8b5cf6;
 }
 
-.category-web-server .tech-dot, .category-web-server .tech-category-name {
+.category-web-server .tech-dot,
+.category-web-server .tech-category-name {
     background: #6366f1;
     color: #6366f1;
 }
 
-.category-analytics .tech-dot, .category-analytics .tech-category-name {
+.category-analytics .tech-dot,
+.category-analytics .tech-category-name {
     background: #ec4899;
     color: #ec4899;
 }
 
-.category-e-commerce .tech-dot, .category-e-commerce .tech-category-name {
+.category-e-commerce .tech-dot,
+.category-e-commerce .tech-category-name {
     background: #f97316;
     color: #f97316;
 }
 
-.category-api .tech-dot, .category-api .tech-category-name {
+.category-api .tech-dot,
+.category-api .tech-category-name {
     background: #06b6d4;
     color: #06b6d4;
 }
 
-.category-infrastructure .tech-dot, .category-infrastructure .tech-category-name {
+.category-infrastructure .tech-dot,
+.category-infrastructure .tech-category-name {
     background: #84cc16;
     color: #84cc16;
 }
 
-.category-payment .tech-dot, .category-payment .tech-category-name {
+.category-payment .tech-dot,
+.category-payment .tech-category-name {
     background: #14b8a6;
     color: #14b8a6;
 }
 
-.category-monitoring .tech-dot, .category-monitoring .tech-category-name {
+.category-monitoring .tech-dot,
+.category-monitoring .tech-category-name {
     background: #a855f7;
     color: #a855f7;
 }
 
-.category-marketing .tech-dot, .category-marketing .tech-category-name {
+.category-marketing .tech-dot,
+.category-marketing .tech-category-name {
     background: #f43f5e;
     color: #f43f5e;
 }
 
-.category-control-panel .tech-dot, .category-control-panel .tech-category-name {
+.category-control-panel .tech-dot,
+.category-control-panel .tech-category-name {
     background: #64748b;
     color: #64748b;
 }
 
-.category-paas .tech-dot, .category-paas .tech-category-name {
+.category-paas .tech-dot,
+.category-paas .tech-category-name {
     background: #0ea5e9;
     color: #0ea5e9;
 }
 
-.category-server .tech-dot, .category-server .tech-category-name {
+.category-server .tech-dot,
+.category-server .tech-category-name {
     background: #6366f1;
     color: #6366f1;
 }
 
-.category-marketing .tech-dot, .category-marketing .tech-category-name {
+.category-marketing .tech-dot,
+.category-marketing .tech-category-name {
     background: #f472b6;
     color: #f472b6;
 }
 
-.category-control-panel .tech-dot, .category-control-panel .tech-category-name {
+.category-control-panel .tech-dot,
+.category-control-panel .tech-category-name {
     background: #a78bfa;
     color: #a78bfa;
 }
 
-.category-paas .tech-dot, .category-paas .tech-category-name {
+.category-paas .tech-dot,
+.category-paas .tech-category-name {
     background: #38bdf8;
     color: #38bdf8;
 }
 
-.category-monitoring .tech-dot, .category-monitoring .tech-category-name {
+.category-monitoring .tech-dot,
+.category-monitoring .tech-category-name {
     background: #fb923c;
     color: #fb923c;
 }

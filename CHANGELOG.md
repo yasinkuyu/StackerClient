@@ -1,6 +1,19 @@
-# Change Log
+## [1.2.1] - 2026-02-15
 
-All notable changes to the "StackerClient" extension will be documented in this file.
+### Added
+- **Secure Token Storage**: Auth tokens are now stored using VS Code's `SecretStorage` API instead of plaintext `globalState`. Automatic migration of existing tokens is handled on startup.
+- **Enhanced Token Privacy**: sensitive tokens are now masked (`********`) in the webview UI, and only retrieved asynchronously when needed.
+- **Data Sanitization**: Automatically masks sensitive fields (tokens, passwords) in request history and saved requests to prevent plaintext exposure in storage.
+
+### Fixed
+- **Response Counts**: Fixed incorrect counts for headers and cookies, correctly handling multi-value headers like `Set-Cookie`.
+- **Body Visibility**: Resolved issue where the response body was initially hidden after a request.
+- **UI Consistency**: Updated URL input focus border to match the brand purple theme.
+- **Runtime Errors**: Fixed several JavaScript syntax errors and improved code stability in the response panel.
+
+### Improved
+- **Multi-Value Headers**: Each value of a multi-value header is now rendered as a separate row for better clarity.
+- **Loading UX**: Improved loading states and stale data clearing when starting new requests.
 
 ## [1.2.0] - 2026-02-15
 
