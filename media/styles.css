@@ -2856,6 +2856,26 @@ body.theme-dark {
     background: #84cc16;
 }
 
+.category-payment .tech-dot {
+    background: #14b8a6;
+}
+
+.category-marketing .tech-dot {
+    background: #f472b6;
+}
+
+.category-control-panel .tech-dot {
+    background: #a78bfa;
+}
+
+.category-paas .tech-dot {
+    background: #38bdf8;
+}
+
+.category-monitoring .tech-dot {
+    background: #fb923c;
+}
+
 .category-frontend {
     background: rgba(16, 185, 129, 0.05);
 }
@@ -2874,6 +2894,46 @@ body.theme-dark {
 
 .category-cms {
     background: rgba(139, 92, 246, 0.05);
+}
+
+.category-payment {
+    background: rgba(20, 184, 166, 0.05);
+}
+
+.category-marketing {
+    background: rgba(244, 114, 182, 0.05);
+}
+
+.category-control-panel {
+    background: rgba(167, 139, 250, 0.05);
+}
+
+.category-paas {
+    background: rgba(56, 189, 248, 0.05);
+}
+
+.category-monitoring {
+    background: rgba(251, 146, 60, 0.05);
+}
+
+.category-infrastructure {
+    background: rgba(132, 204, 22, 0.05);
+}
+
+.category-web-server {
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.category-analytics {
+    background: rgba(236, 72, 153, 0.05);
+}
+
+.category-e-commerce {
+    background: rgba(249, 115, 22, 0.05);
+}
+
+.category-api {
+    background: rgba(6, 182, 212, 0.05);
 }
 
 body.vscode-light .tech-category {

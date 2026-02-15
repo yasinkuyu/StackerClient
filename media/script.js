@@ -28,6 +28,7 @@ const CATEGORIES = {
     CMS: 'CMS',
     ECOM: 'E-Commerce',
     ANALYTICS: 'Analytics',
+    MONITORING: 'Monitoring',
     PAYMENT: 'Payment',
     API: 'API',
     MARKETING: 'Marketing',
@@ -46,129 +47,439 @@ const pattern = (regex, name, category) => ({
 // Tech Stack Detection Patterns (Structured & Regex-based)
 const TECH_PATTERNS = {
     headers: [
-        // Servers
+        // ===== Web Servers =====
         pattern(/nginx/i, 'Nginx', CATEGORIES.SERVER),
         pattern(/apache/i, 'Apache', CATEGORIES.SERVER),
-        pattern(/microsoft-iis|iis/i, 'IIS', CATEGORIES.SERVER),
+        pattern(/microsoft-iis|iis\//i, 'IIS', CATEGORIES.SERVER),
         pattern(/openresty/i, 'OpenResty', CATEGORIES.SERVER),
         pattern(/caddy/i, 'Caddy', CATEGORIES.SERVER),
         pattern(/lighttpd/i, 'lighttpd', CATEGORIES.SERVER),
         pattern(/tengine/i, 'Tengine', CATEGORIES.SERVER),
         pattern(/litespeed/i, 'LiteSpeed', CATEGORIES.SERVER),
-        pattern(/gws/i, 'Google Web Server', CATEGORIES.SERVER),
+        pattern(/\bgws\b/i, 'Google Web Server', CATEGORIES.SERVER),
         pattern(/cowboy/i, 'Cowboy', CATEGORIES.SERVER),
-        pattern(/phusion_passenger/i, 'Phusion Passenger', CATEGORIES.SERVER),
+        pattern(/phusion.passenger/i, 'Phusion Passenger', CATEGORIES.SERVER),
         pattern(/kestrel/i, 'Kestrel', CATEGORIES.SERVER),
-        pattern(/jetty/i, 'Jetty', CATEGORIES.SERVER),
-        pattern(/tomcat/i, 'Tomcat', CATEGORIES.SERVER),
+        pattern(/\bjetty\b/i, 'Jetty', CATEGORIES.SERVER),
+        pattern(/\btomcat\b/i, 'Tomcat', CATEGORIES.SERVER),
         pattern(/glassfish/i, 'GlassFish', CATEGORIES.SERVER),
         pattern(/wildfly/i, 'WildFly', CATEGORIES.SERVER),
-        pattern(/jboss/i, 'JBoss', CATEGORIES.SERVER),
-        pattern(/varnish/i, 'Varnish', CATEGORIES.SERVER),
+        pattern(/\bjboss\b/i, 'JBoss', CATEGORIES.SERVER),
+        pattern(/\bvarnish\b/i, 'Varnish', CATEGORIES.SERVER),
+        pattern(/gunicorn/i, 'Gunicorn', CATEGORIES.SERVER),
+        pattern(/\buwsgi\b/i, 'uWSGI', CATEGORIES.SERVER),
+        pattern(/\bpuma\b/i, 'Puma', CATEGORIES.SERVER),
+        pattern(/\bunicorn\b/i, 'Unicorn', CATEGORIES.SERVER),
+        pattern(/werkzeug/i, 'Werkzeug', CATEGORIES.SERVER),
+        pattern(/cherrypy/i, 'CherryPy', CATEGORIES.SERVER),
+        pattern(/\btornado\b/i, 'Tornado', CATEGORIES.SERVER),
+        pattern(/traefik/i, 'Traefik', CATEGORIES.SERVER),
+        pattern(/haproxy/i, 'HAProxy', CATEGORIES.SERVER),
+        pattern(/\benvoy\b/i, 'Envoy', CATEGORIES.SERVER),
+        pattern(/\bh2o\b/i, 'H2O', CATEGORIES.SERVER),
+        pattern(/hiawatha/i, 'Hiawatha', CATEGORIES.SERVER),
+        pattern(/cherokee/i, 'Cherokee', CATEGORIES.SERVER),
+        pattern(/webrick/i, 'WEBrick', CATEGORIES.SERVER),
 
-        // CDNs & WAFs
+        // ===== CDNs =====
         pattern(/cloudflare/i, 'Cloudflare', CATEGORIES.CDN),
         pattern(/akamai|akamaighost/i, 'Akamai', CATEGORIES.CDN),
-        pattern(/fastly/i, 'Fastly', CATEGORIES.CDN),
+        pattern(/\bfastly\b/i, 'Fastly', CATEGORIES.CDN),
         pattern(/keycdn/i, 'KeyCDN', CATEGORIES.CDN),
         pattern(/cloudfront/i, 'CloudFront', CATEGORIES.CDN),
         pattern(/bunnycdn|bunny\.net/i, 'Bunny.net', CATEGORIES.CDN),
         pattern(/limelight/i, 'Limelight', CATEGORIES.CDN),
-        pattern(/edgecast|verizon/i, 'Verizon CDN', CATEGORIES.CDN),
+        pattern(/edgecast/i, 'Edgecast', CATEGORIES.CDN),
         pattern(/stackpath/i, 'StackPath', CATEGORIES.CDN),
+        pattern(/azureedge|azure\s*cdn/i, 'Azure CDN', CATEGORIES.CDN),
+        pattern(/cdn77/i, 'CDN77', CATEGORIES.CDN),
+        pattern(/cachefly/i, 'CacheFly', CATEGORIES.CDN),
+        pattern(/netlify/i, 'Netlify', CATEGORIES.PAAS),
+        pattern(/\bvercel\b/i, 'Vercel', CATEGORIES.PAAS),
+
+        // ===== Security / WAF =====
         pattern(/sucuri/i, 'Sucuri', CATEGORIES.SECURITY),
         pattern(/ddos-guard/i, 'DDoS-Guard', CATEGORIES.SECURITY),
         pattern(/imunify360/i, 'Imunify360', CATEGORIES.SECURITY),
         pattern(/imperva|incapsula/i, 'Imperva', CATEGORIES.SECURITY),
-        pattern(/f5-bigip/i, 'F5 BIG-IP', CATEGORIES.INFRA),
+        pattern(/modsecurity/i, 'ModSecurity', CATEGORIES.SECURITY),
+        pattern(/wallarm/i, 'Wallarm', CATEGORIES.SECURITY),
+        pattern(/barracuda/i, 'Barracuda WAF', CATEGORIES.SECURITY),
+        pattern(/fortiweb/i, 'FortiWeb', CATEGORIES.SECURITY),
+        pattern(/sqreen/i, 'Sqreen', CATEGORIES.SECURITY),
+        pattern(/reblaze/i, 'Reblaze', CATEGORIES.SECURITY),
 
-        // Backend
-        pattern(/express/i, 'Express.js', CATEGORIES.BACKEND),
+        // ===== Backend Frameworks & Runtimes =====
+        pattern(/\bexpress\b/i, 'Express.js', CATEGORIES.BACKEND),
         pattern(/fastify/i, 'Fastify', CATEGORIES.BACKEND),
-        pattern(/koa/i, 'Koa.js', CATEGORIES.BACKEND),
-        pattern(/hapi/i, 'Hapi.js', CATEGORIES.BACKEND),
-        pattern(/nest/i, 'NestJS', CATEGORIES.BACKEND),
-        pattern(/adonis/i, 'AdonisJS', CATEGORIES.BACKEND),
+        pattern(/\bkoa\b/i, 'Koa.js', CATEGORIES.BACKEND),
+        pattern(/\bhapi\b/i, 'Hapi.js', CATEGORIES.BACKEND),
+        pattern(/nestjs|nest\.js/i, 'NestJS', CATEGORIES.BACKEND),
+        pattern(/adonisjs|adonis/i, 'AdonisJS', CATEGORIES.BACKEND),
+        pattern(/sails\.js|sailsjs/i, 'Sails.js', CATEGORIES.BACKEND),
         pattern(/laravel/i, 'Laravel', CATEGORIES.BACKEND),
         pattern(/symfony/i, 'Symfony', CATEGORIES.BACKEND),
         pattern(/codeigniter/i, 'CodeIgniter', CATEGORIES.BACKEND),
+        pattern(/cakephp/i, 'CakePHP', CATEGORIES.BACKEND),
+        pattern(/\byii\b/i, 'Yii', CATEGORIES.BACKEND),
+        pattern(/phalcon/i, 'Phalcon', CATEGORIES.BACKEND),
+        pattern(/\blumen\b/i, 'Lumen', CATEGORIES.BACKEND),
         pattern(/django/i, 'Django', CATEGORIES.BACKEND),
-        pattern(/flask/i, 'Flask', CATEGORIES.BACKEND),
+        pattern(/\bflask\b/i, 'Flask', CATEGORIES.BACKEND),
         pattern(/fastapi/i, 'FastAPI', CATEGORIES.BACKEND),
-        pattern(/rails/i, 'Ruby on Rails', CATEGORIES.BACKEND),
-        pattern(/spring/i, 'Spring', CATEGORIES.BACKEND),
+        pattern(/\bsanic\b/i, 'Sanic', CATEGORIES.BACKEND),
+        pattern(/starlette/i, 'Starlette', CATEGORIES.BACKEND),
+        pattern(/\brails\b/i, 'Ruby on Rails', CATEGORIES.BACKEND),
+        pattern(/sinatra/i, 'Sinatra', CATEGORIES.BACKEND),
+        pattern(/\bspring\b/i, 'Spring', CATEGORIES.BACKEND),
         pattern(/asp\.net|dotnet/i, '.NET', CATEGORIES.BACKEND),
-        pattern(/php/i, 'PHP', CATEGORIES.BACKEND),
-        pattern(/node/i, 'Node.js', CATEGORIES.BACKEND),
-        pattern(/python/i, 'Python', CATEGORIES.BACKEND),
-        pattern(/java/i, 'Java', CATEGORIES.BACKEND),
-        pattern(/ruby/i, 'Ruby', CATEGORIES.BACKEND),
-        pattern(/go/i, 'Go', CATEGORIES.BACKEND),
-        pattern(/rust/i, 'Rust', CATEGORIES.BACKEND),
+        pattern(/\bphp\b|php\//i, 'PHP', CATEGORIES.BACKEND),
+        pattern(/node\.js|nodejs/i, 'Node.js', CATEGORIES.BACKEND),
+        pattern(/\bdeno[\s\/]/i, 'Deno', CATEGORIES.BACKEND),
+        pattern(/\bpython\b/i, 'Python', CATEGORIES.BACKEND),
+        pattern(/\bjava\b(?!script)/i, 'Java', CATEGORIES.BACKEND),
+        pattern(/\bruby\b/i, 'Ruby', CATEGORIES.BACKEND),
+        pattern(/golang|go-http/i, 'Go', CATEGORIES.BACKEND),
+        pattern(/\brust\b/i, 'Rust', CATEGORIES.BACKEND),
         pattern(/phoenix|elixir/i, 'Phoenix', CATEGORIES.BACKEND),
+        pattern(/gin-gonic/i, 'Gin', CATEGORIES.BACKEND),
+        pattern(/actix/i, 'Actix Web', CATEGORIES.BACKEND),
+        pattern(/micronaut/i, 'Micronaut', CATEGORIES.BACKEND),
+        pattern(/quarkus/i, 'Quarkus', CATEGORIES.BACKEND),
+        pattern(/vert\.x|vertx/i, 'Vert.x', CATEGORIES.BACKEND),
+
+        // ===== Infrastructure =====
+        pattern(/f5-bigip|big-ip/i, 'F5 BIG-IP', CATEGORIES.INFRA),
+        pattern(/heroku/i, 'Heroku', CATEGORIES.PAAS),
+        pattern(/fly\.io/i, 'Fly.io', CATEGORIES.PAAS),
+        pattern(/railway/i, 'Railway', CATEGORIES.PAAS),
+
+        // ===== Control Panel =====
         pattern(/plesk/i, 'Plesk', CATEGORIES.CONTROL_PANEL),
-        pattern(/cpanel/i, 'cPanel', CATEGORIES.CONTROL_PANEL)
+        pattern(/cpanel/i, 'cPanel', CATEGORIES.CONTROL_PANEL),
+        pattern(/directadmin/i, 'DirectAdmin', CATEGORIES.CONTROL_PANEL),
+        pattern(/webmin/i, 'Webmin', CATEGORIES.CONTROL_PANEL)
+    ],
+    headerKeys: [
+        // Platform detection via header names
+        pattern(/^x-vercel/i, 'Vercel', CATEGORIES.PAAS),
+        pattern(/^x-netlify|^x-nf-request-id/i, 'Netlify', CATEGORIES.PAAS),
+        pattern(/^x-amz-|^x-amzn-/i, 'AWS', CATEGORIES.INFRA),
+        pattern(/^x-azure|^x-ms-/i, 'Azure', CATEGORIES.INFRA),
+        pattern(/^x-goog-|^x-cloud-trace/i, 'Google Cloud', CATEGORIES.INFRA),
+        pattern(/^x-drupal/i, 'Drupal', CATEGORIES.CMS),
+        pattern(/^x-shopify/i, 'Shopify', CATEGORIES.ECOM),
+        pattern(/^x-wp-/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/^x-ghost/i, 'Ghost', CATEGORIES.CMS),
+        pattern(/^x-fly-/i, 'Fly.io', CATEGORIES.PAAS),
+        pattern(/^x-railway/i, 'Railway', CATEGORIES.PAAS),
+        pattern(/^x-render-origin/i, 'Render', CATEGORIES.PAAS),
+        pattern(/^x-heroku/i, 'Heroku', CATEGORIES.PAAS),
+        pattern(/^x-firebase/i, 'Firebase', CATEGORIES.PAAS),
+        pattern(/^x-supabase/i, 'Supabase', CATEGORIES.BACKEND),
+        pattern(/^x-github-request/i, 'GitHub', CATEGORIES.INFRA),
+        pattern(/^x-gitlab/i, 'GitLab', CATEGORIES.INFRA),
+        pattern(/^x-powered-by-plesk/i, 'Plesk', CATEGORIES.CONTROL_PANEL),
+        pattern(/^cf-ray|^cf-cache/i, 'Cloudflare', CATEGORIES.CDN),
+        pattern(/^x-fastly/i, 'Fastly', CATEGORIES.CDN),
+        pattern(/^x-akamai/i, 'Akamai', CATEGORIES.CDN),
+        pattern(/^x-stripe/i, 'Stripe', CATEGORIES.PAYMENT),
+        pattern(/^x-contentful/i, 'Contentful', CATEGORIES.CMS),
+        pattern(/^x-pingback/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/^x-turbo-request-id/i, 'Turbo', CATEGORIES.FRONTEND),
+        pattern(/^x-wix-/i, 'Wix', CATEGORIES.CMS),
+        pattern(/^x-squarespace/i, 'Squarespace', CATEGORIES.CMS)
     ],
     cookies: [
+        // CDN / Security
         pattern(/__cf_bm|_cfuvid|__cf_clearance/i, 'Cloudflare', CATEGORIES.SECURITY),
-        pattern(/_ga|_gid|_gat|_gl/i, 'Google Analytics', CATEGORIES.ANALYTICS),
-        pattern(/_hjid|_hjSession/i, 'Hotjar', CATEGORIES.ANALYTICS),
-        pattern(/mp_|amplitude/i, 'Analytics', CATEGORIES.ANALYTICS),
-        pattern(/ajs_|segment/i, 'Segment', CATEGORIES.ANALYTICS),
-        pattern(/fbp|fr/i, 'Facebook', CATEGORIES.ANALYTICS),
-        pattern(/IDE|test_cookie/i, 'Google Ads', CATEGORIES.MARKETING),
-        pattern(/AWSALB|AWSELB/i, 'AWS Load Balancer', CATEGORIES.INFRA),
+        pattern(/sucuri_cloudproxy/i, 'Sucuri', CATEGORIES.SECURITY),
+        pattern(/csrftoken|xsrf[-_]|_csrf/i, 'CSRF Protection', CATEGORIES.SECURITY),
+
+        // Analytics
+        pattern(/_ga=|_gid=|_gat=|_gac_/i, 'Google Analytics', CATEGORIES.ANALYTICS),
+        pattern(/_hjid|_hjSession|_hjAbsolute/i, 'Hotjar', CATEGORIES.ANALYTICS),
+        pattern(/mp_mixpanel|mp_[a-f0-9]{32}/i, 'Mixpanel', CATEGORIES.ANALYTICS),
+        pattern(/amplitude_id/i, 'Amplitude', CATEGORIES.ANALYTICS),
+        pattern(/ajs_anonymous_id|ajs_user_id/i, 'Segment', CATEGORIES.ANALYTICS),
+        pattern(/_pk_id|_pk_ses/i, 'Matomo', CATEGORIES.ANALYTICS),
+        pattern(/_clck|_clsk/i, 'Microsoft Clarity', CATEGORIES.ANALYTICS),
+        pattern(/_fbp=|_fbc=/i, 'Facebook Pixel', CATEGORIES.ANALYTICS),
+        pattern(/optimizelyEndUserId|optimizelySegments/i, 'Optimizely', CATEGORIES.MARKETING),
+        pattern(/_uetsid|_uetvid/i, 'Bing Ads', CATEGORIES.MARKETING),
+        pattern(/_gcl_au|_gcl_aw/i, 'Google Ads', CATEGORIES.MARKETING),
+        pattern(/hubspotutk|__hstc|__hssc/i, 'HubSpot', CATEGORIES.MARKETING),
+
+        // Infrastructure
+        pattern(/AWSALB|AWSELB|AWSALBCORS/i, 'AWS Load Balancer', CATEGORIES.INFRA),
+
+        // Backend Sessions
         pattern(/JSESSIONID/i, 'Java Session', CATEGORIES.BACKEND),
-        pattern(/PHPSESSID|SESSID/i, 'PHP Session', CATEGORIES.BACKEND),
+        pattern(/PHPSESSID/i, 'PHP Session', CATEGORIES.BACKEND),
         pattern(/LARAVEL_SESSION|laravel_session/i, 'Laravel', CATEGORIES.BACKEND),
-        pattern(/csrftoken|xsrf|_csrf/i, 'CSRF Protection', CATEGORIES.SECURITY),
-        pattern(/wp-settings|wp-test-cookie/i, 'WordPress', CATEGORIES.CMS),
-        pattern(/hubspotutk|__hstc/i, 'HubSpot', CATEGORIES.MARKETING),
-        pattern(/_pk_id|_pk_ses/i, 'Matomo', CATEGORIES.ANALYTICS)
+        pattern(/ASP\.NET_SessionId|\.AspNetCore\./i, '.NET Session', CATEGORIES.BACKEND),
+        pattern(/django_session|djangocsrf/i, 'Django', CATEGORIES.BACKEND),
+        pattern(/_rails_session|_session_id.*rack/i, 'Rails', CATEGORIES.BACKEND),
+        pattern(/connect\.sid/i, 'Express.js', CATEGORIES.BACKEND),
+        pattern(/express[.:]sess/i, 'Express.js', CATEGORIES.BACKEND),
+
+        // CMS
+        pattern(/wp-settings|wordpress_|wp-test-cookie/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/Drupal\.visitor/i, 'Drupal', CATEGORIES.CMS),
+        pattern(/joomla_user_state/i, 'Joomla', CATEGORIES.CMS),
+
+        // E-Commerce
+        pattern(/_shopify|shopify_/i, 'Shopify', CATEGORIES.ECOM),
+        pattern(/PrestaShop-/i, 'PrestaShop', CATEGORIES.ECOM),
+
+        // Marketing / Chat
+        pattern(/intercom-session|intercom-id/i, 'Intercom', CATEGORIES.MARKETING),
+        pattern(/__tld__|__zlcmid/i, 'Zendesk', CATEGORIES.MARKETING),
+        pattern(/crisp-client/i, 'Crisp', CATEGORIES.MARKETING)
     ],
     body: [
-        pattern(/__NEXT_DATA__|_next/i, 'Next.js', CATEGORIES.FRONTEND),
-        pattern(/wp-content|wp-includes|wp-json/i, 'WordPress', CATEGORIES.CMS),
-        pattern(/drupal/i, 'Drupal', CATEGORIES.CMS),
-        pattern(/joomla/i, 'Joomla', CATEGORIES.CMS),
-        pattern(/magento/i, 'Magento', CATEGORIES.ECOM),
-        pattern(/shopify/i, 'Shopify', CATEGORIES.ECOM),
-        pattern(/woocommerce/i, 'WooCommerce', CATEGORIES.ECOM),
+        // ===== Frontend Frameworks =====
+        pattern(/__NEXT_DATA__|_next\/static|_next\/image/i, 'Next.js', CATEGORIES.FRONTEND),
+        pattern(/react-dom|react\.production|react\.development|data-reactroot|data-reactid|_reactRootContainer/i, 'React', CATEGORIES.FRONTEND),
+        pattern(/vue\.js|vue\.min|vue-router|vuex|v-bind=|v-if=|v-for=|v-model=|v-on:|v-slot|vue\.global/i, 'Vue.js', CATEGORIES.FRONTEND),
+        pattern(/angular\.min|ng-version=|ng-app=|ng-controller=|angular\/core|zone\.js/i, 'Angular', CATEGORIES.FRONTEND),
+        pattern(/svelte-|__svelte|svelte\/internal/i, 'Svelte', CATEGORIES.FRONTEND),
+        pattern(/__gatsby|gatsby-/i, 'Gatsby', CATEGORIES.FRONTEND),
+        pattern(/__nuxt|_nuxt\/|nuxt\.js/i, 'Nuxt.js', CATEGORIES.FRONTEND),
+        pattern(/astro\.build|__astro|astro-island|astro-slot/i, 'Astro', CATEGORIES.FRONTEND),
+        pattern(/solid-js|solidjs/i, 'Solid.js', CATEGORIES.FRONTEND),
+        pattern(/alpine\.js|alpinejs|x-data=|x-bind:/i, 'Alpine.js', CATEGORIES.FRONTEND),
+        pattern(/lit-html|lit-element|@lit\//i, 'Lit', CATEGORIES.FRONTEND),
+        pattern(/stenciljs|stencil-component/i, 'Stencil', CATEGORIES.FRONTEND),
+        pattern(/mithril\.js|mithril\.min/i, 'Mithril', CATEGORIES.FRONTEND),
+        pattern(/ember\.js|ember-cli|ember-data/i, 'Ember.js', CATEGORIES.FRONTEND),
+        pattern(/backbone\.js|backbone\.min/i, 'Backbone.js', CATEGORIES.FRONTEND),
+        pattern(/preact\.js|preact\.min|preact\//i, 'Preact', CATEGORIES.FRONTEND),
+        pattern(/__remix|remix\.run/i, 'Remix', CATEGORIES.FRONTEND),
+        pattern(/__sveltekit|sveltekit/i, 'SvelteKit', CATEGORIES.FRONTEND),
+        pattern(/qwikloader|@builder\.io\/qwik/i, 'Qwik', CATEGORIES.FRONTEND),
+        pattern(/@hotwired\/stimulus|stimulus\.js/i, 'Stimulus', CATEGORIES.FRONTEND),
+        pattern(/@hotwired\/turbo|turbo-frame|turbo-stream/i, 'Turbo', CATEGORIES.FRONTEND),
+        pattern(/htmx\.org|htmx\.js|hx-get=|hx-post=|hx-trigger=/i, 'htmx', CATEGORIES.FRONTEND),
+        pattern(/polymer-element|polymer\.html/i, 'Polymer', CATEGORIES.FRONTEND),
+        pattern(/marko\.js|@marko\//i, 'Marko', CATEGORIES.FRONTEND),
+        pattern(/knockout\.js|knockout-\d|ko\.applyBindings/i, 'Knockout.js', CATEGORIES.FRONTEND),
+
+        // ===== CSS Frameworks & UI Libraries =====
+        pattern(/jquery\.js|jquery\.min\.js|jquery-\d/i, 'jQuery', CATEGORIES.FRONTEND),
+        pattern(/bootstrap\.css|bootstrap\.min|bootstrap\.bundle|bootstrap\.js/i, 'Bootstrap', CATEGORIES.FRONTEND),
+        pattern(/tailwindcss|tailwind\.css|tailwind\.min/i, 'Tailwind CSS', CATEGORIES.FRONTEND),
+        pattern(/@mui\/|material-ui/i, 'Material UI', CATEGORIES.FRONTEND),
+        pattern(/@chakra-ui|chakra-ui/i, 'Chakra UI', CATEGORIES.FRONTEND),
+        pattern(/antd\.css|antd\.min|ant-design|ant\.design/i, 'Ant Design', CATEGORIES.FRONTEND),
+        pattern(/bulma\.css|bulma\.min\.css|bulma\.io/i, 'Bulma', CATEGORIES.FRONTEND),
+        pattern(/foundation\.css|foundation\.min|foundation\.zurb/i, 'Foundation', CATEGORIES.FRONTEND),
+        pattern(/semantic-ui|semantic\.min/i, 'Semantic UI', CATEGORIES.FRONTEND),
+        pattern(/uikit\.min|uikit\.js/i, 'UIkit', CATEGORIES.FRONTEND),
+        pattern(/materialize\.css|materialize\.min/i, 'Materialize', CATEGORIES.FRONTEND),
+
+        // ===== Build Tools =====
+        pattern(/\/@vite\/|vite\.config|__vite_ssr/i, 'Vite', CATEGORIES.FRONTEND),
+        pattern(/webpackJsonp|__webpack_require__|webpackChunk/i, 'Webpack', CATEGORIES.FRONTEND),
+        pattern(/parcelRequire|parcel-bundler/i, 'Parcel', CATEGORIES.FRONTEND),
+
+        // ===== Static Site Generators =====
+        pattern(/jekyll|github\.io.*jekyll/i, 'Jekyll', CATEGORIES.FRONTEND),
+        pattern(/hexo\.io|hexo-/i, 'Hexo', CATEGORIES.FRONTEND),
+        pattern(/vitepress/i, 'VitePress', CATEGORIES.FRONTEND),
+        pattern(/docusaurus/i, 'Docusaurus', CATEGORIES.FRONTEND),
+        pattern(/mkdocs|readthedocs/i, 'MkDocs', CATEGORIES.FRONTEND),
+        pattern(/eleventy|11ty/i, 'Eleventy', CATEGORIES.FRONTEND),
+        pattern(/gridsome/i, 'Gridsome', CATEGORIES.FRONTEND),
+        pattern(/hugo\.io|gohugo\.io/i, 'Hugo', CATEGORIES.FRONTEND),
+        pattern(/pelican-/i, 'Pelican', CATEGORIES.FRONTEND),
+
+        // ===== CMS =====
+        pattern(/wp-content|wp-includes|wp-json|wp-block|wordpress\.org/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/sites\/default\/files|drupal\.js|Drupal\.settings|drupal\.org/i, 'Drupal', CATEGORIES.CMS),
+        pattern(/\/joomla|com_content|Joomla!/i, 'Joomla', CATEGORIES.CMS),
+        pattern(/ghost\.io|ghost\.org|\/ghost\/api/i, 'Ghost', CATEGORIES.CMS),
+        pattern(/wix\.com|static\.wixstatic/i, 'Wix', CATEGORIES.CMS),
+        pattern(/squarespace\.com|static1\.squarespace/i, 'Squarespace', CATEGORIES.CMS),
+        pattern(/webflow\.com|assets\.website-files/i, 'Webflow', CATEGORIES.CMS),
+        pattern(/contentful\.com|cdn\.contentful|ctfassets/i, 'Contentful', CATEGORIES.CMS),
+        pattern(/sanity\.io|cdn\.sanity/i, 'Sanity', CATEGORIES.CMS),
+        pattern(/strapi\.io|\/api\/.*strapi/i, 'Strapi', CATEGORIES.CMS),
+        pattern(/typo3|TYPO3/i, 'TYPO3', CATEGORIES.CMS),
+        pattern(/umbraco/i, 'Umbraco', CATEGORIES.CMS),
+        pattern(/craftcms|craft-cms/i, 'Craft CMS', CATEGORIES.CMS),
+        pattern(/blogger\.com|blogspot\.com/i, 'Blogger', CATEGORIES.CMS),
+        pattern(/tilda\.ws|tilda\.cc|tildacdn/i, 'Tilda', CATEGORIES.CMS),
+        pattern(/weebly\.com|weeblycloud/i, 'Weebly', CATEGORIES.CMS),
+        pattern(/prismic\.io/i, 'Prismic', CATEGORIES.CMS),
+        pattern(/datocms|dato\.cms/i, 'DatoCMS', CATEGORIES.CMS),
+        pattern(/storyblok/i, 'Storyblok', CATEGORIES.CMS),
+        pattern(/keystonejs|keystone\.js/i, 'KeystoneJS', CATEGORIES.CMS),
+        pattern(/sitecore/i, 'Sitecore', CATEGORIES.CMS),
+        pattern(/kentico/i, 'Kentico', CATEGORIES.CMS),
+        pattern(/concrete5|concretecms/i, 'Concrete CMS', CATEGORIES.CMS),
+
+        // ===== E-Commerce =====
+        pattern(/cdn\.shopify\.com|shopify\.com|shopify-buy/i, 'Shopify', CATEGORIES.ECOM),
+        pattern(/magento|\/static\/frontend\//i, 'Magento', CATEGORIES.ECOM),
+        pattern(/woocommerce|wc-block/i, 'WooCommerce', CATEGORIES.ECOM),
         pattern(/prestashop/i, 'PrestaShop', CATEGORIES.ECOM),
-        pattern(/gatsby|__gatsby/i, 'Gatsby', CATEGORIES.FRONTEND),
-        pattern(/__nuxt|nuxt/i, 'Nuxt.js', CATEGORIES.FRONTEND),
-        pattern(/vue/i, 'Vue.js', CATEGORIES.FRONTEND),
-        pattern(/react/i, 'React', CATEGORIES.FRONTEND),
-        pattern(/angular/i, 'Angular', CATEGORIES.FRONTEND),
-        pattern(/svelte/i, 'Svelte', CATEGORIES.FRONTEND),
-        pattern(/application\/json/i, 'JSON API', CATEGORIES.API),
-        pattern(/graphql|apollo/i, 'GraphQL', CATEGORIES.API),
-        pattern(/swagger|openapi|redoc/i, 'API Docs', CATEGORIES.API),
-        pattern(/stripe|paypal|razorpay/i, 'Payment', CATEGORIES.PAYMENT),
-        pattern(/ghost\.io/i, 'Ghost', CATEGORIES.CMS),
-        pattern(/wix\.com/i, 'Wix', CATEGORIES.CMS),
-        pattern(/squarespace\.com/i, 'Squarespace', CATEGORIES.CMS),
-        pattern(/astro/i, 'Astro', CATEGORIES.FRONTEND),
-        pattern(/solid-js/i, 'Solid.js', CATEGORIES.FRONTEND),
-        pattern(/webflow/i, 'Webflow', CATEGORIES.CMS),
-        pattern(/alpine\.js|alpinejs/i, 'Alpine.js', CATEGORIES.FRONTEND),
-        pattern(/lit-html|lit-element/i, 'Lit', CATEGORIES.FRONTEND),
-        pattern(/stencil/i, 'Stencil', CATEGORIES.FRONTEND),
-        pattern(/mithril/i, 'Mithril', CATEGORIES.FRONTEND),
-        pattern(/jekyll/i, 'Jekyll', CATEGORIES.FRONTEND),
-        pattern(/hugo/i, 'Hugo', CATEGORIES.FRONTEND),
-        pattern(/hubspot/i, 'HubSpot', CATEGORIES.MARKETING),
-        pattern(/zendesk/i, 'Zendesk', CATEGORIES.MARKETING),
-        pattern(/salesforce/i, 'Salesforce', CATEGORIES.MARKETING)
+        pattern(/bigcommerce/i, 'BigCommerce', CATEGORIES.ECOM),
+        pattern(/opencart/i, 'OpenCart', CATEGORIES.ECOM),
+        pattern(/volusion/i, 'Volusion', CATEGORIES.ECOM),
+        pattern(/saleor\.io/i, 'Saleor', CATEGORIES.ECOM),
+        pattern(/medusajs|medusa-/i, 'Medusa', CATEGORIES.ECOM),
+        pattern(/ecwid\.com/i, 'Ecwid', CATEGORIES.ECOM),
+        pattern(/nuvemshop|nuvemcdn/i, 'Nuvemshop', CATEGORIES.ECOM),
+
+        // ===== Analytics =====
+        pattern(/googletagmanager\.com|gtm\.js|gtag\/js/i, 'Google Tag Manager', CATEGORIES.ANALYTICS),
+        pattern(/google-analytics\.com|analytics\.js|ga\.js/i, 'Google Analytics', CATEGORIES.ANALYTICS),
+        pattern(/mixpanel\.com|mixpanel\.js/i, 'Mixpanel', CATEGORIES.ANALYTICS),
+        pattern(/plausible\.io/i, 'Plausible', CATEGORIES.ANALYTICS),
+        pattern(/posthog\.com|posthog\.js/i, 'PostHog', CATEGORIES.ANALYTICS),
+        pattern(/clarity\.ms/i, 'Microsoft Clarity', CATEGORIES.ANALYTICS),
+        pattern(/fullstory\.com|fs\.js/i, 'FullStory', CATEGORIES.ANALYTICS),
+        pattern(/amplitude\.com|amplitude\.min/i, 'Amplitude', CATEGORIES.ANALYTICS),
+        pattern(/heap-analytics|heapanalytics/i, 'Heap', CATEGORIES.ANALYTICS),
+        pattern(/segment\.com|segment\.io/i, 'Segment', CATEGORIES.ANALYTICS),
+        pattern(/hotjar\.com|hotjar\.js/i, 'Hotjar', CATEGORIES.ANALYTICS),
+        pattern(/pendo\.io/i, 'Pendo', CATEGORIES.ANALYTICS),
+        pattern(/matomo\.js|piwik\.js/i, 'Matomo', CATEGORIES.ANALYTICS),
+        pattern(/fathom\.script/i, 'Fathom', CATEGORIES.ANALYTICS),
+        pattern(/pirsch\.io/i, 'Pirsch', CATEGORIES.ANALYTICS),
+
+        // ===== Monitoring =====
+        pattern(/sentry\.io|sentry-cdn|@sentry\//i, 'Sentry', CATEGORIES.MONITORING),
+        pattern(/datadoghq\.com|dd-rum/i, 'Datadog', CATEGORIES.MONITORING),
+        pattern(/newrelic\.com|nr-data\.net|NREUM/i, 'New Relic', CATEGORIES.MONITORING),
+        pattern(/logrocket\.com|logrocket\.js/i, 'LogRocket', CATEGORIES.MONITORING),
+        pattern(/bugsnag\.com|bugsnag\.js/i, 'Bugsnag', CATEGORIES.MONITORING),
+        pattern(/rollbar\.com|rollbar\.js/i, 'Rollbar', CATEGORIES.MONITORING),
+        pattern(/raygun\.com|raygun4js/i, 'Raygun', CATEGORIES.MONITORING),
+        pattern(/trackjs\.com/i, 'TrackJS', CATEGORIES.MONITORING),
+        pattern(/elastic-apm|elastic\.co.*apm/i, 'Elastic APM', CATEGORIES.MONITORING),
+        pattern(/dynatrace\.com/i, 'Dynatrace', CATEGORIES.MONITORING),
+        pattern(/appdynamics\.com/i, 'AppDynamics', CATEGORIES.MONITORING),
+
+        // ===== Marketing / Chat =====
+        pattern(/hubspot\.com|hs-scripts|hs-analytics/i, 'HubSpot', CATEGORIES.MARKETING),
+        pattern(/zendesk\.com|zdassets\.com/i, 'Zendesk', CATEGORIES.MARKETING),
+        pattern(/salesforce\.com|force\.com/i, 'Salesforce', CATEGORIES.MARKETING),
+        pattern(/intercom\.com|intercomcdn/i, 'Intercom', CATEGORIES.MARKETING),
+        pattern(/drift\.com|driftt\.com/i, 'Drift', CATEGORIES.MARKETING),
+        pattern(/crisp\.chat/i, 'Crisp', CATEGORIES.MARKETING),
+        pattern(/tawk\.to/i, 'Tawk.to', CATEGORIES.MARKETING),
+        pattern(/livechatinc\.com/i, 'LiveChat', CATEGORIES.MARKETING),
+        pattern(/freshdesk\.com|freshchat/i, 'Freshdesk', CATEGORIES.MARKETING),
+        pattern(/mailchimp\.com|chimpstatic/i, 'Mailchimp', CATEGORIES.MARKETING),
+        pattern(/optimizely\.com/i, 'Optimizely', CATEGORIES.MARKETING),
+        pattern(/marketo\.net|marketo\.com|munchkin/i, 'Marketo', CATEGORIES.MARKETING),
+        pattern(/pardot\.com/i, 'Pardot', CATEGORIES.MARKETING),
+        pattern(/olark\.com/i, 'Olark', CATEGORIES.MARKETING),
+        pattern(/uservoice\.com/i, 'UserVoice', CATEGORIES.MARKETING),
+
+        // ===== Payment =====
+        pattern(/stripe\.com|stripe\.js|js\.stripe/i, 'Stripe', CATEGORIES.PAYMENT),
+        pattern(/paypal\.com|paypalobjects/i, 'PayPal', CATEGORIES.PAYMENT),
+        pattern(/razorpay\.com|razorpay\.js/i, 'Razorpay', CATEGORIES.PAYMENT),
+        pattern(/squareup\.com|square-payment/i, 'Square', CATEGORIES.PAYMENT),
+        pattern(/braintreegateway|braintree-web/i, 'Braintree', CATEGORIES.PAYMENT),
+        pattern(/klarna\.com/i, 'Klarna', CATEGORIES.PAYMENT),
+        pattern(/paddle\.com|paddle\.js/i, 'Paddle', CATEGORIES.PAYMENT),
+        pattern(/adyen\.com/i, 'Adyen', CATEGORIES.PAYMENT),
+        pattern(/mollie\.com/i, 'Mollie', CATEGORIES.PAYMENT),
+
+        // ===== API & Search =====
+        pattern(/graphql/i, 'GraphQL', CATEGORIES.API),
+        pattern(/apollographql|apollo-client|apollo-server/i, 'Apollo', CATEGORIES.API),
+        pattern(/swagger-ui|swagger\.json/i, 'Swagger', CATEGORIES.API),
+        pattern(/openapi\.json|openapi\.yaml/i, 'OpenAPI', CATEGORIES.API),
+        pattern(/algolia\.com|algoliasearch|algolianet/i, 'Algolia', CATEGORIES.API),
+        pattern(/meilisearch/i, 'Meilisearch', CATEGORIES.API),
+        pattern(/typesense/i, 'Typesense', CATEGORIES.API),
+        pattern(/elastic\.co|elasticsearch/i, 'Elasticsearch', CATEGORIES.API),
+
+        // ===== Auth / Identity =====
+        pattern(/auth0\.com|auth0\.js/i, 'Auth0', CATEGORIES.SECURITY),
+        pattern(/okta\.com|okta-auth/i, 'Okta', CATEGORIES.SECURITY),
+        pattern(/clerk\.com|clerk\.js/i, 'Clerk', CATEGORIES.SECURITY),
+        pattern(/recaptcha|google\.com\/recaptcha/i, 'reCAPTCHA', CATEGORIES.SECURITY),
+        pattern(/hcaptcha\.com/i, 'hCaptcha', CATEGORIES.SECURITY),
+        pattern(/turnstile.*cloudflare|challenges\.cloudflare/i, 'Cloudflare Turnstile', CATEGORIES.SECURITY),
+
+        // ===== PaaS / BaaS =====
+        pattern(/firebase\.com|firebaseapp\.com|gstatic\.com\/firebasejs/i, 'Firebase', CATEGORIES.PAAS),
+        pattern(/supabase\.co|supabase\.js/i, 'Supabase', CATEGORIES.PAAS),
+        pattern(/appwrite\.io/i, 'Appwrite', CATEGORIES.PAAS),
+        pattern(/convex\.dev/i, 'Convex', CATEGORIES.PAAS),
+        pattern(/nhost\.io/i, 'Nhost', CATEGORIES.PAAS),
+
+        // ===== Media / CDN Services =====
+        pattern(/cloudinary\.com|res\.cloudinary/i, 'Cloudinary', CATEGORIES.CDN),
+        pattern(/imgix\.net/i, 'Imgix', CATEGORIES.CDN),
+        pattern(/uploadcare\.com/i, 'Uploadcare', CATEGORIES.CDN),
+
+        // ===== Maps & Services =====
+        pattern(/maps\.googleapis\.com|maps\.google\.com/i, 'Google Maps', CATEGORIES.API),
+        pattern(/mapbox\.com|mapboxgl/i, 'Mapbox', CATEGORIES.API),
+        pattern(/leaflet\.js|leaflet\.css|unpkg\.com\/leaflet/i, 'Leaflet', CATEGORIES.FRONTEND),
+
+        // ===== Fonts & Icons =====
+        pattern(/fonts\.googleapis\.com|fonts\.gstatic\.com/i, 'Google Fonts', CATEGORIES.FRONTEND),
+        pattern(/use\.typekit\.net|fonts\.adobe\.com/i, 'Adobe Fonts', CATEGORIES.FRONTEND),
+        pattern(/fontawesome|font-awesome/i, 'Font Awesome', CATEGORIES.FRONTEND),
+
+        // ===== A/B Testing =====
+        pattern(/launchdarkly\.com/i, 'LaunchDarkly', CATEGORIES.MARKETING),
+        pattern(/split\.io/i, 'Split.io', CATEGORIES.MARKETING),
+        pattern(/unleash-hosted/i, 'Unleash', CATEGORIES.MARKETING)
     ],
     meta: [
+        // CMS
         pattern(/wordpress/i, 'WordPress', CATEGORIES.CMS),
         pattern(/wix/i, 'Wix', CATEGORIES.CMS),
         pattern(/squarespace/i, 'Squarespace', CATEGORIES.CMS),
         pattern(/webflow/i, 'Webflow', CATEGORIES.CMS),
         pattern(/ghost/i, 'Ghost', CATEGORIES.CMS),
+        pattern(/drupal/i, 'Drupal', CATEGORIES.CMS),
+        pattern(/joomla/i, 'Joomla', CATEGORIES.CMS),
+        pattern(/typo3/i, 'TYPO3', CATEGORIES.CMS),
+        pattern(/umbraco/i, 'Umbraco', CATEGORIES.CMS),
+        pattern(/craft\s*cms/i, 'Craft CMS', CATEGORIES.CMS),
+        pattern(/concrete5|concretecms/i, 'Concrete CMS', CATEGORIES.CMS),
+        pattern(/contentful/i, 'Contentful', CATEGORIES.CMS),
+        pattern(/strapi/i, 'Strapi', CATEGORIES.CMS),
+        pattern(/sanity/i, 'Sanity', CATEGORIES.CMS),
+        pattern(/prismic/i, 'Prismic', CATEGORIES.CMS),
+        pattern(/storyblok/i, 'Storyblok', CATEGORIES.CMS),
+        pattern(/blogger/i, 'Blogger', CATEGORIES.CMS),
+        pattern(/medium/i, 'Medium', CATEGORIES.CMS),
+        pattern(/tilda/i, 'Tilda', CATEGORIES.CMS),
+        pattern(/weebly/i, 'Weebly', CATEGORIES.CMS),
+        pattern(/sitecore/i, 'Sitecore', CATEGORIES.CMS),
+        pattern(/kentico/i, 'Kentico', CATEGORIES.CMS),
+        // E-Commerce
         pattern(/shopify/i, 'Shopify', CATEGORIES.ECOM),
-        pattern(/magento/i, 'Magento', CATEGORIES.ECOM)
+        pattern(/magento/i, 'Magento', CATEGORIES.ECOM),
+        pattern(/prestashop/i, 'PrestaShop', CATEGORIES.ECOM),
+        pattern(/opencart/i, 'OpenCart', CATEGORIES.ECOM),
+        pattern(/bigcommerce/i, 'BigCommerce', CATEGORIES.ECOM),
+        pattern(/woocommerce/i, 'WooCommerce', CATEGORIES.ECOM),
+        // Static Site Generators
+        pattern(/hugo/i, 'Hugo', CATEGORIES.FRONTEND),
+        pattern(/jekyll/i, 'Jekyll', CATEGORIES.FRONTEND),
+        pattern(/hexo/i, 'Hexo', CATEGORIES.FRONTEND),
+        pattern(/pelican/i, 'Pelican', CATEGORIES.FRONTEND),
+        pattern(/eleventy|11ty/i, 'Eleventy', CATEGORIES.FRONTEND),
+        pattern(/docusaurus/i, 'Docusaurus', CATEGORIES.FRONTEND),
+        pattern(/vitepress/i, 'VitePress', CATEGORIES.FRONTEND),
+        pattern(/mkdocs/i, 'MkDocs', CATEGORIES.FRONTEND),
+        pattern(/gatsby/i, 'Gatsby', CATEGORIES.FRONTEND),
+        pattern(/next\.js|nextjs/i, 'Next.js', CATEGORIES.FRONTEND),
+        pattern(/nuxt/i, 'Nuxt.js', CATEGORIES.FRONTEND),
+        pattern(/gridsome/i, 'Gridsome', CATEGORIES.FRONTEND),
+        pattern(/astro/i, 'Astro', CATEGORIES.FRONTEND)
     ]
 };
 
@@ -1375,12 +1686,14 @@ function initApp() {
     function detectFromMeta(html, detected, seen) {
         if (!html || typeof html !== 'string') return;
 
-        // Simple regex to extract meta generator content
-        const metaRegex = /<meta\s+name=["']generator["']\s+content=["']([^"']+)["']/gi;
+        // Match both attribute orders: name then content, or content then name
+        const metaRegex = /<meta\s+(?:name=["']generator["']\s+content=["']([^"']+)["']|content=["']([^"']+)["']\s+name=["']generator["'])/gi;
         let match;
         while ((match = metaRegex.exec(html)) !== null) {
-            const content = match[1];
-            detectFromValue(content, TECH_PATTERNS.meta, detected, seen);
+            const content = match[1] || match[2];
+            if (content) {
+                detectFromValue(content, TECH_PATTERNS.meta, detected, seen);
+            }
         }
     }
 
@@ -1390,16 +1703,27 @@ function initApp() {
 
         const headers = response.headers || {};
 
-        // Detect from all headers
+        // Detect from header values
         for (const [key, value] of Object.entries(headers)) {
             detectFromValue(value, TECH_PATTERNS.headers, detected, seen);
         }
 
-        // Detect from cookies
+        // Detect from header keys (platform-specific headers)
+        if (TECH_PATTERNS.headerKeys) {
+            for (const key of Object.keys(headers)) {
+                detectFromValue(key, TECH_PATTERNS.headerKeys, detected, seen);
+            }
+        }
+
+        // Detect from cookies (Set-Cookie header + Cookie header)
         const setCookieHeader = headers['set-cookie'] || headers['Set-Cookie'];
         if (setCookieHeader) {
             const cookies = Array.isArray(setCookieHeader) ? setCookieHeader.join(' ') : setCookieHeader;
             detectFromValue(cookies, TECH_PATTERNS.cookies, detected, seen);
+        }
+        const cookieHeader = headers['cookie'] || headers['Cookie'];
+        if (cookieHeader) {
+            detectFromValue(cookieHeader, TECH_PATTERNS.cookies, detected, seen);
         }
 
         // Detect from body
