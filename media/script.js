@@ -20,22 +20,27 @@ const COMMON_HEADERS = [
 
 // Unified category list (standardized)
 const CATEGORIES = {
-    SERVER: 'Web Server',
-    CDN: 'CDN',
-    SECURITY: 'Security',
-    BACKEND: 'Backend',
-    FRONTEND: 'Frontend',
-    CMS: 'CMS',
-    ECOM: 'E-Commerce',
-    ANALYTICS: 'Analytics',
-    MONITORING: 'Monitoring',
-    PAYMENT: 'Payment',
-    API: 'API',
-    MARKETING: 'Marketing',
-    INFRA: 'Infrastructure',
-    CONTROL_PANEL: 'Control Panel',
-    PAAS: 'PaaS'
+    SERVER: { name: 'Web Server', desc: 'HTTP servers and application servers', icon: '🖥️' },
+    CDN: { name: 'CDN', desc: 'Content delivery networks', icon: '🌐' },
+    SECURITY: { name: 'Security', desc: 'Security and protection tools', icon: '🔒' },
+    BACKEND: { name: 'Backend', desc: 'Backend frameworks and languages', icon: '⚙️' },
+    FRONTEND: { name: 'Frontend', desc: 'Frontend frameworks and libraries', icon: '🎨' },
+    CMS: { name: 'CMS', desc: 'Content management systems', icon: '📝' },
+    ECOM: { name: 'E-Commerce', desc: 'E-commerce platforms', icon: '🛒' },
+    ANALYTICS: { name: 'Analytics', desc: 'Analytics and tracking tools', icon: '📊' },
+    MONITORING: { name: 'Monitoring', desc: 'Monitoring and logging tools', icon: '📈' },
+    PAYMENT: { name: 'Payment', desc: 'Payment processing services', icon: '💳' },
+    API: { name: 'API', desc: 'API management and documentation', icon: '🔌' },
+    MARKETING: { name: 'Marketing', desc: 'Marketing and automation tools', icon: '📣' },
+    INFRA: { name: 'Infrastructure', desc: 'Infrastructure and cloud services', icon: '☁️' },
+    CONTROL_PANEL: { name: 'Control Panel', desc: 'Hosting control panels', icon: '🎛️' },
+    PAAS: { name: 'PaaS', desc: 'Platform as a Service', icon: '🚀' }
 };
+
+// Category name helper
+const getCategoryName = (cat) => CATEGORIES[cat]?.name || cat;
+const getCategoryDesc = (cat) => CATEGORIES[cat]?.desc || '';
+const getCategoryIcon = (cat) => CATEGORIES[cat]?.icon || '📦';
 
 // Pattern builder helper
 const pattern = (regex, name, category) => ({
@@ -1176,14 +1181,45 @@ function initApp() {
             btn.innerHTML = '<span class="spinner"></span>Stop';
             btn.disabled = false; // Allow stop
             btn.classList.add('repeating'); // Treat as active
+
+            // Show response area immediately with loading indicator
+            const responseEl = document.getElementById('response');
+            if (responseEl) responseEl.style.display = 'block';
+
             if (loadingEl) loadingEl.style.display = 'flex';
             if (bodyEl) bodyEl.style.display = 'none';
             if (previewEl) previewEl.style.display = 'none';
+
+            // Clear old response metadata
+            const statusEl = document.getElementById('responseStatus');
+            const timeEl = document.getElementById('responseTime');
+            const sizeEl = document.getElementById('responseSize');
+            if (statusEl) statusEl.textContent = '';
+            if (timeEl) timeEl.textContent = '';
+            if (sizeEl) sizeEl.textContent = '';
+
+            // Reset badges
+            ['headersCount', 'cookiesCount', 'searchCount', 'stackCount'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = '';
+                    el.style.display = 'none';
+                }
+            });
         } else {
             btn.innerHTML = 'Send';
             btn.disabled = false;
             btn.classList.remove('repeating');
             if (loadingEl) loadingEl.style.display = 'none';
+
+            // Clear badges on error
+            ['headersCount', 'cookiesCount', 'searchCount', 'stackCount'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = '';
+                    el.style.display = 'none';
+                }
+            });
         }
     }
 
@@ -1760,12 +1796,38 @@ function initApp() {
             byCategory[tech.category].push(tech);
         });
 
+        // Sort categories: SERVER, FRONTEND, BACKEND first, then others alphabetically
+        const categoryOrder = ['SERVER', 'FRONTEND', 'BACKEND', 'CDN', 'SECURITY', 'CMS', 'ECOM', 'ANALYTICS', 'MONITORING', 'PAYMENT', 'API', 'MARKETING', 'INFRA', 'CONTROL_PANEL', 'PAAS'];
+
         let html = '<div class="tech-stack-grid">';
 
-        for (const [category, items] of Object.entries(byCategory)) {
+        // Sort categories by custom order
+        const sortedCategories = Object.keys(byCategory).sort((a, b) => {
+            const idxA = categoryOrder.indexOf(a);
+            const idxB = categoryOrder.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        for (const category of sortedCategories) {
+            const items = byCategory[category];
             const categoryClass = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            const icon = getCategoryIcon(category);
+            const catName = getCategoryName(category);
+            const catDesc = getCategoryDesc(category);
+            const itemCount = items.length;
+
             html += `<div class="tech-category category-${categoryClass}">`;
-            html += '<div class="tech-category-header">' + escapeHtml(category) + '</div>';
+            html += `<div class="tech-category-header">
+                <div class="tech-category-title">
+                    <span class="tech-category-icon">${icon}</span>
+                    <span class="tech-category-name">${escapeHtml(catName)}</span>
+                </div>
+                <span class="tech-category-count">${itemCount}</span>
+            </div>`;
+            html += `<div class="tech-category-desc">${escapeHtml(catDesc)}</div>`;
             html += '<div class="tech-items">';
             items.forEach(tech => {
                 html += `<div class="tech-item" title="${escapeHtml(tech.category)}">`;
@@ -1969,9 +2031,23 @@ function initApp() {
         });
         headersRawEl.textContent = headersRaw;
 
-        // Detect and render tech stack
+        // Parse and display cookies
+        const cookiesResult = parseCookies(response.headers);
+        const cookiesCountEl = document.getElementById('cookiesCount');
+        if (cookiesCountEl) {
+            cookiesCountEl.textContent = cookiesResult.length > 0 ? cookiesResult.length : '';
+            cookiesCountEl.style.display = cookiesResult.length > 0 ? 'inline-block' : 'none';
+        }
+        displayCookies(cookiesResult);
+
+        // Detect tech stack
         const techStack = detectTechStack(response);
-        renderTechStack(techStack);
+        const stackCountEl = document.getElementById('stackCount');
+        if (stackCountEl) {
+            stackCountEl.textContent = techStack.length > 0 ? techStack.length : '';
+            stackCountEl.style.display = techStack.length > 0 ? 'inline-block' : 'none';
+        }
+        displayTechStack(techStack);
 
         // Body viewing handles high-level state, specific rendering happens in updateBodyView
         // This resolves the synchronization issue where labels and content didn't match.
@@ -2123,7 +2199,7 @@ function initApp() {
         }
 
         // Cookies - formatted display
-        const cookies = parseCookies(response.headers);
+        const cookies = cookiesResult; // Use already parsed cookies
         const cookiesEl = document.getElementById('responseCookies');
         if (cookies.length > 0) {
             let cookiesHtml = '';
@@ -2485,10 +2561,29 @@ function initApp() {
 
             const resultContainer = document.getElementById('extractionResultContainer');
             if (resultContainer) resultContainer.style.display = 'block';
+
+            // Update search badge count
+            const searchCountEl = document.getElementById('searchCount');
+            if (searchCountEl) {
+                const count = type === 'regex' ? (result === 'No matches found' ? 0 : result.split('\n').length) :
+                    (type === 'jspath' ? (result === 'No matches found' ? 0 : result.split('\n').length) :
+                        (result === 'No matches found' ? 0 : result.split('\n').length));
+
+                // For XPath/CSS results, we already have results array in the closure but we use result.split('\n') as a safe fallback for all types
+                searchCountEl.textContent = count > 0 ? count : '';
+                searchCountEl.style.display = count > 0 ? 'inline-block' : 'none';
+            }
         } catch (e) {
             resultEl.textContent = 'Error: ' + e.message;
             const resultContainer = document.getElementById('extractionResultContainer');
             if (resultContainer) resultContainer.style.display = 'block';
+
+            // Clear search badge on error
+            const searchCountEl = document.getElementById('searchCount');
+            if (searchCountEl) {
+                searchCountEl.textContent = '';
+                searchCountEl.style.display = 'none';
+            }
         }
     };
 
@@ -2568,10 +2663,29 @@ function initApp() {
             const resultContainer = document.getElementById('extractionResultContainer');
             if (resultContainer) resultContainer.style.display = 'block';
             showToast('Filter applied - Structured View');
+
+            // Update search badge count
+            const searchCountEl = document.getElementById('searchCount');
+            if (searchCountEl) {
+                let count = 0;
+                if (filteredData && filteredData !== 'No matches found') {
+                    if (Array.isArray(filteredData)) count = filteredData.length;
+                    else if (typeof filteredData === 'object') count = Object.keys(filteredData).length;
+                    else count = 1;
+                }
+                searchCountEl.textContent = count > 0 ? count : '';
+                searchCountEl.style.display = count > 0 ? 'inline-block' : 'none';
+            }
         } catch (e) {
             resultEl.textContent = 'Error: ' + e.message;
             const resultContainer = document.getElementById('extractionResultContainer');
             if (resultContainer) resultContainer.style.display = 'block';
+
+            const searchCountEl = document.getElementById('searchCount');
+            if (searchCountEl) {
+                searchCountEl.textContent = '';
+                searchCountEl.style.display = 'none';
+            }
         }
     };
 
@@ -2866,18 +2980,35 @@ function initApp() {
     };
 
     function displayError(error) {
+        setLoading(false);
         const responseEl = document.getElementById('response');
         if (responseEl) {
             responseEl.style.display = 'block';
         }
 
         const statusEl = document.getElementById('responseStatus');
-        statusEl.textContent = 'Error';
-        statusEl.className = 'response-status error';
+        if (statusEl) {
+            statusEl.textContent = 'Error';
+            statusEl.className = 'response-status error';
+        }
 
-        document.getElementById('responseTime').textContent = '-';
-        document.getElementById('responseHeaders').textContent = '';
-        document.getElementById('responseBody').textContent = error;
+        const timeEl = document.getElementById('responseTime');
+        if (timeEl) timeEl.textContent = '-';
+
+        const headersResEl = document.getElementById('responseHeaders');
+        if (headersResEl) headersResEl.textContent = '';
+
+        const bodyResEl = document.getElementById('responseBody');
+        if (bodyResEl) bodyResEl.textContent = error;
+
+        // Clear badges on error
+        ['headersCount', 'cookiesCount', 'searchCount', 'stackCount'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '';
+                el.style.display = 'none';
+            }
+        });
     }
 
     // Pagination settings
