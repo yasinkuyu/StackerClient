@@ -542,6 +542,83 @@ function getMeasurementSpan() {
     return measurementSpan;
 }
 
+// ── WebSocket Functions ──
+let wsIsConnected = false;
+
+window.wsToggleConnect = function () {
+    const url = document.getElementById('wsUrl').value.trim();
+    if (!url) {
+        showToast('Please enter a WebSocket URL');
+        return;
+    }
+
+    if (wsIsConnected) {
+        vscode.postMessage({ command: 'wsDisconnect' });
+    } else {
+        const connectBtn = document.getElementById('wsConnectBtn');
+        connectBtn.textContent = 'Connecting...';
+        connectBtn.disabled = true;
+        updateWsStatus('connecting', 'Connecting...');
+        vscode.postMessage({ command: 'wsConnect', url: url });
+    }
+};
+
+window.wsSendMessage = function () {
+    const message = document.getElementById('wsMessageInput').value.trim();
+    if (!message) return;
+
+    vscode.postMessage({ command: 'wsSendMessage', message: message });
+    addWsLog('outbound', message);
+    document.getElementById('wsMessageInput').value = '';
+};
+
+window.wsClearLog = function () {
+    const logEl = document.getElementById('wsLog');
+    logEl.innerHTML = '<div class="ws-log-empty">No messages yet. Connect to a server to start.</div>';
+};
+
+function updateWsStatus(status, text) {
+    const dot = document.getElementById('wsStatusDot');
+    const statusText = document.getElementById('wsStatusText');
+    const connectBtn = document.getElementById('wsConnectBtn');
+    const sendBtn = document.getElementById('wsSendBtn');
+
+    dot.className = 'status-dot ' + status;
+    statusText.textContent = text;
+
+    if (status === 'connected') {
+        wsIsConnected = true;
+        connectBtn.textContent = 'Disconnect';
+        connectBtn.disabled = false;
+        sendBtn.disabled = false;
+    } else if (status === 'disconnected' || status === 'error') {
+        wsIsConnected = false;
+        connectBtn.textContent = 'Connect';
+        connectBtn.disabled = false;
+        sendBtn.disabled = true;
+    }
+}
+
+function addWsLog(type, content) {
+    const logEl = document.getElementById('wsLog');
+    const emptyMsg = logEl.querySelector('.ws-log-empty');
+    if (emptyMsg) emptyMsg.remove();
+
+    const item = document.createElement('div');
+    item.className = 'ws-log-item ' + type;
+
+    const time = new Date().toLocaleTimeString();
+
+    item.innerHTML = `
+        <span class="time">${time}</span>
+        <span class="type">${type}</span>
+        <span class="content">${escapeHtml(content)}</span>
+    `;
+
+    logEl.appendChild(item);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
 function initApp() {
     console.log('initApp started');
 
@@ -1599,6 +1676,21 @@ function initApp() {
                 requestHistory = message.history || [];
                 displayHistory();
                 break;
+            case 'wsStatus':
+                updateWsStatus(message.status, message.text);
+                if (message.status === 'connected') {
+                    addWsLog('system', 'Connected to ' + message.url);
+                } else if (message.status === 'disconnected') {
+                    addWsLog('system', 'Disconnected');
+                }
+                break;
+            case 'wsMessage':
+                addWsLog('inbound', message.data);
+                break;
+            case 'wsError':
+                addWsLog('system', 'Error: ' + message.error);
+                updateWsStatus('error', 'Error');
+                break;
             case 'fileSelected':
                 if (message.uri && message.rowId) {
                     const row = document.querySelector(`.key-value-row[data-id="${message.rowId}"]`);
@@ -2082,6 +2174,7 @@ function initApp() {
             stackCountEl.textContent = techStack.length > 0 ? techStack.length : '';
             stackCountEl.style.display = techStack.length > 0 ? 'inline-block' : 'none';
         }
+        renderTechStack(techStack);
 
         // Body viewing handles high-level state, specific rendering happens in updateBodyView
         // This resolves the synchronization issue where labels and content didn't match.

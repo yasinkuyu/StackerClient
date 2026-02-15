@@ -4,10 +4,17 @@ import * as crypto from 'crypto';
 import { RequestManager, SavedRequest } from './RequestManager';
 import { SidebarProvider } from './SidebarProvider';
 import { getWebviewContent } from './webviewContent';
+import { CookieManager } from './CookieManager';
+import { PostmanParser } from './PostmanParser';
+import { InsomniaParser } from './InsomniaParser';
+import * as fs from 'fs';
 import { URL, URLSearchParams } from 'url';
+import { HttpProxyAgent, HttpsProxyAgent } from 'hpagent';
+import { WebSocket } from 'ws';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 let sidebarProvider: SidebarProvider;
+let activeWs: WebSocket | undefined;
 
 
 // Hazır HTTP Header listesi
@@ -74,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!panelRef) { return; }
             switch (message.command) {
                 case 'sendRequest':
-                    await handleSendRequest(message.request, panelRef, requestManager);
+                    await handleSendRequest(message.request, panelRef, requestManager, context);
                     break;
                 case 'saveRequest':
                     handleSaveRequest(message.request, requestManager, panelRef);
@@ -104,6 +111,18 @@ export function activate(context: vscode.ExtensionContext) {
                         name: message.name,
                         token: tokenValue
                     });
+                    break;
+                case 'importCollection':
+                    await vscode.commands.executeCommand('stacker.importCollection');
+                    break;
+                case 'wsConnect':
+                    handleWsConnect(message.url, panelRef);
+                    break;
+                case 'wsDisconnect':
+                    handleWsDisconnect(panelRef);
+                    break;
+                case 'wsSendMessage':
+                    handleWsSendMessage(message.message, panelRef);
                     break;
                 case 'showInputBox':
                     const result = await vscode.window.showInputBox({
@@ -537,6 +556,53 @@ export function activate(context: vscode.ExtensionContext) {
         panel.webview.html = getHelpContent(context);
     });
 
+    // Import Collection Command (Postman/Insomnia)
+    const importCollectionCommand = vscode.commands.registerCommand('stacker.importCollection', async () => {
+        const uris = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: {
+                'Collections': ['json']
+            },
+            title: 'Import Postman or Insomnia Collection'
+        });
+
+        if (uris && uris[0]) {
+            try {
+                const filePath = uris[0].fsPath;
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const json = JSON.parse(fileContent);
+
+                let importedRequests: SavedRequest[] = [];
+
+                // Detection logic
+                if (json.info && (json.info._postman_id || json.info.schema?.includes('postman'))) {
+                    importedRequests = PostmanParser.parse(json);
+                    vscode.window.showInformationMessage(`Imported ${importedRequests.length} requests from Postman Collection`);
+                } else if (json.__export_format || (json.resources && json.resources.some((r: any) => r._type === 'request'))) {
+                    importedRequests = InsomniaParser.parse(json);
+                    vscode.window.showInformationMessage(`Imported ${importedRequests.length} requests from Insomnia Export`);
+                } else {
+                    vscode.window.showErrorMessage('Unsupported file format. Please select a valid Postman or Insomnia export.');
+                    return;
+                }
+
+                if (importedRequests.length > 0) {
+                    for (const req of importedRequests) {
+                        requestManager.saveRequest(req);
+                    }
+                    sidebarProvider.refresh();
+                    if (currentPanel) {
+                        handleLoadRequests(requestManager, currentPanel);
+                    }
+                }
+            } catch (e: any) {
+                vscode.window.showErrorMessage('Failed to import collection: ' + e.message);
+            }
+        }
+    });
+
     context.subscriptions.push(
         openCommand,
         refreshCommand,
@@ -552,6 +618,7 @@ export function activate(context: vscode.ExtensionContext) {
         helpCommand,
         exportDataCommand,
         importDataCommand,
+        importCollectionCommand,
         statusBarItem
     );
 }
@@ -933,7 +1000,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
     const msgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
         switch (message.command) {
             case 'sendRequest':
-                await handleSendRequest(message.request, panel, requestManager);
+                await handleSendRequest(message.request, panel, requestManager, context);
                 break;
             case 'saveRequest':
                 handleSaveRequest(message.request, requestManager, panel);
@@ -1034,7 +1101,7 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
     return panel;
 }
 
-async function handleSendRequest(request: any, panel: vscode.WebviewPanel, requestManager?: RequestManager) {
+async function handleSendRequest(request: any, panel: vscode.WebviewPanel, requestManager: RequestManager, context: vscode.ExtensionContext) {
     try {
         // Get active environment variables for interpolation
         const activeEnvId = sidebarProvider.getActiveEnvironment();
@@ -1048,7 +1115,7 @@ async function handleSendRequest(request: any, panel: vscode.WebviewPanel, reque
             }
         }
 
-        const response = await sendHttpRequest(request, envVariables);
+        const response = await sendHttpRequest(request, context, envVariables);
         panel.webview.postMessage({
             command: 'response',
             response: response
@@ -1271,7 +1338,7 @@ function interpolateEnvironmentVariables(text: string, variables: Array<{ key: s
     return result;
 }
 
-async function sendHttpRequest(request: any, envVariables: Array<{ key: string, value: string, enabled: boolean }> = []): Promise<any> {
+async function sendHttpRequest(request: any, context: vscode.ExtensionContext, envVariables: Array<{ key: string, value: string, enabled: boolean }> = []): Promise<any> {
     const settings = getSettings();
     const controller = new AbortController();
     const timeoutMs = settings.requestTimeout;
@@ -1528,6 +1595,18 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         }
     }
 
+    // 5. COOKIE JAR (Inject cookies)
+    const cookieManager = CookieManager.getInstance(context);
+    const cookieString = await cookieManager.getCookieString(interpolatedUrl);
+
+    if (cookieString) {
+        if (headers['Cookie']) {
+            headers['Cookie'] += '; ' + cookieString;
+        } else {
+            headers['Cookie'] = cookieString;
+        }
+    }
+
     // Handle SSL validation
     const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
     if (!settings.validateSSL) {
@@ -1538,13 +1617,47 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
 
     // Handle proxy (if enabled and configured)
     if (settings.proxyEnabled && settings.proxyUrl) {
-        console.log(`Proxy configured: ${settings.proxyUrl} `);
+        try {
+            const isHttps = interpolatedUrl.startsWith('https');
+            const agentOptions = {
+                proxy: settings.proxyUrl,
+                keepAlive: true
+            };
+
+            const agent = isHttps
+                ? new HttpsProxyAgent(agentOptions)
+                : new HttpProxyAgent(agentOptions);
+
+            // @ts-ignore - Support for various fetch implementations (node-fetch, etc)
+            fetchOptions.agent = agent;
+
+            // @ts-ignore - Support for native fetch/undici dispatcher if available
+            if (typeof agent.addRequest !== 'function') {
+                // If it's not a standard agent but we might need a dispatcher, 
+                // we'd handle it here. hpagent is for http.Agent.
+            }
+        } catch (e) {
+            console.error('Failed to setup proxy agent:', e);
+        }
     }
 
     const startTime = Date.now();
 
     try {
         let response = await fetch(interpolatedUrl, fetchOptions);
+
+        // 6. COOKIE JAR (Store cookies from response)
+        const setCookie = (response.headers as any).get('set-cookie');
+        if (setCookie) {
+            // set-cookie can be a single string or an array of strings in some fetch implementations
+            if (Array.isArray(setCookie)) {
+                for (const c of setCookie) {
+                    await cookieManager.setCookie(c, interpolatedUrl);
+                }
+            } else {
+                await cookieManager.setCookie(setCookie, interpolatedUrl);
+            }
+        }
 
         // Restore SSL setting immediately after request
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized;
@@ -1796,3 +1909,73 @@ function parseMultipartFormData(body: string, boundary: string): any[] {
     return parts;
 }
 
+
+function handleWsConnect(url: string, panel: vscode.WebviewPanel) {
+    try {
+        if (activeWs) {
+            activeWs.close();
+        }
+
+        const ws = new WebSocket(url);
+        activeWs = ws;
+
+        ws.on('open', () => {
+            panel.webview.postMessage({
+                command: 'wsStatus',
+                status: 'connected',
+                text: 'Connected',
+                url: url
+            });
+        });
+
+        ws.on('message', (data) => {
+            panel.webview.postMessage({
+                command: 'wsMessage',
+                data: data.toString()
+            });
+        });
+
+        ws.on('error', (error: any) => {
+            panel.webview.postMessage({
+                command: 'wsError',
+                error: error.message
+            });
+        });
+
+        ws.on('close', () => {
+            panel.webview.postMessage({
+                command: 'wsStatus',
+                status: 'disconnected',
+                text: 'Disconnected'
+            });
+            if (activeWs === ws) {
+                activeWs = undefined;
+            }
+        });
+
+    } catch (e: any) {
+        panel.webview.postMessage({
+            command: 'wsError',
+            error: e.message
+        });
+    }
+}
+
+function handleWsDisconnect(panel: vscode.WebviewPanel) {
+    if (activeWs) {
+        activeWs.close();
+        activeWs = undefined;
+    }
+}
+
+function handleWsSendMessage(message: string, panel: vscode.WebviewPanel) {
+    const ws = activeWs;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+    } else {
+        panel.webview.postMessage({
+            command: 'wsError',
+            error: 'Not connected to a WebSocket server'
+        });
+    }
+}

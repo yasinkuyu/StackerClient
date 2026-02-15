@@ -266,6 +266,7 @@
             <button class="tab" data-tab="settings">Settings</button>
             <button class="tab" data-tab="saved">Saved</button>
             <button class="tab" data-tab="recent">Recent</button>
+            <button class="tab" data-tab="websockets">WebSockets</button>
         </div>
 
         <!-- Headers Tab -->
@@ -568,6 +569,8 @@
                         placeholder="Search saved requests...">
                 </div>
                 <div class="saved-stats" id="savedStats"></div>
+                <button class="btn-link-sm" onclick="importCollection()"
+                    title="Import Postman/Insomnia Collection">Import</button>
             </div>
             <div id="savedRequestsContainer" class="saved-requests-list">
                 <div class="empty-state">No saved requests yet</div>
@@ -600,10 +603,50 @@
                         placeholder="Search history...">
                 </div>
                 <div class="saved-stats" id="recentStats"></div>
+                <button class="btn-link-sm" onclick="importCollection()" title="Import Postman/Insomnia Collection"
+                    style="margin-right: 8px;">Import</button>
                 <button class="btn-link-sm" onclick="clearHistory()" style="margin-left: auto;">Clear All</button>
             </div>
             <div id="recentRequestsContainer" class="saved-requests-list">
                 <div class="empty-state">No request history yet</div>
+            </div>
+        </div>
+
+        <!-- WebSockets Tab -->
+        <div id="websocketsTab" class="tab-content">
+            <div class="ws-container">
+                <div class="ws-controls">
+                    <input type="text" id="wsUrl" class="url-input" placeholder="wss://echo.websocket.org"
+                        style="flex: 1;">
+                    <button id="wsConnectBtn" class="send-btn" onclick="wsToggleConnect()">Connect</button>
+                </div>
+
+                <div class="ws-status-bar">
+                    <span id="wsStatusDot" class="status-dot"></span>
+                    <span id="wsStatusText">Disconnected</span>
+                </div>
+
+                <div class="ws-main">
+                    <div class="ws-message-area">
+                        <div class="section-title">Message</div>
+                        <textarea id="wsMessageInput" class="ws-message-input"
+                            placeholder='{"type": "greeting", "payload": "Hello"}'></textarea>
+                        <div class="ws-message-actions">
+                            <button class="btn-primary" onclick="wsSendMessage()" id="wsSendBtn" disabled>Send
+                                Message</button>
+                        </div>
+                    </div>
+
+                    <div class="ws-log-area">
+                        <div class="section-title">
+                            Message Log
+                            <button class="btn-link-sm" onclick="wsClearLog()">Clear Log</button>
+                        </div>
+                        <div id="wsLog" class="ws-log">
+                            <div class="ws-log-empty">No messages yet. Connect to a server to start.</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

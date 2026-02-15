@@ -173,6 +173,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 case 'importData':
                     vscode.commands.executeCommand('stacker.importData');
                     break;
+                case 'importCollection':
+                    vscode.commands.executeCommand('stacker.importCollection');
+                    break;
                 case 'openSettings':
                     vscode.commands.executeCommand('workbench.action.openSettings', 'stacker');
                     break;
