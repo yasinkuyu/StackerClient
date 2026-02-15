@@ -1106,17 +1106,24 @@
         }
 
         // Responsive Placeholder
-        const placeholderObserver = new ResizeObserver(entries => {
-            if (!elements.filterInput) return;
-            for (let entry of entries) {
-                const width = entry.contentRect.width;
-                elements.filterInput.placeholder = width < 120 ? 'Search' : 'Search requests...';
-            }
-        });
-
+        let placeholderObserver = null;
         if (elements.filterInput) {
+            placeholderObserver = new ResizeObserver(entries => {
+                if (!elements.filterInput) return;
+                for (let entry of entries) {
+                    const width = entry.contentRect.width;
+                    elements.filterInput.placeholder = width < 120 ? 'Search' : 'Search requests...';
+                }
+            });
             placeholderObserver.observe(elements.filterInput);
         }
+
+        // Cleanup to prevent memory leaks
+        window.addEventListener('unload', () => {
+            if (placeholderObserver) {
+                placeholderObserver.disconnect();
+            }
+        });
 
         // Dropdown toggle
         function toggleDropdown(event) {
