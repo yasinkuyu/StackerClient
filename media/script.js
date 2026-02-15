@@ -17,6 +17,161 @@ const COMMON_HEADERS = [
     { key: 'X-API-Key', value: '', desc: 'API Key header' },
     { key: 'X-Requested-With', value: 'XMLHttpRequest', desc: 'AJAX request' }
 ];
+
+// Unified category list (standardized)
+const CATEGORIES = {
+    SERVER: 'Web Server',
+    CDN: 'CDN',
+    SECURITY: 'Security',
+    BACKEND: 'Backend',
+    FRONTEND: 'Frontend',
+    CMS: 'CMS',
+    ECOM: 'E-Commerce',
+    ANALYTICS: 'Analytics',
+    PAYMENT: 'Payment',
+    API: 'API',
+    MARKETING: 'Marketing',
+    INFRA: 'Infrastructure',
+    CONTROL_PANEL: 'Control Panel',
+    PAAS: 'PaaS'
+};
+
+// Pattern builder helper
+const pattern = (regex, name, category) => ({
+    regex,
+    name,
+    category
+});
+
+// Tech Stack Detection Patterns (Structured & Regex-based)
+const TECH_PATTERNS = {
+    headers: [
+        // Servers
+        pattern(/nginx/i, 'Nginx', CATEGORIES.SERVER),
+        pattern(/apache/i, 'Apache', CATEGORIES.SERVER),
+        pattern(/microsoft-iis|iis/i, 'IIS', CATEGORIES.SERVER),
+        pattern(/openresty/i, 'OpenResty', CATEGORIES.SERVER),
+        pattern(/caddy/i, 'Caddy', CATEGORIES.SERVER),
+        pattern(/lighttpd/i, 'lighttpd', CATEGORIES.SERVER),
+        pattern(/tengine/i, 'Tengine', CATEGORIES.SERVER),
+        pattern(/litespeed/i, 'LiteSpeed', CATEGORIES.SERVER),
+        pattern(/gws/i, 'Google Web Server', CATEGORIES.SERVER),
+        pattern(/cowboy/i, 'Cowboy', CATEGORIES.SERVER),
+        pattern(/phusion_passenger/i, 'Phusion Passenger', CATEGORIES.SERVER),
+        pattern(/kestrel/i, 'Kestrel', CATEGORIES.SERVER),
+        pattern(/jetty/i, 'Jetty', CATEGORIES.SERVER),
+        pattern(/tomcat/i, 'Tomcat', CATEGORIES.SERVER),
+        pattern(/glassfish/i, 'GlassFish', CATEGORIES.SERVER),
+        pattern(/wildfly/i, 'WildFly', CATEGORIES.SERVER),
+        pattern(/jboss/i, 'JBoss', CATEGORIES.SERVER),
+        pattern(/varnish/i, 'Varnish', CATEGORIES.SERVER),
+
+        // CDNs & WAFs
+        pattern(/cloudflare/i, 'Cloudflare', CATEGORIES.CDN),
+        pattern(/akamai|akamaighost/i, 'Akamai', CATEGORIES.CDN),
+        pattern(/fastly/i, 'Fastly', CATEGORIES.CDN),
+        pattern(/keycdn/i, 'KeyCDN', CATEGORIES.CDN),
+        pattern(/cloudfront/i, 'CloudFront', CATEGORIES.CDN),
+        pattern(/bunnycdn|bunny\.net/i, 'Bunny.net', CATEGORIES.CDN),
+        pattern(/limelight/i, 'Limelight', CATEGORIES.CDN),
+        pattern(/edgecast|verizon/i, 'Verizon CDN', CATEGORIES.CDN),
+        pattern(/stackpath/i, 'StackPath', CATEGORIES.CDN),
+        pattern(/sucuri/i, 'Sucuri', CATEGORIES.SECURITY),
+        pattern(/ddos-guard/i, 'DDoS-Guard', CATEGORIES.SECURITY),
+        pattern(/imunify360/i, 'Imunify360', CATEGORIES.SECURITY),
+        pattern(/imperva|incapsula/i, 'Imperva', CATEGORIES.SECURITY),
+        pattern(/f5-bigip/i, 'F5 BIG-IP', CATEGORIES.INFRA),
+
+        // Backend
+        pattern(/express/i, 'Express.js', CATEGORIES.BACKEND),
+        pattern(/fastify/i, 'Fastify', CATEGORIES.BACKEND),
+        pattern(/koa/i, 'Koa.js', CATEGORIES.BACKEND),
+        pattern(/hapi/i, 'Hapi.js', CATEGORIES.BACKEND),
+        pattern(/nest/i, 'NestJS', CATEGORIES.BACKEND),
+        pattern(/adonis/i, 'AdonisJS', CATEGORIES.BACKEND),
+        pattern(/laravel/i, 'Laravel', CATEGORIES.BACKEND),
+        pattern(/symfony/i, 'Symfony', CATEGORIES.BACKEND),
+        pattern(/codeigniter/i, 'CodeIgniter', CATEGORIES.BACKEND),
+        pattern(/django/i, 'Django', CATEGORIES.BACKEND),
+        pattern(/flask/i, 'Flask', CATEGORIES.BACKEND),
+        pattern(/fastapi/i, 'FastAPI', CATEGORIES.BACKEND),
+        pattern(/rails/i, 'Ruby on Rails', CATEGORIES.BACKEND),
+        pattern(/spring/i, 'Spring', CATEGORIES.BACKEND),
+        pattern(/asp\.net|dotnet/i, '.NET', CATEGORIES.BACKEND),
+        pattern(/php/i, 'PHP', CATEGORIES.BACKEND),
+        pattern(/node/i, 'Node.js', CATEGORIES.BACKEND),
+        pattern(/python/i, 'Python', CATEGORIES.BACKEND),
+        pattern(/java/i, 'Java', CATEGORIES.BACKEND),
+        pattern(/ruby/i, 'Ruby', CATEGORIES.BACKEND),
+        pattern(/go/i, 'Go', CATEGORIES.BACKEND),
+        pattern(/rust/i, 'Rust', CATEGORIES.BACKEND),
+        pattern(/phoenix|elixir/i, 'Phoenix', CATEGORIES.BACKEND),
+        pattern(/plesk/i, 'Plesk', CATEGORIES.CONTROL_PANEL),
+        pattern(/cpanel/i, 'cPanel', CATEGORIES.CONTROL_PANEL)
+    ],
+    cookies: [
+        pattern(/__cf_bm|_cfuvid|__cf_clearance/i, 'Cloudflare', CATEGORIES.SECURITY),
+        pattern(/_ga|_gid|_gat|_gl/i, 'Google Analytics', CATEGORIES.ANALYTICS),
+        pattern(/_hjid|_hjSession/i, 'Hotjar', CATEGORIES.ANALYTICS),
+        pattern(/mp_|amplitude/i, 'Analytics', CATEGORIES.ANALYTICS),
+        pattern(/ajs_|segment/i, 'Segment', CATEGORIES.ANALYTICS),
+        pattern(/fbp|fr/i, 'Facebook', CATEGORIES.ANALYTICS),
+        pattern(/IDE|test_cookie/i, 'Google Ads', CATEGORIES.MARKETING),
+        pattern(/AWSALB|AWSELB/i, 'AWS Load Balancer', CATEGORIES.INFRA),
+        pattern(/JSESSIONID/i, 'Java Session', CATEGORIES.BACKEND),
+        pattern(/PHPSESSID|SESSID/i, 'PHP Session', CATEGORIES.BACKEND),
+        pattern(/LARAVEL_SESSION|laravel_session/i, 'Laravel', CATEGORIES.BACKEND),
+        pattern(/csrftoken|xsrf|_csrf/i, 'CSRF Protection', CATEGORIES.SECURITY),
+        pattern(/wp-settings|wp-test-cookie/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/hubspotutk|__hstc/i, 'HubSpot', CATEGORIES.MARKETING),
+        pattern(/_pk_id|_pk_ses/i, 'Matomo', CATEGORIES.ANALYTICS)
+    ],
+    body: [
+        pattern(/__NEXT_DATA__|_next/i, 'Next.js', CATEGORIES.FRONTEND),
+        pattern(/wp-content|wp-includes|wp-json/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/drupal/i, 'Drupal', CATEGORIES.CMS),
+        pattern(/joomla/i, 'Joomla', CATEGORIES.CMS),
+        pattern(/magento/i, 'Magento', CATEGORIES.ECOM),
+        pattern(/shopify/i, 'Shopify', CATEGORIES.ECOM),
+        pattern(/woocommerce/i, 'WooCommerce', CATEGORIES.ECOM),
+        pattern(/prestashop/i, 'PrestaShop', CATEGORIES.ECOM),
+        pattern(/gatsby|__gatsby/i, 'Gatsby', CATEGORIES.FRONTEND),
+        pattern(/__nuxt|nuxt/i, 'Nuxt.js', CATEGORIES.FRONTEND),
+        pattern(/vue/i, 'Vue.js', CATEGORIES.FRONTEND),
+        pattern(/react/i, 'React', CATEGORIES.FRONTEND),
+        pattern(/angular/i, 'Angular', CATEGORIES.FRONTEND),
+        pattern(/svelte/i, 'Svelte', CATEGORIES.FRONTEND),
+        pattern(/application\/json/i, 'JSON API', CATEGORIES.API),
+        pattern(/graphql|apollo/i, 'GraphQL', CATEGORIES.API),
+        pattern(/swagger|openapi|redoc/i, 'API Docs', CATEGORIES.API),
+        pattern(/stripe|paypal|razorpay/i, 'Payment', CATEGORIES.PAYMENT),
+        pattern(/ghost\.io/i, 'Ghost', CATEGORIES.CMS),
+        pattern(/wix\.com/i, 'Wix', CATEGORIES.CMS),
+        pattern(/squarespace\.com/i, 'Squarespace', CATEGORIES.CMS),
+        pattern(/astro/i, 'Astro', CATEGORIES.FRONTEND),
+        pattern(/solid-js/i, 'Solid.js', CATEGORIES.FRONTEND),
+        pattern(/webflow/i, 'Webflow', CATEGORIES.CMS),
+        pattern(/alpine\.js|alpinejs/i, 'Alpine.js', CATEGORIES.FRONTEND),
+        pattern(/lit-html|lit-element/i, 'Lit', CATEGORIES.FRONTEND),
+        pattern(/stencil/i, 'Stencil', CATEGORIES.FRONTEND),
+        pattern(/mithril/i, 'Mithril', CATEGORIES.FRONTEND),
+        pattern(/jekyll/i, 'Jekyll', CATEGORIES.FRONTEND),
+        pattern(/hugo/i, 'Hugo', CATEGORIES.FRONTEND),
+        pattern(/hubspot/i, 'HubSpot', CATEGORIES.MARKETING),
+        pattern(/zendesk/i, 'Zendesk', CATEGORIES.MARKETING),
+        pattern(/salesforce/i, 'Salesforce', CATEGORIES.MARKETING)
+    ],
+    meta: [
+        pattern(/wordpress/i, 'WordPress', CATEGORIES.CMS),
+        pattern(/wix/i, 'Wix', CATEGORIES.CMS),
+        pattern(/squarespace/i, 'Squarespace', CATEGORIES.CMS),
+        pattern(/webflow/i, 'Webflow', CATEGORIES.CMS),
+        pattern(/ghost/i, 'Ghost', CATEGORIES.CMS),
+        pattern(/shopify/i, 'Shopify', CATEGORIES.ECOM),
+        pattern(/magento/i, 'Magento', CATEGORIES.ECOM)
+    ]
+};
+
 let savedRequests = [];
 let requestHistory = [];
 let authTokens = {};
@@ -206,9 +361,11 @@ function initApp() {
         updateTabCounts();
     };
 
-    window.addBodyRow = function (type, key = '', value = '', checked = true) {
+    window.addBodyRow = function (type, key = '', value = '', checked = true, fieldType = 'text') {
         const containerId = type === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
         const container = document.getElementById(containerId);
+        if (!container) return;
+
         const row = document.createElement('div');
         row.className = 'key-value-row';
 
@@ -219,8 +376,40 @@ function initApp() {
         checkbox.addEventListener('change', () => {
             row.style.opacity = checkbox.checked ? '1' : '0.5';
             keyInput.disabled = !checkbox.checked;
-            valInput.disabled = !checkbox.checked;
+            if (typeof valInput !== 'undefined') valInput.disabled = !checkbox.checked;
+            if (typeof fileBtn !== 'undefined') fileBtn.disabled = !checkbox.checked;
+            if (typeof typeSelect !== 'undefined') typeSelect.disabled = !checkbox.checked;
         });
+
+        // Type selector for form-data (Text/File)
+        let typeSelect;
+        if (type === 'form-data') {
+            typeSelect = document.createElement('select');
+            typeSelect.className = 'form-data-type-select compact-select';
+            const optText = document.createElement('option');
+            optText.value = 'text';
+            optText.textContent = 'Text';
+            const optFile = document.createElement('option');
+            optFile.value = 'file';
+            optFile.textContent = 'File';
+            typeSelect.appendChild(optText);
+            typeSelect.appendChild(optFile);
+            typeSelect.value = fieldType;
+
+            typeSelect.addEventListener('change', () => {
+                const isFile = typeSelect.value === 'file';
+                if (isFile) {
+                    valInput.placeholder = 'No file selected';
+                    valInput.readOnly = true;
+                    if (fileBtn) fileBtn.style.display = 'flex';
+                } else {
+                    valInput.placeholder = 'Value';
+                    valInput.readOnly = false;
+                    if (fileBtn) fileBtn.style.display = 'none';
+                }
+                updateTabCounts();
+            });
+        }
 
         const keyInput = document.createElement('input');
         keyInput.type = 'text';
@@ -246,6 +435,33 @@ function initApp() {
             }
         });
 
+        let fileBtn;
+        if (type === 'form-data') {
+            fileBtn = document.createElement('button');
+            fileBtn.className = 'btn-select-file';
+            fileBtn.style.display = fieldType === 'file' ? 'flex' : 'none';
+            fileBtn.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+            `;
+            fileBtn.title = 'Select File';
+            fileBtn.onclick = () => {
+                const rowId = row.dataset.id || Math.random().toString(36).substring(7);
+                row.dataset.id = rowId;
+                vscode.postMessage({
+                    command: 'showOpenDialog',
+                    rowId: rowId
+                });
+            };
+
+            if (fieldType === 'file') {
+                valInput.readOnly = true;
+                valInput.placeholder = 'No file selected';
+            }
+        }
+
         const removeBtn = document.createElement('button');
         removeBtn.className = 'btn-remove';
         removeBtn.innerHTML = '×';
@@ -256,9 +472,12 @@ function initApp() {
 
         row.appendChild(checkbox);
         row.appendChild(keyInput);
+        if (typeSelect) row.appendChild(typeSelect);
         row.appendChild(valInput);
+        if (fileBtn) row.appendChild(fileBtn);
         row.appendChild(removeBtn);
         container.appendChild(row);
+
         keyInput.focus();
         updateTabCounts();
     };
@@ -278,10 +497,12 @@ function initApp() {
             rows.forEach(row => {
                 const keyInput = row.querySelector('input[type="text"]:first-of-type');
                 const valInput = row.querySelector('input[type="text"]:last-of-type');
+                const typeSelect = row.querySelector('.form-data-type-select');
                 const key = keyInput ? keyInput.value.trim() : '';
                 const value = valInput ? valInput.value.trim() : '';
                 const checked = row.querySelector('.row-checkbox').checked;
-                if (key) items.push({ key, value, checked });
+                const fieldType = typeSelect ? typeSelect.value : 'text';
+                if (key) items.push({ key, value, checked, type: fieldType });
             });
             data.items = items;
         } else if (type === 'raw') {
@@ -1010,6 +1231,18 @@ function initApp() {
                 requestHistory = message.history || [];
                 displayHistory();
                 break;
+            case 'fileSelected':
+                if (message.uri && message.rowId) {
+                    const row = document.querySelector(`.key-value-row[data-id="${message.rowId}"]`);
+                    if (row) {
+                        const valInput = row.querySelector('.form-data-value');
+                        if (valInput) {
+                            valInput.value = message.uri;
+                            updateTabCounts();
+                        }
+                    }
+                }
+                break;
         }
     });
 
@@ -1107,6 +1340,120 @@ function initApp() {
 
     function deleteToken(name) {
         vscode.postMessage({ command: 'deleteAuthToken', name: name });
+    }
+
+    // Tech Stack Detection Functions
+    function detectFromValue(value, patterns, detected, seen) {
+        if (!value || !patterns) return;
+        const normalizedValue = String(value);
+
+        for (const tech of patterns) {
+            if (tech.regex.test(normalizedValue)) {
+                const uniqueKey = tech.name + '|' + tech.category;
+                if (!seen.has(uniqueKey)) {
+                    seen.add(uniqueKey);
+                    detected.push({ name: tech.name, category: tech.category });
+                }
+            }
+        }
+    }
+
+    function detectFromBody(body, detected, seen) {
+        if (!body || typeof body !== 'string') return;
+
+        // Skip large bodies for performance
+        if (body.length > 512000) {
+            return;
+        }
+
+        // Detect patterns in body
+        detectFromValue(body, TECH_PATTERNS.body, detected, seen);
+        // Detect meta generators
+        detectFromMeta(body, detected, seen);
+    }
+
+    function detectFromMeta(html, detected, seen) {
+        if (!html || typeof html !== 'string') return;
+
+        // Simple regex to extract meta generator content
+        const metaRegex = /<meta\s+name=["']generator["']\s+content=["']([^"']+)["']/gi;
+        let match;
+        while ((match = metaRegex.exec(html)) !== null) {
+            const content = match[1];
+            detectFromValue(content, TECH_PATTERNS.meta, detected, seen);
+        }
+    }
+
+    function detectTechStack(response) {
+        const detected = [];
+        const seen = new Set();
+
+        const headers = response.headers || {};
+
+        // Detect from all headers
+        for (const [key, value] of Object.entries(headers)) {
+            detectFromValue(value, TECH_PATTERNS.headers, detected, seen);
+        }
+
+        // Detect from cookies
+        const setCookieHeader = headers['set-cookie'] || headers['Set-Cookie'];
+        if (setCookieHeader) {
+            const cookies = Array.isArray(setCookieHeader) ? setCookieHeader.join(' ') : setCookieHeader;
+            detectFromValue(cookies, TECH_PATTERNS.cookies, detected, seen);
+        }
+
+        // Detect from body
+        const body = response.body;
+        if (body) {
+            if (typeof body === 'string') {
+                detectFromBody(body, detected, seen);
+            } else if (typeof body === 'object') {
+                try {
+                    const bodyStr = JSON.stringify(body);
+                    detectFromBody(bodyStr, detected, seen);
+                } catch (e) { }
+            }
+        }
+
+        return detected;
+    }
+
+    function renderTechStack(techStack) {
+        const container = document.getElementById('techStackContainer');
+        if (!container) return;
+
+        if (!techStack || techStack.length === 0) {
+            container.innerHTML = '<div class="tech-stack-empty">No technology stack detected</div>';
+            return;
+        }
+
+        // Group by category
+        const byCategory = {};
+        techStack.forEach(tech => {
+            if (!byCategory[tech.category]) {
+                byCategory[tech.category] = [];
+            }
+            byCategory[tech.category].push(tech);
+        });
+
+        let html = '<div class="tech-stack-grid">';
+
+        for (const [category, items] of Object.entries(byCategory)) {
+            const categoryClass = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            html += `<div class="tech-category category-${categoryClass}">`;
+            html += '<div class="tech-category-header">' + escapeHtml(category) + '</div>';
+            html += '<div class="tech-items">';
+            items.forEach(tech => {
+                html += `<div class="tech-item" title="${escapeHtml(tech.category)}">`;
+                html += `<span class="tech-dot"></span>`;
+                html += '<span class="tech-item-name">' + escapeHtml(tech.name) + '</span>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
     }
 
     // Response tab switching
@@ -1297,6 +1644,10 @@ function initApp() {
             headersRaw += key + ': ' + String(response.headers[key]) + '\n';
         });
         headersRawEl.textContent = headersRaw;
+
+        // Detect and render tech stack
+        const techStack = detectTechStack(response);
+        renderTechStack(techStack);
 
         // Body viewing handles high-level state, specific rendering happens in updateBodyView
         // This resolves the synchronization issue where labels and content didn't match.
@@ -2574,7 +2925,7 @@ function initApp() {
                 document.getElementById(containerId).innerHTML = '';
                 if (req.bodyData.items && req.bodyData.items.length > 0) {
                     req.bodyData.items.forEach(item => {
-                        addBodyRow(req.bodyData.type, item.key, item.value, item.checked !== false);
+                        addBodyRow(req.bodyData.type, item.key, item.value, item.checked !== false, item.type || 'text');
                     });
                 } else {
                     addBodyRow(req.bodyData.type);

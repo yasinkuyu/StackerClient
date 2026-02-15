@@ -9,12 +9,12 @@
 </p>
 
  <p align="center">
-   <img src="https://github.com/yasinkuyu/StackerClient/raw/main/media/screenshot.png" width="48%" alt="StackerClient light">
-   <img src="https://github.com/yasinkuyu/StackerClient/raw/main/media/screenshot_dark.png" width="48%" alt="StackerClient dark">
+    <img src="https://github.com/yasinkuyu/StackerClient/raw/main/media/screenshot.png" width="48%" alt="StackerClient light">
+    <img src="https://github.com/yasinkuyu/StackerClient/raw/main/media/screenshot_dark.png" width="48%" alt="StackerClient dark">
  </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/VS%20Code-%5E1.74.0-blue.svg" alt="VS Code">
   <img src="https://img.shields.io/badge/Cursor-Compatible-blue.svg" alt="Cursor">
   <img src="https://img.shields.io/badge/Antigravity-Compatible-blue.svg" alt="Antigravity">
@@ -23,124 +23,65 @@
 
 ## 🌟 Features
 
-- 🚀 **Send HTTP Requests** - Full support for GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS
-- 📊 **Hex Viewer** - Dedicated tab for binary analysis (Images, PDF, ZIP) with ASCII representation
-- 🧪 **Advanced Testing** - Extract and filter data using **XPath, CSS, JSPath, and Regex**
-- 📋 **Extraction Templates** - Save and reuse complex expressions for faster API testing
-- 🏰 **Stealth Mode** - Bypass WAF/Cloudflare protection with browser-identical header profiles
-- 📚 **Example Requests** - 20+ ready-to-use API examples including HTTPBin, Auth, and mock APIs
-- 🌍 **Environment Variables** - Manage multiple environments with `{{variable}}` syntax support
-- 🔐 **Authentication** - Securely manage Bearer tokens, Basic Auth, and API Keys
-- 🔄 **Bidirectional Sync** - Real-time synchronization between URL input and Query parameter tab
-- 👁️ **HTML Preview** - Render and inspect HTML responses directly within the editor
-- 💾 **Request History** - Save, rename, filter, and organize your API requests with ease
-- 📥 **Import cURL** - Instantly convert regular cURL commands into StackerClient requests
-- 🔍 **Smart Autocomplete** - Intelligent header suggestions as you type
-- 🎨 **Modern UI** - A clean, high-performance interface with native VS Code theme support
+- 🚀 **Send HTTP Requests** - Full support for **GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS**.
+- 🔁 **Repeat Request** - Automate your testing with customizable repeat intervals (3s, 10s, 1m up to 10m) and custom timers.
+- 🛡️ **Tech Stack Detection** - Automatically identifies **100+ technologies** including Web Servers, CDNs, CMS, Frameworks (React, Next.js, Laravel), and Analytics.
+- 🧪 **Advanced Testing (Extraction)** - Powerful data harvesting using **XPath, CSS Selectors, JSON Path (JSPath), and Regex**.
+- 📋 **Extraction Templates** - Save your complex extraction patterns as reusable templates for recurring tasks.
+- 📊 **Hex Viewer** - Deep-dive into binary responses (Images, PDF, ZIP) with a professional Hex/ASCII side-by-side view.
+- 🌍 **Environment Management** - Define variables like `{{baseUrl}}` or `{{token}}` and switch between Production, Staging, and Dev environments instantly.
+- 🏰 **Stealth Mode** - Bypass WAF/Cloudflare protection with built-in **User-Agent profiles** (Chrome, Safari, Mobile, Bots) and Referer spoofing.
+- 🔐 **Pro Authentication** - Comprehensive support for **Bearer Tokens, Basic Auth, API Keys, Digest Auth, and OAuth 2.0**.
+- 💾 **Saved Tokens** - Manage a library of authentication tokens for quick insertion into any request.
+- 🔄 **Bidirectional Sync** - Real-time synchronization between the URL bar and the Query Parameters tab.
+- 👁️ **HTML Preview** - Render and inspect HTML responses directly within the editor using a secure sandbox.
+- 💾 **Request History** - Organized history with search, filtering, renaming, and persistent storage.
+- 📥 **Import cURL** - Instantly convert regular cURL commands into StackerClient requests.
+- 🔍 **Smart Autocomplete** - Intelligent header and variable suggestions as you type.
+- 📜 **Word Wrap** - Toggle text wrapping for better readability of long responses.
+- 🎨 **Modern & Premium UI** - A clean, high-performance interface with native VS Code theme support and categorized layouts.
 
-## 🖥️ Supported Platforms
-
-| Platform | Status |
-|----------|--------|
-| **Visual Studio Code** | ✅ Fully Supported |
-| **Cursor IDE** | ✅ Fully Supported |
-| **Antigravity IDE** | ✅ Fully Supported |
-| **Any VS Code-based Editor** | ✅ Compatible |
+---
 
 ## ⌨️ Quick Start
 
-### Keyboard Shortcut
-Press `Ctrl+Shift+R` (Mac: `Cmd+Shift+R`) to open StackerClient instantly.
+### Open StackerClient
+Press `Ctrl+Shift+R` (Mac: `Cmd+Shift+R`) to open the main panel instantly.
 
-### From Status Bar
-Click the `⚡ StackerClient` button in the bottom-left status bar for quick menu.
+### Quick Access Menu
+Click the `⚡ StackerClient` button in your VS Code status bar for a quick access menu.
+
+---
 
 ## 📖 Usage
 
-### Sending Requests
+### 🔁 Repeat Request (Automation)
+1. Next to the **Send** button, click the dropdown arrow.
+2. Select a predefined interval (e.g., 5 Seconds) or set a **Custom Interval**.
+3. StackerClient will show a real-time countdown and automatically resend the request.
 
-1. Click **New Request** or press `Ctrl+Shift+R`
-2. Enter your API URL (must start with `http://` or `https://`)
-3. Select HTTP method from dropdown
-4. Add headers if needed (with autocomplete)
-5. Add request body for POST/PUT/PATCH
-6. Click **Send**
+### 🧪 Advanced Extraction (Diagnostic Tools)
+1. Use the **Tests** tab in the response panel.
+2. Choose your tool: **XPath** (for XML/HTML), **JS Path** (for JSON), **CSS**, or **Regex**.
+3. **Filter**: Highlights the matches in the response view.
+4. **Extract**: Generates a clean, newline-separated list for data harvesting.
+5. **Save Template**: Click the `+` icon to save your query for later.
 
-### Authentication
+### 🛡️ Tech Stack (The "Stack" Tab)
+StackerClient detects technologies across 15+ categories including:
+- **Web Servers**: Nginx, Apache, LiteSpeed, GWS
+- **CDNs & Security**: Cloudflare, Akamai, Fastly, Sucuri
+- **Frameworks**: Next.js, React, Vue, Laravel, Django, Rails
+- **PaaS**: Vercel, Netlify, Heroku
+- **E-Commerce**: Shopify, Magento, WooCommerce
 
-#### Bearer Token
-1. Go to **Auth** tab
-2. Click **+ Bearer Token** button
-3. Paste your token in the header value
+### 🌍 Handling Environments
+1. Open the **Sidebar** → **Environments** tab.
+2. Create a "Production" environment with a `baseUrl` variable.
+3. In your request URL, use `{{baseUrl}}/api/v1/users`.
+4. Switch environments in the sidebar to update all requests globally.
 
-#### Saved Tokens
-1. Go to **Auth** tab
-2. Click **+ Add** button in Saved Tokens section
-3. Add tokens with name for reuse
-4. Click ✓ to use, 🗑️ to delete
-
-### Environment Variables
-
-Manage multiple environments (Development, Production, Staging) with variable substitution:
-
-1. Open **Sidebar** → **Environments** tab
-2. Click **New Environment** (e.g., "Production")
-3. Add variables: `baseUrl` = `https://api.example.com`
-4. Click environment to activate (green "Active" badge)
-5. Use in requests: `{{baseUrl}}/users`
-
-**Supported locations:**
-- URL: `{{baseUrl}}/users/{{userId}}`
-- Headers: `Authorization: Bearer {{token}}`
-- Body: `{"id": "{{userId}}"}`
-- Query Parameters: `?page={{pageNum}}&limit={{pageSize}}`
-
-### Example Requests
-
-Quick start with 15+ built-in examples:
-
-1. Click **📚 Examples** button (next to Save)
-2. Choose from categories:
-   - **JSONPlaceholder**: Fake REST API for testing
-   - **HTTPBin**: HTTP testing endpoints
-   - **Reqres**: Mock API for prototyping
-   - **GitHub API**: Real API examples
-   - **Authentication**: Bearer, Basic, API Key examples
-   - **Environment Demo**: Variables usage examples
-
-### Advanced Diagnostic Tools (Tests)
-
-StackerClient 1.1.3 introduces powerful extraction and filtering tools:
-
-1. Click the **Tests** tab in the response panel.
-2. Select your tool: **XPath**, **JS Path**, **CSS**, or **Regex**.
-3. Enter your expression (e.g., `//title` for XPath or `data.users[0]` for JS Path).
-4. **Filter**: Click to see a structured visual view (JSON tree or highlighted markup).
-5. **Extract**: Click to get a clean, newline-separated plain text list (ideal for data harvesting).
-6. **Templates**: Save your expressions by clicking the **Save** icon for future reuse.
-
-### Hex Viewer (Binary Analysis)
-
-For requests returning binary data (Images, PDFs, ZIPs, etc.):
-1. StackerClient automatically detects binary content.
-2. Switch to the **Hex** tab to view the data in raw hexadecimal format.
-3. Analyze offsets, hex bytes, and ASCII representation side-by-side.
-
-### Import cURL
-
-Paste any cURL command by clicking the **Import cURL** icon in the action bar:
-```bash
-curl -X POST https://api.example.com/users \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John","email":"john@example.com"}'
-```
-
-### Managing History
-
-- **Filter**: Use the filter input in History tab
-- **Rename**: Right-click a request → Rename
-- **Delete**: Click delete button on request item
-- **Clear All**: Action bar → Clear History
+---
 
 ## 🎯 Commands
 
@@ -151,51 +92,21 @@ curl -X POST https://api.example.com/users \
 | `StackerClient: Import cURL` | Import from cURL command |
 | `StackerClient: Manage Auth` | Manage authentication tokens |
 | `StackerClient: Clear History` | Delete all saved requests |
-| `StackerClient: Help & About` | View documentation |
-
-## 🔧 Configuration
-
-No configuration required! StackerClient works out of the box with your VS Code theme.
-
-## 🎨 Themes
-
-StackerClient automatically adapts to your VS Code theme with beautiful purple accents:
-- **Dark Themes**: Full support
-- **Light Themes**: Full support
-- **Custom Themes**: Compatible
-
-## 🚀 Installation
-
-### From VS Code Marketplace
-1. Open Extensions view (`Cmd+Shift+X`)
-2. Search for "StackerClient"
-3. Click Install
-
-### From Cursor/Antigravity
-1. Open Extensions
-2. Search "StackerClient REST API"
-3. Click Install
-
-REST Client, API Testing, HTTP Client, Postman Alternative, Insomnia Alternative, Thunder Client, API Debugger, HTTP Request, REST API Tool, API Development, Web Service Testing, Endpoint Testing
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues and pull requests.
-
-## 👨‍💻 Author
-
-**Insya - Yasin Kuyu**
-
-- 🌐 Website: [https://insya.com](https://insya.com)
-- 💻 GitHub: [@yasinkuyu](https://github.com/yasinkuyu)
-- 📧 Email: yasin@insya.com
-
-## 📄 License
-
-MIT License - feel free to use in personal and commercial projects.
 
 ---
 
-<p align="center">
-  Made with ❤️ by <a href="https://insya.com">Insya</a>
-</p>
+## 🎨 Themes & UI
+StackerClient adapts to your VS Code theme (Dark, Light, High Contrast) and features purple-accented premium UI components.
+
+## 🤝 Contributing
+Contributions are welcome! Please feel free to submit issues and pull requests on [GitHub](https://github.com/yasinkuyu/StackerClient).
+
+## 👨‍💻 Author
+**Yasin Kuyu**  
+- 💻 GitHub: [@yasinkuyu](https://github.com/yasinkuyu)  
+
+## 📄 License
+MIT License - feel free to use in personal and commercial projects.
+
+---
+<p align="center">Made with ❤️ by <a href="https://insya.com">Insya</a></p>

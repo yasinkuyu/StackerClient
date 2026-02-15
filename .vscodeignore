@@ -16,4 +16,6 @@ dist/*.map
 !dist/extension.js
 !media/**
 !resources/**
+build.sh
+publish.sh
 

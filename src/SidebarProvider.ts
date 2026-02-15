@@ -25,6 +25,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'stackerSidebar';
     private _view?: vscode.WebviewView;
     private _context: vscode.ExtensionContext;
+    private _refreshTimer?: NodeJS.Timeout;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -92,6 +93,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
 
     public refresh() {
+        if (this._refreshTimer) {
+            clearTimeout(this._refreshTimer);
+        }
+        this._refreshTimer = setTimeout(() => {
+            this._doRefresh();
+        }, 150);
+    }
+
+    private _doRefresh() {
         if (this._view) {
             const config = vscode.workspace.getConfiguration('stacker');
             const defaultView = config.get<string>('sidebar.defaultView', 'recent');

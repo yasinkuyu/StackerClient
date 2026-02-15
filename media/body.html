@@ -617,6 +617,7 @@
                 <button class="res-tab" onclick="showResTab('resCookies', event)">Cookies</button>
                 <button class="res-tab" onclick="showResTab('resTests', event)">Tests</button>
                 <button class="res-tab" onclick="showResTab('resHex', event)">Hex</button>
+                <button class="res-tab" onclick="showResTab('resStack', event)">Stack</button>
             </div>
             <div class="response-content">
 
@@ -775,6 +776,11 @@
             <div id="resHex" class="res-tab-content">
                 <div id="hexViewer" class="hex-viewer">
                     <div class="hex-empty">No response data</div>
+                </div>
+            </div>
+            <div id="resStack" class="res-tab-content">
+                <div id="techStackContainer" class="tech-stack-list">
+                    <div class="tech-stack-empty">Send a request to detect the technology stack</div>
                 </div>
             </div>
         </div>

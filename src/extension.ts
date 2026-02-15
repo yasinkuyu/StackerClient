@@ -933,6 +933,23 @@ function createNewPanel(requestManager: RequestManager, context: vscode.Extensio
                 requestManager.clearHistory();
                 handleLoadHistory(requestManager, panel);
                 break;
+            case 'showOpenDialog':
+                const options: vscode.OpenDialogOptions = {
+                    canSelectMany: false,
+                    openLabel: 'Select File',
+                    filters: {
+                        'All files': ['*']
+                    }
+                };
+                const fileUri = await vscode.window.showOpenDialog(options);
+                if (fileUri && fileUri[0]) {
+                    panel.webview.postMessage({
+                        command: 'fileSelected',
+                        uri: fileUri[0].fsPath,
+                        rowId: message.rowId
+                    });
+                }
+                break;
         }
     });
 
@@ -1362,25 +1379,42 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         if (request.bodyData && request.bodyData.type !== 'none') {
             const bodyData = request.bodyData;
             if (bodyData.type === 'form-data') {
-                // For Node.js fetch, we building simple multipart manually or use URLSearchParams if possible
-                // Better: Use URLSearchParams for x-www-form-urlencoded, but for multipart we need Boundary
-                const boundary = '----StackerClientBoundary' + Math.random().toString(16).slice(2);
+                const boundary = '----StackerClientBoundary' + crypto.randomBytes(8).toString('hex');
                 headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
 
-                let multipartBody = '';
+                const parts: Buffer[] = [];
                 if (bodyData.items) {
-                    bodyData.items.forEach((item: any) => {
+                    for (const item of bodyData.items) {
                         if (item.key && item.checked !== false) {
                             const k = interpolateEnvironmentVariables(item.key, envVariables);
                             const v = interpolateEnvironmentVariables(item.value || '', envVariables);
-                            multipartBody += `--${boundary}\r\n`;
-                            multipartBody += `Content-Disposition: form-data; name="${k}"\r\n\r\n`;
-                            multipartBody += `${v}\r\n`;
+
+                            parts.push(Buffer.from(`--${boundary}\r\n`));
+
+                            if (item.type === 'file' && v) {
+                                try {
+                                    const fileUri = vscode.Uri.file(v);
+                                    const fileData = await vscode.workspace.fs.readFile(fileUri);
+                                    const fileName = path.basename(v);
+                                    parts.push(Buffer.from(`Content-Disposition: form-data; name="${k}"; filename="${fileName}"\r\n`));
+                                    parts.push(Buffer.from(`Content-Type: application/octet-stream\r\n\r\n`));
+                                    parts.push(Buffer.from(fileData));
+                                    parts.push(Buffer.from(`\r\n`));
+                                } catch (e) {
+                                    console.error(`Failed to read file: ${v}`, e);
+                                    // Fallback to text if file read fails
+                                    parts.push(Buffer.from(`Content-Disposition: form-data; name="${k}"\r\n\r\n`));
+                                    parts.push(Buffer.from(`${v}\r\n`));
+                                }
+                            } else {
+                                parts.push(Buffer.from(`Content-Disposition: form-data; name="${k}"\r\n\r\n`));
+                                parts.push(Buffer.from(`${v}\r\n`));
+                            }
                         }
-                    });
+                    }
                 }
-                multipartBody += `--${boundary}--\r\n`;
-                fetchOptions.body = multipartBody;
+                parts.push(Buffer.from(`--${boundary}--\r\n`));
+                fetchOptions.body = Buffer.concat(parts);
             } else if (bodyData.type === 'urlencoded') {
                 const params = new URLSearchParams();
                 if (bodyData.items) {
@@ -1414,8 +1448,8 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         }
     }
 
-    // Handle SSL validation (Node.js 18+ fetch doesn't support agent directly,
-    // but we set the environment variable as a fallback hint)
+    // Handle SSL validation
+    const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
     if (!settings.validateSSL) {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     } else {
@@ -1431,6 +1465,9 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
 
     try {
         let response = await fetch(interpolatedUrl, fetchOptions);
+
+        // Restore SSL setting immediately after request
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized;
 
         // Handle Digest Auth challenge
         if (response.status === 401 && request.auth?.type === 'digest') {
@@ -1492,12 +1529,26 @@ async function sendHttpRequest(request: any, envVariables: Array<{ key: string, 
         const isBinary = binaryTypes.some(type => contentType.includes(type)) ||
             contentType.includes('binary');
 
+        // Check response size before loading into memory
+        const contentLength = parseInt(response.headers.get('content-length') || '0');
+        if (contentLength > settings.responseMaxSize) {
+            return {
+                status: response.status,
+                statusText: response.statusText,
+                headers: responseHeaders,
+                body: `Response too large (${(contentLength / 1024 / 1024).toFixed(2)} MB). Max size: ${(settings.responseMaxSize / 1024 / 1024).toFixed(2)} MB`,
+                time: Date.now() - startTime,
+                size: contentLength,
+                interpolatedUrl: interpolatedUrl !== request.url ? interpolatedUrl : undefined
+            };
+        }
+
         // Get arrayBuffer first (needed for hex and can be converted to text)
-        let responseArrayBuffer: any;
+        let responseArrayBuffer: ArrayBuffer;
         try {
-            responseArrayBuffer = await response.arrayBuffer() as ArrayBuffer;
+            responseArrayBuffer = await response.arrayBuffer();
         } catch {
-            responseArrayBuffer = new TextEncoder().encode('').buffer;
+            responseArrayBuffer = new Uint8Array(0).buffer;
         }
 
         // Generate hex representation for ALL responses

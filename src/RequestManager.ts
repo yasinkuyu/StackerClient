@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 
 export interface SavedRequest {
     id: string;
@@ -159,17 +160,38 @@ export class RequestManager {
     }
 
     /**
+     * Generate a unique hash for a request to detect duplicates
+     */
+    private generateHash(request: SavedRequest): string {
+        const parts = {
+            method: request.method,
+            url: request.url,
+            headers: (request.headers || [])
+                .filter(h => h.checked !== false && h.key)
+                .map(h => `${h.key.toLowerCase()}:${h.value}`)
+                .sort(),
+            body: request.body || '',
+            bodyData: request.bodyData || null,
+            queryParams: (request.queryParams || [])
+                .filter(p => p.checked !== false && p.key)
+                .map(p => `${p.key.toLowerCase()}:${p.value}`)
+                .sort(),
+            auth: request.auth || null
+        };
+
+        return crypto.createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+    }
+
+    /**
      * Add a request to history
      */
     addToHistory(request: SavedRequest): void {
         let history = this.getHistory();
+        const requestHash = this.generateHash(request);
 
-        // Deduplicate: remove existing entry if same method and url only
-        // This allows modified requests (body, headers, etc.) to appear as new entries
+        // Deduplicate: remove existing entry ONLY if it's the exact same request
         history = history.filter(existing => {
-            const sameMethod = existing.method === request.method;
-            const sameUrl = existing.url === request.url;
-            return !(sameMethod && sameUrl);
+            return this.generateHash(existing) !== requestHash;
         });
 
         request.createdAt = Date.now();

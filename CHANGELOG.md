@@ -2,6 +2,21 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.2.0] - 2026-02-15
+
+### Added
+- **Binary File Uploads**: Support for `multipart/form-data` with actual binary file selection via native VS Code dialog.
+- **Improved History Deduplication**: Robust hash-based deduplication ensures unique requests (headers, body, query params) are accurately preserved in history.
+- **Build & Publish Scripts**: Added dedicated shell scripts for streamlined extension packaging and publication.
+- **Tech Stack Detection**: New "Stack" tab automatically detects and displays technology stack from response headers, cookies, and body signatures. Detects web servers (Nginx, Apache, IIS), CDNs (Cloudflare, CloudFront), backend frameworks (Express, Laravel, Django, Rails), frontend frameworks (React, Next.js, Vue), CMS (WordPress, Drupal), analytics (Google Analytics, Hotjar), and more.
+
+### Fixed
+- **Safer SSL Management**: Automatically restores the original SSL validation state (`NODE_TLS_REJECT_UNAUTHORIZED`) immediately after each request.
+- **Memory Safety**: Implemented early `Content-Length` validation to block massive responses before they cause Out-Of-Memory issues.
+
+### Improved
+- **Sidebar Responsiveness**: Added a debounced refresh mechanism to the sidebar to ensure a smooth UI experience even with hundreds of saved requests.
+
 ## [1.1.9] - 2026-02-15
 
 ### Added
