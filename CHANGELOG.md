@@ -10,6 +10,9 @@ All notable changes to the "StackerClient" extension will be documented in this 
 - **Build & Publish Scripts**: Added dedicated shell scripts for streamlined extension packaging and publication.
 - **Tech Stack Detection**: New "Stack" tab automatically detects and displays technology stack from response headers, cookies, and body signatures. Detects web servers (Nginx, Apache, IIS), CDNs (Cloudflare, CloudFront), backend frameworks (Express, Laravel, Django, Rails), frontend frameworks (React, Next.js, Vue), CMS (WordPress, Drupal), analytics (Google Analytics, Hotjar), and more.
 
+### Changed
+- **Search Tab**: Renamed the "Tests" tab to "Search" to better reflect its data extraction and search capabilities.
+
 ### Fixed
 - **Safer SSL Management**: Automatically restores the original SSL validation state (`NODE_TLS_REJECT_UNAUTHORIZED`) immediately after each request.
 - **Memory Safety**: Implemented early `Content-Length` validation to block massive responses before they cause Out-Of-Memory issues.

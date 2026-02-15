@@ -1472,7 +1472,7 @@ function initApp() {
         // Show/hide shared content
         const sharedContent = document.getElementById('sharedResponseContent');
         if (sharedContent) {
-            sharedContent.style.display = (tabName === 'resBody' || tabName === 'resTests') ? 'block' : 'none';
+            sharedContent.style.display = (tabName === 'resBody' || tabName === 'resSearch') ? 'block' : 'none';
         }
     };
 
@@ -1566,7 +1566,7 @@ function initApp() {
         const expandBtn = document.getElementById('expandBtn');
         const collapseBtn = document.getElementById('collapseBtn');
         const wordWrapToggle = document.getElementById('wordWrapToggle');
-        const extractionTab = document.querySelector('[onclick*="resTests"]');
+        const extractionTab = document.querySelector('[onclick*="resSearch"]');
 
         if (response.body) {
             if (copyBtn) copyBtn.style.display = 'flex';
