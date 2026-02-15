@@ -2,6 +2,21 @@
 
 All notable changes to the "StackerClient" extension will be documented in this file.
 
+## [1.1.9] - 2026-02-15
+
+### Added
+- **Default Preview Mode**: JSON, HTML, and XML responses now default to Preview mode for an immediate interactive experience.
+- **Auto-Expanding Headers**: Targeted CSS refinements to ensure the response headers table key column expands naturally.
+
+### Fixed
+- **Environment Variables**: Fixed URL validation to allow `{{variable}}` syntax in the address bar.
+- **State Synchronization**: Unified response body rendering to ensure toolbar buttons and labels are always perfectly in sync with the content.
+- **UI Consistency**: Fixed button heights in the Tests panel and resolved "visual flash" by correctly initializing response toolbar states.
+
+### Improved
+- **Response Toolbar**: Reordered buttons (Copy, Raw/Preview, Expand, Collapse, Wrap) for a more intuitive, logical workflow.
+- **Auth Tab Styling**: Integrated `compact-select` for the Auth type dropdown and refined inline select styling for a seamless experience.
+
 ## [1.1.8] - 2026-02-15
 
 ### Added

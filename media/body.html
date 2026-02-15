@@ -375,7 +375,7 @@
         <div id="authTab" class="tab-content">
             <div class="auth-type-selector">
                 <label class="auth-label">Type:</label>
-                <select id="authTypeSelect" onchange="showAuthFields(this.value)">
+                <select id="authTypeSelect" class="compact-select" onchange="showAuthFields(this.value)">
                     <option value="none">No Auth</option>
                     <option value="bearer">Bearer Token</option>
                     <option value="basic">Basic Auth</option>
@@ -681,33 +681,14 @@
                 <!-- Shared Body/Preview (Visible in Body and Test tabs) -->
                 <div id="sharedResponseContent" class="shared-response-content">
                     <div class="response-toolbar">
-                        <button class="toolbar-btn" onclick="copyResponse('body')" title="Copy">
+                        <button class="toolbar-btn" onclick="copyResponse('body')" title="Copy Body" id="copyBtn"
+                            style="display:none;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
                             Copy
-                        </button>
-                        <button class="toolbar-btn" onclick="expandAllJSON()" title="Expand All" id="expandBtn">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <polyline points="9 21 3 21 3 15"></polyline>
-                                <line x1="21" y1="3" x2="14" y2="10"></line>
-                                <line x1="3" y1="21" x2="10" y2="14"></line>
-                            </svg>
-                            Expand
-                        </button>
-                        <button class="toolbar-btn" onclick="collapseAllJSON()" title="Collapse All" id="collapseBtn">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="4 14 10 14 10 20"></polyline>
-                                <polyline points="20 10 14 10 14 4"></polyline>
-                                <line x1="14" y1="10" x2="21" y2="3"></line>
-                                <line x1="3" y1="21" x2="10" y2="14"></line>
-                            </svg>
-                            Collapse
                         </button>
                         <button class="toolbar-btn" onclick="toggleBodyView()" title="Toggle Raw/Preview"
                             id="bodyViewToggle" style="display:none;">
@@ -718,8 +699,30 @@
                             </svg>
                             <span id="bodyViewText">Preview</span>
                         </button>
+                        <button class="toolbar-btn" onclick="expandAllJSON()" title="Expand All" id="expandBtn"
+                            style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <polyline points="9 21 3 21 3 15"></polyline>
+                                <line x1="21" y1="3" x2="14" y2="10"></line>
+                                <line x1="3" y1="21" x2="10" y2="14"></line>
+                            </svg>
+                            Expand
+                        </button>
+                        <button class="toolbar-btn" onclick="collapseAllJSON()" title="Collapse All" id="collapseBtn"
+                            style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="4 14 10 14 10 20"></polyline>
+                                <polyline points="20 10 14 10 14 4"></polyline>
+                                <line x1="14" y1="10" x2="21" y2="3"></line>
+                                <line x1="3" y1="21" x2="10" y2="14"></line>
+                            </svg>
+                            Collapse
+                        </button>
                         <button class="toolbar-btn" onclick="toggleWordWrap()" title="Toggle Word Wrap"
-                            id="wordWrapToggle">
+                            id="wordWrapToggle" style="display:none;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <polyline points="4 6 20 6"></polyline>
@@ -729,6 +732,10 @@
                             Wrap
                         </button>
                         <span class="response-type" id="responseType"></span>
+                    </div>
+                    <div id="responseLoading" class="loading-container" style="display:none;">
+                        <div class="loading-bar"></div>
+                        <span>Sending Request...</span>
                     </div>
                     <pre id="responseBody" class="response-body"></pre>
                     <div id="responsePreview" class="response-preview" style="display:none;">

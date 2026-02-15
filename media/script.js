@@ -636,12 +636,22 @@ function initApp() {
     function setLoading(loading) {
         isLoading = loading;
         const btn = document.getElementById('sendBtn');
+        const loadingEl = document.getElementById('responseLoading');
+        const bodyEl = document.getElementById('responseBody');
+        const previewEl = document.getElementById('responsePreview');
+
         if (loading) {
-            btn.innerHTML = '<span class="spinner"></span>Sending...';
-            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Stop';
+            btn.disabled = false; // Allow stop
+            btn.classList.add('repeating'); // Treat as active
+            if (loadingEl) loadingEl.style.display = 'flex';
+            if (bodyEl) bodyEl.style.display = 'none';
+            if (previewEl) previewEl.style.display = 'none';
         } else {
             btn.innerHTML = 'Send';
             btn.disabled = false;
+            btn.classList.remove('repeating');
+            if (loadingEl) loadingEl.style.display = 'none';
         }
     }
 
@@ -780,8 +790,8 @@ function initApp() {
             return;
         }
 
-        if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
-            showToast('URL must start with http:// or https://');
+        if (!request.url.startsWith('http://') && !request.url.startsWith('https://') && !request.url.startsWith('{{')) {
+            showToast('URL must start with http://, https:// or {{variable}}');
             const urlInput = document.getElementById('url');
             if (urlInput) urlInput.focus();
             stopRepeat();
@@ -1204,28 +1214,43 @@ function initApp() {
         }
 
         // Show/hide body view toggle and extraction tab based on content type
+        const copyBtn = document.getElementById('copyBtn');
         const bodyViewToggle = document.getElementById('bodyViewToggle');
         const expandBtn = document.getElementById('expandBtn');
         const collapseBtn = document.getElementById('collapseBtn');
+        const wordWrapToggle = document.getElementById('wordWrapToggle');
         const extractionTab = document.querySelector('[onclick*="resTests"]');
 
-        if (isHtml || contentType.includes('xml')) {
-            if (extractionTab) extractionTab.style.display = 'block';
-            bodyViewToggle.style.display = 'flex';
-            expandBtn.style.display = 'none';
-            collapseBtn.style.display = 'none';
-            bodyViewMode = 'raw';
+        if (response.body) {
+            if (copyBtn) copyBtn.style.display = 'flex';
+            if (bodyViewToggle) bodyViewToggle.style.display = 'flex';
+            if (wordWrapToggle) wordWrapToggle.style.display = 'flex';
+
+            if (isHtml || contentType.includes('xml') || isJson) {
+                if (extractionTab) extractionTab.style.display = 'block';
+
+                if (isJson) {
+                    if (expandBtn) expandBtn.style.display = 'flex';
+                    if (collapseBtn) collapseBtn.style.display = 'flex';
+                } else {
+                    if (expandBtn) expandBtn.style.display = 'none';
+                    if (collapseBtn) collapseBtn.style.display = 'none';
+                }
+            } else {
+                if (extractionTab) extractionTab.style.display = 'none';
+                if (expandBtn) expandBtn.style.display = 'none';
+                if (collapseBtn) collapseBtn.style.display = 'none';
+            }
+
+            bodyViewMode = 'preview';
             updateBodyView();
-        } else if (isJson) {
-            if (extractionTab) extractionTab.style.display = 'block';
-            bodyViewToggle.style.display = 'none';
-            expandBtn.style.display = 'flex';
-            collapseBtn.style.display = 'flex';
         } else {
+            if (copyBtn) copyBtn.style.display = 'none';
+            if (bodyViewToggle) bodyViewToggle.style.display = 'none';
+            if (expandBtn) expandBtn.style.display = 'none';
+            if (collapseBtn) collapseBtn.style.display = 'none';
+            if (wordWrapToggle) wordWrapToggle.style.display = 'none';
             if (extractionTab) extractionTab.style.display = 'none';
-            bodyViewToggle.style.display = 'none';
-            expandBtn.style.display = 'none';
-            collapseBtn.style.display = 'none';
         }
 
         // Headers - table format
@@ -1241,13 +1266,24 @@ function initApp() {
         if (response.interpolatedUrl) {
             headersHtml += '<div class="header-row" style="background:rgba(167,139,250,0.1);">';
             headersHtml += '<span class="header-key" style="color:#a78bfa;">Interpolated URL</span>';
-            headersHtml += '<span class="header-value">' + escapeHtml(response.interpolatedUrl) + '</span>';
+            headersHtml += '<span class="header-value url">' + escapeHtml(response.interpolatedUrl) + '</span>';
             headersHtml += '</div>';
         }
+
+        function getHeaderValueClass(value) {
+            const val = String(value);
+            if (val.startsWith('http')) return 'url';
+            if (/^\d{4}-\d{2}-\d{2}/.test(val)) return 'date';
+            if (!isNaN(val) && val.length > 0) return 'number';
+            return 'string';
+        }
+
         headerKeys.forEach(function (key) {
+            const value = response.headers[key];
+            const valueClass = getHeaderValueClass(value);
             headersHtml += '<div class="header-row">';
             headersHtml += '<span class="header-key">' + escapeHtml(key) + '</span>';
-            headersHtml += '<span class="header-value">' + escapeHtml(String(response.headers[key])) + '</span>';
+            headersHtml += '<span class="header-value ' + valueClass + '">' + escapeHtml(String(value)) + '</span>';
             headersHtml += '</div>';
         });
         headersContainer.innerHTML = headersHtml;
@@ -1262,45 +1298,9 @@ function initApp() {
         });
         headersRawEl.textContent = headersRaw;
 
-        // Body - with JSON tree viewer or HTML preview
-        const bodyEl = document.getElementById('responseBody');
-        const previewEl = document.getElementById('responsePreview');
+        // Body viewing handles high-level state, specific rendering happens in updateBodyView
+        // This resolves the synchronization issue where labels and content didn't match.
         const previewFrame = document.getElementById('previewFrame');
-        var jsonData = null;
-
-        // Reset body view
-        bodyEl.style.display = 'block';
-        previewEl.style.display = 'none';
-
-        if (typeof response.body === 'object') {
-            jsonData = response.body;
-        } else {
-            // Try to parse as JSON
-            try {
-                jsonData = JSON.parse(response.body);
-            } catch (e) {
-                // Not JSON, show as plain text
-                bodyEl.textContent = response.body;
-            }
-        }
-
-        // Check for hex/binary response
-        if (response.body && response.body.__hex__) {
-            bodyEl.innerHTML = renderHexViewer(response.body);
-            // Hide expand/collapse for hex
-            if (expandBtn) expandBtn.style.display = 'none';
-            if (collapseBtn) collapseBtn.style.display = 'none';
-            if (bodyViewToggle) bodyViewToggle.style.display = 'none';
-        } else if (response.body && response.body.__formData__) {
-            // Handle multipart/form-data response
-            bodyEl.innerHTML = renderFormData(response.body);
-        } else if (jsonData !== null) {
-            bodyEl.innerHTML = '<div class="json-tree">' + renderJSONTree(jsonData, 0) + '</div>';
-        } else if (isHtml || contentType.includes('xml')) {
-            bodyEl.innerHTML = highlightHTML(response.body);
-        } else {
-            bodyEl.textContent = response.body;
-        }
 
         // Render Form Data
         function renderFormData(formData) {
@@ -1911,15 +1911,66 @@ function initApp() {
         const bodyEl = document.getElementById('responseBody');
         const previewEl = document.getElementById('responsePreview');
         const viewText = document.getElementById('bodyViewText');
+        const expandBtn = document.getElementById('expandBtn');
+        const collapseBtn = document.getElementById('collapseBtn');
+
+        const contentType = currentResponse?.headers['content-type'] || currentResponse?.headers['Content-Type'] || '';
+        const isJson = contentType.includes('json');
+        const isHtml = contentType.includes('html');
+        const isXml = contentType.includes('xml');
 
         if (bodyViewMode === 'preview') {
-            bodyEl.style.display = 'none';
-            previewEl.style.display = 'block';
-            viewText.textContent = 'Raw';
+            if (isJson) {
+                bodyEl.style.display = 'block';
+                previewEl.style.display = 'none';
+                bodyEl.classList.remove('raw-text');
+                if (expandBtn) expandBtn.style.display = 'flex';
+                if (collapseBtn) collapseBtn.style.display = 'flex';
+
+                let jsonData = null;
+                if (typeof currentResponse.body === 'object') {
+                    jsonData = currentResponse.body;
+                } else {
+                    try { jsonData = JSON.parse(currentResponse.body); } catch (e) { }
+                }
+                if (jsonData !== null) {
+                    bodyEl.innerHTML = '<div class="json-tree">' + renderJSONTree(jsonData, 0) + '</div>';
+                }
+            } else if (isHtml || isXml) {
+                bodyEl.style.display = 'none';
+                previewEl.style.display = 'block';
+                if (expandBtn) expandBtn.style.display = 'none';
+                if (collapseBtn) collapseBtn.style.display = 'none';
+            } else {
+                // For other types, "Preview" might just be highlighted version if available
+                bodyEl.style.display = 'block';
+                previewEl.style.display = 'none';
+                bodyEl.classList.remove('raw-text');
+                // Re-render body content for potential highlighting if applicable
+                if (currentResponse.body && currentResponse.body.__hex__) {
+                    bodyEl.innerHTML = renderHexViewer(currentResponse.body);
+                } else if (currentResponse.body && currentResponse.body.__formData__) {
+                    bodyEl.innerHTML = renderFormData(currentResponse.body);
+                } else {
+                    bodyEl.textContent = typeof currentResponse.body === 'string' ?
+                        currentResponse.body : JSON.stringify(currentResponse.body, null, 2);
+                }
+            }
+            if (viewText) viewText.textContent = 'Raw';
         } else {
+            // Raw mode - Standard for all types
             bodyEl.style.display = 'block';
             previewEl.style.display = 'none';
-            viewText.textContent = 'Preview';
+            bodyEl.classList.add('raw-text');
+
+            if (expandBtn) expandBtn.style.display = 'none';
+            if (collapseBtn) collapseBtn.style.display = 'none';
+            if (viewText) viewText.textContent = 'Preview';
+
+            const bodyStr = typeof currentResponse.body === 'string' ?
+                currentResponse.body : JSON.stringify(currentResponse.body, null, 2);
+
+            bodyEl.textContent = bodyStr;
         }
     }
 
@@ -1939,7 +1990,7 @@ function initApp() {
             rawEl.style.display = 'block';
             viewText.textContent = 'Table';
         } else {
-            tableEl.style.display = 'block';
+            tableEl.style.display = 'grid';
             rawEl.style.display = 'none';
             viewText.textContent = 'Raw';
         }
