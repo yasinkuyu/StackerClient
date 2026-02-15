@@ -23,6 +23,33 @@ let authTokens = {};
 let isLoading = false;
 let isSyncing = false;
 
+// Performance: Debounce helper
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Performance: Persistent measurement element for autoExpandKey
+let measurementSpan = null;
+function getMeasurementSpan() {
+    if (!measurementSpan) {
+        measurementSpan = document.createElement('span');
+        measurementSpan.style.visibility = 'hidden';
+        measurementSpan.style.position = 'absolute';
+        measurementSpan.style.top = '-9999px';
+        measurementSpan.style.whiteSpace = 'pre';
+        document.body.appendChild(measurementSpan);
+    }
+    return measurementSpan;
+}
+
 function initApp() {
     console.log('initApp started');
 
@@ -45,7 +72,7 @@ function initApp() {
         }
     }
 
-    window.updateTabCounts = function () {
+    const debouncedUpdateTabCounts = debounce(() => {
         // Headers
         const headerCount = Array.from(document.querySelectorAll('#headersContainer .key-value-row'))
             .filter(row => {
@@ -80,17 +107,17 @@ function initApp() {
             }
         }
         updateBadge('bodyTabCount', bodyCount);
+    }, 200);
+
+    window.updateTabCounts = function () {
+        debouncedUpdateTabCounts();
     };
 
     window.autoExpandKey = function (input) {
         if (!input) return;
-        const span = document.createElement('span');
-        span.style.visibility = 'hidden';
-        span.style.position = 'absolute';
-        span.style.whiteSpace = 'pre';
+        const span = getMeasurementSpan();
         span.style.font = window.getComputedStyle(input).font;
         span.textContent = input.value || input.placeholder || '';
-        document.body.appendChild(span);
 
         const width = Math.max(150, span.offsetWidth + 32);
         input.style.width = width + 'px';
@@ -99,8 +126,6 @@ function initApp() {
         if (input.parentElement.classList.contains('autocomplete-container')) {
             input.parentElement.style.width = width + 'px';
         }
-
-        document.body.removeChild(span);
     };
 
     function removeExistingHeader(headerKey) {
@@ -549,14 +574,16 @@ function initApp() {
 
     const urlInput = document.getElementById('url');
     if (urlInput) {
-        urlInput.addEventListener('input', () => syncUrlToQuery());
+        const debouncedSync = debounce(() => syncUrlToQuery(), 300);
+        urlInput.addEventListener('input', () => debouncedSync());
         urlInput.addEventListener('paste', () => setTimeout(syncUrlToQuery, 0));
     }
 
+    const escaper = document.createElement('div');
     function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        if (text === null || text === undefined) return '';
+        escaper.textContent = text;
+        return escaper.innerHTML;
     }
 
     // Button handlers removed - now using inline onclick in body.html
@@ -995,10 +1022,12 @@ function initApp() {
 
         // Apply word wrap
         if (settings.editorWordWrap !== undefined) {
-            const wordWrapStyle = settings.editorWordWrap ? 'break-word' : 'normal';
-            const whiteSpaceStyle = settings.editorWordWrap ? 'pre-wrap' : 'pre';
-            document.getElementById('responseBody').style.wordWrap = wordWrapStyle;
-            document.getElementById('responseBody').style.whiteSpace = whiteSpaceStyle;
+            const isWrapped = settings.editorWordWrap;
+            document.getElementById('responseBody').style.wordWrap = isWrapped ? 'break-word' : 'normal';
+            document.getElementById('responseBody').style.whiteSpace = isWrapped ? 'pre-wrap' : 'pre';
+
+            const btn = document.getElementById('wordWrapToggle');
+            if (btn) btn.classList.toggle('active', isWrapped);
         }
 
         // Apply theme (auto follows VS Code, light/dark force specific theme)
@@ -1312,6 +1341,12 @@ function initApp() {
 
         function highlightHTML(html) {
             if (!html) return '';
+
+            // Performance: Limit highlighting for very large bodies
+            if (html.length > 100000) {
+                return '<code class="html-highlighted">' + escapeHtml(html) + '</code>';
+            }
+
             var escaped = escapeHtml(html);
             // Use placeholder markers instead of real <span> tags during regex
             // to prevent later regex steps from matching generated span attributes.
@@ -1914,6 +1949,12 @@ function initApp() {
     function renderJSONTree(data, level, path) {
         level = level || 0;
         path = path || '';
+
+        // Performance: Stop recursion if object is too deep or data is massive
+        if (level > 20) {
+            return '<span class="json-string">"[Too Deep]"</span>';
+        }
+
         var html = '';
 
         if (data === null) {
@@ -2274,14 +2315,16 @@ function initApp() {
         displaySavedRequests();
     };
 
-    // Search input listener
+    // Search input listeners with debounce
+    const debouncedDisplaySaved = debounce(() => displaySavedRequests(), 250);
     document.getElementById('savedFilterInput')?.addEventListener('input', () => {
         currentPage = 1;
-        displaySavedRequests();
+        debouncedDisplaySaved();
     });
 
+    const debouncedDisplayHistory = debounce(() => displayHistory(), 250);
     document.getElementById('recentFilterInput')?.addEventListener('input', () => {
-        displayHistory();
+        debouncedDisplayHistory();
     });
 
     function displayHistory() {
@@ -2301,8 +2344,10 @@ function initApp() {
             return;
         }
 
+        // Performance: Limit history rendering to first 50 items
         container.innerHTML = '';
-        filteredHistory.forEach((req, idx) => {
+        const historyToDisplay = filteredHistory.slice(0, 50);
+        historyToDisplay.forEach((req, idx) => {
             const item = document.createElement('div');
             item.className = 'saved-request-item';
             const timeAgo = formatTime(req.createdAt);

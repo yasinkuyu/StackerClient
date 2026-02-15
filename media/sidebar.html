@@ -1057,53 +1057,82 @@
         let activeEnvironment = null;
         let filterQuery = '';
 
+        // Debounce helper
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // DOM Caches
+        const elements = {
+            tabs: document.querySelectorAll('.tab'),
+            tabContents: document.querySelectorAll('.tab-content'),
+            filterInput: document.getElementById('filterInput'),
+            dropdownMenu: document.getElementById('dropdownMenu'),
+            requestList: document.getElementById('requestList'),
+            emptyState: document.getElementById('emptyState')
+        };
+
         // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
+        elements.tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const targetId = tab.dataset.tab + 'Tab';
+                const targetContent = document.getElementById(targetId);
+
+                if (!targetContent) return;
+
+                elements.tabs.forEach(t => t.classList.remove('active'));
+                elements.tabContents.forEach(c => c.classList.remove('active'));
+
                 tab.classList.add('active');
-                document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+                targetContent.classList.add('active');
             });
         });
 
-        // Filter
-        const filterInput = document.getElementById('filterInput');
-        filterInput.addEventListener('input', (e) => {
-            filterQuery = e.target.value.toLowerCase();
-            renderRequests();
-        });
+        // Filter with debounce
+        if (elements.filterInput) {
+            const debouncedRender = debounce(() => renderRequests(), 250);
+            elements.filterInput.addEventListener('input', (e) => {
+                filterQuery = e.target.value.toLowerCase();
+                debouncedRender();
+            });
+        }
 
         // Responsive Placeholder
         const placeholderObserver = new ResizeObserver(entries => {
+            if (!elements.filterInput) return;
             for (let entry of entries) {
                 const width = entry.contentRect.width;
-                if (width < 120) {
-                    filterInput.placeholder = 'Search';
-                } else {
-                    filterInput.placeholder = 'Search requests...';
-                }
+                elements.filterInput.placeholder = width < 120 ? 'Search' : 'Search requests...';
             }
         });
-        placeholderObserver.observe(filterInput);
+
+        if (elements.filterInput) {
+            placeholderObserver.observe(elements.filterInput);
+        }
 
         // Dropdown toggle
         function toggleDropdown(event) {
-            event.stopPropagation();
-            const menu = document.getElementById('dropdownMenu');
-            menu.classList.toggle('show');
+            if (event) event.stopPropagation();
+            if (elements.dropdownMenu) elements.dropdownMenu.classList.toggle('show');
         }
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
-            const menu = document.getElementById('dropdownMenu');
-            if (!e.target.closest('.dropdown')) {
-                menu.classList.remove('show');
+            if (elements.dropdownMenu && !e.target.closest('.dropdown')) {
+                elements.dropdownMenu.classList.remove('show');
             }
         });
 
         function closeDropdown() {
-            document.getElementById('dropdownMenu').classList.remove('show');
+            if (elements.dropdownMenu) elements.dropdownMenu.classList.remove('show');
         }
 
         function newRequest() {
@@ -1112,15 +1141,14 @@
 
         function refreshList() {
             const btn = document.querySelector('[onclick="refreshList()"]');
-            const originalIcon = btn.innerHTML;
+            if (!btn) return;
 
-            // Add loading spinner
+            const originalIcon = btn.innerHTML;
             btn.innerHTML = '<span class="refresh-spinner"></span>';
             btn.disabled = true;
 
             vscode.postMessage({ type: 'refreshList' });
 
-            // Reset after 500ms
             setTimeout(() => {
                 btn.innerHTML = originalIcon;
                 btn.disabled = false;
@@ -1134,14 +1162,18 @@
 
         function setViewMode(mode) {
             viewMode = mode;
-            document.getElementById('viewGrouped').classList.toggle('active', mode === 'grouped');
-            document.getElementById('viewFlat').classList.toggle('active', mode === 'flat');
+            const viewGrouped = document.getElementById('viewGrouped');
+            const viewFlat = document.getElementById('viewFlat');
+            if (viewGrouped) viewGrouped.classList.toggle('active', mode === 'grouped');
+            if (viewFlat) viewFlat.classList.toggle('active', mode === 'flat');
             renderRequests();
         }
 
         function setViewSource(source) {
-            document.getElementById('viewSourceRecent').classList.toggle('active', source === 'recent');
-            document.getElementById('viewSourceSaved').classList.toggle('active', source === 'saved');
+            const recentBtn = document.getElementById('viewSourceRecent');
+            const savedBtn = document.getElementById('viewSourceSaved');
+            if (recentBtn) recentBtn.classList.toggle('active', source === 'recent');
+            if (savedBtn) savedBtn.classList.toggle('active', source === 'saved');
 
             vscode.postMessage({
                 type: 'setViewSource',
@@ -1205,6 +1237,7 @@
 
         function renderRequests() {
             const container = document.getElementById('requestList');
+            if (!container) return;
             const emptyState = document.getElementById('emptyState');
 
             let filtered = [...allRequests];
@@ -1241,18 +1274,20 @@
 
             if (filtered.length === 0) {
                 container.innerHTML = '';
-                emptyState.style.display = 'block';
-                if (filterQuery || methodFilter !== 'all') {
-                    emptyState.querySelector('h3').textContent = 'No Results';
-                    emptyState.querySelector('p').textContent = 'No requests match your filters.';
-                } else {
-                    emptyState.querySelector('h3').textContent = 'Welcome to StackerClient';
-                    emptyState.querySelector('p').innerHTML = 'Your request history will appear here.<br>Click "New Request" to get started.';
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                    if (filterQuery || methodFilter !== 'all') {
+                        emptyState.querySelector('h3').textContent = 'No Results';
+                        emptyState.querySelector('p').textContent = 'No requests match your filters.';
+                    } else {
+                        emptyState.querySelector('h3').textContent = 'Welcome to StackerClient';
+                        emptyState.querySelector('p').innerHTML = 'Your request history will appear here.<br>Click "New Request" to get started.';
+                    }
                 }
                 return;
             }
 
-            emptyState.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'none';
 
             // Flat view
             if (viewMode === 'flat') {
@@ -1415,15 +1450,16 @@
 
         function renderFolders() {
             const container = document.getElementById('folderList');
+            if (!container) return;
             const emptyState = document.getElementById('foldersEmptyState');
 
             if (allFolders.length === 0) {
                 container.innerHTML = '';
-                emptyState.style.display = 'block';
+                if (emptyState) emptyState.style.display = 'block';
                 return;
             }
 
-            emptyState.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'none';
             container.innerHTML = allFolders.map(folder => {
                 const requests = allRequests.filter(r => folder.requestIds.includes(r.id));
                 const availableRequests = allRequests.filter(r => !folder.requestIds.includes(r.id));
@@ -1490,15 +1526,16 @@
 
         function renderEnvironments() {
             const container = document.getElementById('envList');
+            if (!container) return;
             const emptyState = document.getElementById('envEmptyState');
 
             if (allEnvironments.length === 0) {
                 container.innerHTML = '';
-                emptyState.style.display = 'block';
+                if (emptyState) emptyState.style.display = 'block';
                 return;
             }
 
-            emptyState.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'none';
             container.innerHTML = allEnvironments.map(env => {
                 const isActive = activeEnvironment === env.id;
                 return `

@@ -395,8 +395,8 @@ body {
 }
 
 .btn-apply {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
     border: 1px solid transparent;
     padding: 0 10px;
     border-radius: 4px;
@@ -404,17 +404,19 @@ body {
     font-weight: 500;
     cursor: pointer;
     height: 28px;
-    transition: background 0.2s;
+    transition: all 0.2s;
     box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-apply:hover {
     background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
     color: white !important;
     filter: brightness(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .auth-options {
@@ -1294,8 +1296,8 @@ textarea:focus {
 .response-body {
     padding: 8px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    white-space: pre;
+    word-wrap: normal;
     max-height: calc(100vh - 200px);
     overflow-y: auto;
     font-size: 13px;
@@ -1313,7 +1315,7 @@ textarea:focus {
 .response-preview {
     width: 100%;
     height: 400px;
-    background: #f8f9fa;
+    background: #ffffff;
     border: none;
 }
 
@@ -1557,45 +1559,55 @@ textarea:focus {
     opacity: 0.5;
 }
 
-.json-index {
-    font-size: 11px;
-    min-width: 24px;
-    display: inline-block;
+/* Light Mode JSON Overrides */
+body.vscode-light .json-key,
+body.theme-light .json-key {
+    color: #0451a5;
 }
 
-.json-key {
+body.vscode-light .json-string,
+body.theme-light .json-string {
+    color: #a31515;
+}
+
+body.vscode-light .json-number,
+body.theme-light .json-number {
+    color: #098658;
+}
+
+body.vscode-light .json-boolean,
+body.theme-light .json-boolean {
+    color: #0000ff;
+}
+
+body.vscode-light .json-null,
+body.theme-light .json-null {
+    color: #0000ff;
+}
+
+/* Hex Viewer Colors */
+.hex-offset {
+    color: #858585;
+    margin-right: 15px;
+}
+
+.hex-bytes {
+    color: #ce9178;
+    margin-right: 15px;
+}
+
+.hex-ascii {
     color: #9cdcfe;
 }
 
-.json-string {
-    color: #ce9178;
+body.vscode-light .hex-bytes,
+body.theme-light .hex-bytes {
+    color: #a31515;
 }
 
-.json-number {
-    color: #b5cea8;
-}
-
-.json-boolean {
-    color: #569cd6;
-    font-weight: 600;
-}
-
-.json-null {
-    color: #569cd6;
-    font-style: italic;
-}
-
-.json-date {
-    color: #DCDCAA;
-}
-
-.json-link {
-    color: #3794ff;
-    text-decoration: none;
-}
-
-.json-link:hover {
-    text-decoration: underline;
+body.vscode-light .hex-ascii,
+body.theme-light .hex-ascii {
+    color: #0451a5;
 }
 
 /* Hex Viewer */
@@ -1623,8 +1635,8 @@ textarea:focus {
     display: flex;
     gap: 15px;
     padding: 10px 15px;
-    background: #2d2d2d;
-    border-bottom: 1px solid #404040;
+    background: var(--vscode-tab-inactiveBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
     flex-wrap: wrap;
 }
 
@@ -1645,8 +1657,8 @@ textarea:focus {
 }
 
 .formdata-part {
-    background: #252526;
-    border: 1px solid #3c3c3c;
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
     border-radius: 4px;
     margin-bottom: 10px;
     padding: 10px;
@@ -1933,28 +1945,34 @@ body.vscode-light .hex-dump-line {
 }
 
 /* Syntax Highlighting — Light theme */
-body.vscode-light .token-comment {
+body.vscode-light .token-comment,
+body.theme-light .token-comment {
     color: #008000;
 }
 
-body.vscode-light .token-tag {
+body.vscode-light .token-tag,
+body.theme-light .token-tag {
     color: #800000;
 }
 
-body.vscode-light .token-attr-name {
+body.vscode-light .token-attr-name,
+body.theme-light .token-attr-name {
     color: #e50000;
 }
 
-body.vscode-light .token-attr-value {
+body.vscode-light .token-attr-value,
+body.theme-light .token-attr-value {
     color: #0000ff;
 }
 
-body.vscode-light .token-bracket {
+body.vscode-light .token-bracket,
+body.theme-light .token-bracket {
     color: #800000;
     opacity: 0.6;
 }
 
-body.vscode-light .token-doctype {
+body.vscode-light .token-doctype,
+body.theme-light .token-doctype {
     color: #008000;
 }
 
@@ -1970,6 +1988,7 @@ body.vscode-light .line-number {
     line-height: 1.5;
     tab-size: 4;
     counter-reset: line;
+    background: #f8f8f8;
 }
 
 .line-number {
@@ -2317,11 +2336,22 @@ body.theme-light .response-body,
 body.theme-light .headers-raw,
 body.theme-light .response-preview,
 body.theme-light .response-preview iframe,
+body.vscode-light .response-body,
+body.vscode-light .headers-raw,
+body.vscode-light .response-preview,
+body.vscode-light .response-preview iframe {
+    background: #ffffff !important;
+}
+
 body.theme-dark .response-body,
 body.theme-dark .headers-raw,
 body.theme-dark .response-preview,
-body.theme-dark .response-preview iframe {
-    background: #f8f9fa !important;
+body.theme-dark .response-preview iframe,
+body.vscode-dark .response-body,
+body.vscode-dark .headers-raw,
+body.vscode-dark .response-preview,
+body.vscode-dark .response-preview iframe {
+    background: #1e1e1e !important;
 }
 
 body.theme-dark {

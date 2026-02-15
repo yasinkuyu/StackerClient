@@ -271,7 +271,7 @@
         },
         "stacker.editor.wordWrap": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable word wrap in response viewer"
         },
         "stacker.tabTitleFormat": {

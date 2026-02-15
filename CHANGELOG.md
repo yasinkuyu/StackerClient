@@ -11,8 +11,22 @@ All notable changes to the "StackerClient" extension will be documented in this 
 - **Structured Body Input**: Improved handling and input for structured request bodies.
 
 ### Changed
-- **UI Refresh**: Modernized the interface with new gradient buttons (purple/indigo), improved active tab visibility, and consistent panel backgrounds.
+- **UI Refresh**: Modernized the interface with new gradient buttons (purple/indigo), improved active tab visibility, and consistent panel backgrounds. Optimized syntax highlighting to respect VS Code themes accurately.
 - **Sidebar Selection**: Unified source selection with a 3-way toggle (Recent, Recent Saved, Saved).
+- **Default Response View**: Word-wrap is now **OFF** by default in the response body for better readability of raw data.
+
+### Improved
+- **Performance & Optimization**: 
+  - Implemented debouncing for URL input, search filters, and tab summaries to reduce CPU usage.
+  - Optimized DOM operations using persistent measurement elements and cached selectors.
+  - Introduced size limits for HTML syntax highlighting (100KB) and JSON tree depth (20 levels) to prevent UI freezing on massive responses.
+- **Robustness**: Applied extensive null checks and safety guards to all critical DOM interactions to prevent runtime errors.
+- **Memory Management**: Optimized `ResizeObserver` and event listener cleanup to prevent background memory leaks.
+
+### Fixed
+- **Theming Consistency**: Fixed background color issues in JSON, HTML, and Hex viewers; ensured pure white for light themes and deep gray for dark themes.
+- **Sidebar Rendering**: Resolved issues where history or folder lists would fail to render when elements were not yet initialized.
+- **Extract Button**: Restyled the "Extract" button in the Tests tab to match the application's primary purple gradient theme.
 
 ## [1.1.7] - 2026-02-14
 
