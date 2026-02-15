@@ -4,7 +4,7 @@
 - **Secure Token Storage**: Auth tokens are now stored using VS Code's `SecretStorage` API instead of plaintext `globalState`. Automatic migration of existing tokens is handled on startup.
 - **Enhanced Token Privacy**: sensitive tokens are now masked (`********`) in the webview UI, and only retrieved asynchronously when needed.
 - **Postman/Insomnia Import**: Full support for importing request collections from Postman (`.json`) and Insomnia (`.json`) exports.
-- **WebSocket Support**: New dedicated "WebSockets" tab for connecting to and interacting with real-time WebSocket APIs, featuring an animated status dashboard and a color-coded message log.
+- **WebSocket Support**: Integrated WebSocket connections into the main URL bar — select "WS" from the method dropdown to connect. Includes status dashboard, color-coded message log, and example WebSocket endpoints (Echo, Binance, Coinbase).
 - **Data Sanitization**: Automatically masks sensitive fields (tokens, passwords) in request history and saved requests to prevent plaintext exposure in storage.
 
 ### Fixed

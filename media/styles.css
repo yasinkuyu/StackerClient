@@ -187,6 +187,14 @@ body {
     filter: brightness(1.1);
 }
 
+.send-btn.ws-connected {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.send-btn.ws-connected:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
 .split-dropdown {
     position: relative;
     display: flex;
@@ -824,6 +832,11 @@ body {
 .example-method.delete {
     background: rgba(239, 68, 68, 0.2);
     color: #ef4444;
+}
+
+.example-method.ws {
+    background: rgba(6, 182, 212, 0.2);
+    color: #06b6d4;
 }
 
 .example-name {
@@ -3228,4 +3241,117 @@ body.vscode-light .tech-category {
 
 .ws-log-item.system .type {
     color: #9ca3af;
+}
+
+/* Code Generator Tab Styles */
+.code-container {
+    padding: 12px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.code-empty {
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    text-align: center;
+    padding: 40px 20px;
+    opacity: 0.7;
+}
+
+.code-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.code-lang-select {
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 4px;
+    color: var(--vscode-dropdown-foreground);
+    font-size: 12px;
+    padding: 6px 28px 6px 10px;
+    cursor: pointer;
+    outline: none;
+    min-width: 160px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cccccc' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.code-lang-select:focus {
+    border-color: var(--vscode-focusBorder);
+}
+
+.code-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--vscode-button-secondaryBackground);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    color: var(--vscode-button-secondaryForeground);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: auto;
+}
+
+.code-copy-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+    border-color: var(--vscode-focusBorder);
+}
+
+.code-copy-btn svg {
+    opacity: 0.8;
+}
+
+.code-block {
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--vscode-foreground);
+    margin: 0;
+    white-space: pre;
+}
+
+.code-block code {
+    font-family: inherit;
+}
+
+/* Syntax highlighting for code blocks */
+.code-block .code-keyword {
+    color: #c586c0;
+    font-weight: 500;
+}
+
+.code-block .code-string {
+    color: #ce9178;
+}
+
+.code-block .code-number {
+    color: #b5cea8;
+}
+
+.code-block .code-comment {
+    color: #6a9955;
+    font-style: italic;
+}
+
+.code-block .comment {
+    color: #6a9955;
+}
+
+.code-block .function {
+    color: #dcdcaa;
 }

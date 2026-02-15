@@ -64,11 +64,22 @@ const getCategoryDesc = (cat) => CATEGORIES[cat]?.desc || '';
 const getCategoryIcon = (cat) => CATEGORIES[cat]?.icon || '📦';
 
 // Pattern builder helper
-const pattern = (regex, name, category) => ({
-    regex,
-    name,
-    category
-});
+const pattern = (regex, name, category) => {
+    // Determine the category key (id) for proper dictionary grouping
+    let categoryKey = category;
+    if (typeof category === 'object') {
+        // Handle case where the entire category object was passed instead of its key
+        const found = Object.entries(CATEGORIES).find(([key, val]) => val === category);
+        if (found) {
+            categoryKey = found[0];
+        }
+    }
+    return {
+        regex,
+        name,
+        category: categoryKey
+    };
+};
 
 // Tech Stack Detection Patterns (Structured & Regex-based)
 const TECH_PATTERNS = {
@@ -546,18 +557,21 @@ function getMeasurementSpan() {
 let wsIsConnected = false;
 
 window.wsToggleConnect = function () {
-    const url = document.getElementById('wsUrl').value.trim();
+    const url = document.getElementById('url').value.trim();
     if (!url) {
         showToast('Please enter a WebSocket URL');
+        document.getElementById('url').focus();
         return;
     }
 
     if (wsIsConnected) {
         vscode.postMessage({ command: 'wsDisconnect' });
     } else {
-        const connectBtn = document.getElementById('wsConnectBtn');
-        connectBtn.textContent = 'Connecting...';
-        connectBtn.disabled = true;
+        const mainSendBtn = document.getElementById('sendBtn');
+        if (mainSendBtn) {
+            mainSendBtn.textContent = 'Connecting...';
+            mainSendBtn.disabled = true;
+        }
         updateWsStatus('connecting', 'Connecting...');
         vscode.postMessage({ command: 'wsConnect', url: url });
     }
@@ -580,22 +594,28 @@ window.wsClearLog = function () {
 function updateWsStatus(status, text) {
     const dot = document.getElementById('wsStatusDot');
     const statusText = document.getElementById('wsStatusText');
-    const connectBtn = document.getElementById('wsConnectBtn');
-    const sendBtn = document.getElementById('wsSendBtn');
+    const mainSendBtn = document.getElementById('sendBtn');
+    const wsSendBtn = document.getElementById('wsSendBtn');
 
-    dot.className = 'status-dot ' + status;
-    statusText.textContent = text;
+    if (dot) dot.className = 'status-dot ' + status;
+    if (statusText) statusText.textContent = text;
 
     if (status === 'connected') {
         wsIsConnected = true;
-        connectBtn.textContent = 'Disconnect';
-        connectBtn.disabled = false;
-        sendBtn.disabled = false;
+        if (mainSendBtn) {
+            mainSendBtn.textContent = 'Disconnect';
+            mainSendBtn.disabled = false;
+            mainSendBtn.classList.add('ws-connected');
+        }
+        if (wsSendBtn) wsSendBtn.disabled = false;
     } else if (status === 'disconnected' || status === 'error') {
         wsIsConnected = false;
-        connectBtn.textContent = 'Connect';
-        connectBtn.disabled = false;
-        sendBtn.disabled = true;
+        if (mainSendBtn) {
+            mainSendBtn.textContent = 'Connect';
+            mainSendBtn.disabled = false;
+            mainSendBtn.classList.remove('ws-connected');
+        }
+        if (wsSendBtn) wsSendBtn.disabled = true;
     }
 }
 
@@ -1305,7 +1325,8 @@ function initApp() {
                 }
             });
         } else {
-            btn.innerHTML = 'Send';
+            const currentMethod = document.getElementById('method')?.value;
+            btn.innerHTML = currentMethod === 'WS' ? (wsIsConnected ? 'Disconnect' : 'Connect') : 'Send';
             btn.disabled = false;
             btn.classList.remove('repeating');
             if (loadingEl) loadingEl.style.display = 'none';
@@ -1475,6 +1496,13 @@ function initApp() {
     if (sendBtn) {
         sendBtn.addEventListener('click', () => {
             console.log('Send button clicked!');
+            const methodSelect = document.getElementById('method');
+
+            // WebSocket mode: route to WS connect/disconnect
+            if (methodSelect && methodSelect.value === 'WS') {
+                wsToggleConnect();
+                return;
+            }
 
             // Eğer tekrarlayan moddaysak ve buton üzerinde "Stop" yazıyorsa (veya repeating class'ı varsa) durdur
             if (sendBtn.classList.contains('repeating')) {
@@ -1483,6 +1511,39 @@ function initApp() {
             }
 
             executeRequest();
+        });
+    }
+
+    // Method select change handler — dynamic UI for WS mode
+    const methodSelect = document.getElementById('method');
+    if (methodSelect) {
+        methodSelect.addEventListener('change', function () {
+            const urlInput = document.getElementById('url');
+            const mainSendBtn = document.getElementById('sendBtn');
+            const repeatDropdown = document.querySelector('.split-dropdown');
+            const requestTabs = document.querySelector('.tabs');
+
+            if (this.value === 'WS') {
+                // Switch to WebSocket mode
+                if (urlInput) urlInput.placeholder = 'wss://echo.websocket.org';
+                if (mainSendBtn) {
+                    mainSendBtn.textContent = wsIsConnected ? 'Disconnect' : 'Connect';
+                    mainSendBtn.classList.toggle('ws-connected', wsIsConnected);
+                }
+                if (repeatDropdown) repeatDropdown.style.display = 'none';
+
+                // Auto-switch to WebSockets tab
+                const wsTab = document.querySelector('[data-tab="websockets"]');
+                if (wsTab) wsTab.click();
+            } else {
+                // Switch back to HTTP mode
+                if (urlInput) urlInput.placeholder = 'https://api.example.com/users';
+                if (mainSendBtn && !mainSendBtn.classList.contains('repeating')) {
+                    mainSendBtn.textContent = 'Send';
+                    mainSendBtn.classList.remove('ws-connected');
+                }
+                if (repeatDropdown) repeatDropdown.style.display = '';
+            }
         });
     }
 
@@ -1977,7 +2038,393 @@ function initApp() {
         if (sharedContent) {
             sharedContent.style.display = (tabName === 'resBody' || tabName === 'resSearch') ? 'block' : 'none';
         }
+
+        // Render code tab when switching to it
+        if (tabName === 'resCode') {
+            renderCodeTab();
+        }
     };
+
+    // Code Generator Templates
+    const codeGenerators = {
+        curl: {
+            name: 'cURL',
+            generate: (data) => {
+                let cmd = `curl -X ${data.method} '${data.url}'`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    Object.entries(data.headers).forEach(([key, value]) => {
+                        cmd += ` \\\n  -H '${key}: ${value}'`;
+                    });
+                }
+                if (data.body) {
+                    cmd += ` \\\n  -d '${data.body}'`;
+                }
+                return cmd;
+            }
+        },
+        python: {
+            name: 'Python (requests)',
+            generate: (data) => {
+                let code = `import requests\n\nresponse = requests.${data.method.toLowerCase()}(\n    '${data.url}'`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    code += `,\n    headers={\n`;
+                    Object.entries(data.headers).forEach(([key, value], idx, arr) => {
+                        code += `        '${key}': '${value}'${idx < arr.length - 1 ? ',' : ''}\n`;
+                    });
+                    code += `    }`;
+                }
+                if (data.body) {
+                    code += `,\n    json=${data.body}`;
+                }
+                code += `\n)\nprint(response.status_code)\nprint(response.json())`;
+                return code;
+            }
+        },
+        javascript: {
+            name: 'JavaScript (fetch)',
+            generate: (data) => {
+                let code = `fetch('${data.url}', {\n    method: '${data.method}'`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    code += `,\n    headers: {\n`;
+                    Object.entries(data.headers).forEach(([key, value], idx, arr) => {
+                        code += `        '${key}': '${value}'${idx < arr.length - 1 ? ',' : ''}\n`;
+                    });
+                    code += `    }`;
+                }
+                if (data.body) {
+                    code += `,\n    body: JSON.stringify(${data.body})`;
+                }
+                code += `\n})\n    .then(res => res.json())\n    .then(data => console.log(data))\n    .catch(err => console.error(err));`;
+                return code;
+            }
+        },
+        axios: {
+            name: 'JavaScript (axios)',
+            generate: (data) => {
+                let code = `const axios = require('axios');\n\nconst response = await axios.${data.method.toLowerCase()}('${data.url}'`;
+                const props = [];
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    props.push(`headers: ${JSON.stringify(data.headers, null, 8)}`);
+                }
+                if (data.body) {
+                    props.push(`data: ${data.body}`);
+                }
+                if (props.length > 0) {
+                    code += `,\n    {\n        ${props.join(',\n        ')}\n    }`;
+                }
+                code += `\n);\nconsole.log(response.data);`;
+                return code;
+            }
+        },
+        go: {
+            name: 'Go',
+            generate: (data) => {
+                let code = `client := &http.Client{}\nreq, _ := http.NewRequest("${data.method}", "${data.url}", nil)`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    Object.entries(data.headers).forEach(([key, value]) => {
+                        code += `\nreq.Header.Add("${key}", "${value}")`;
+                    });
+                }
+                code += `\nresp, _ := client.Do(req)\ndefer resp.Body.Close()\n\nbody, _ := io.ReadAll(resp.Body)\nfmt.Println(string(body))`;
+                return code;
+            }
+        },
+        php: {
+            name: 'PHP',
+            generate: (data) => {
+                let code = `$ch = curl_init();\ncurl_setopt($ch, CURLOPT_URL, '${data.url}');\ncurl_setopt($ch, CURLOPT_CUSTOMREQUEST, '${data.method}');`;
+                if (data.body) {
+                    code += `\ncurl_setopt($ch, CURLOPT_POSTFIELDS, '${data.body}');`;
+                }
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    code += `\ncurl_setopt($ch, CURLOPT_HTTPHEADER, [\n`;
+                    Object.entries(data.headers).forEach(([key, value], idx, arr) => {
+                        code += `    '${key}: ${value}'${idx < arr.length - 1 ? ',' : ''}\n`;
+                    });
+                    code += `]);`;
+                }
+                code += `\n\n$response = curl_exec($ch);\ncurl_close($ch);\necho $response;`;
+                return code;
+            }
+        },
+        ruby: {
+            name: 'Ruby',
+            generate: (data) => {
+                let code = `require 'httparty'\n\nresponse = HTTParty.${data.method.toLowerCase()} '${data.url}'`;
+                const opts = [];
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    opts.push(`headers: {\n        'Content-Type' => 'application/json'${data.headers['Authorization'] ? `,\n        'Authorization' => '${data.headers['Authorization']}'` : ''}\n    }`);
+                }
+                if (data.body) {
+                    opts.push(`body: ${data.body}`);
+                }
+                if (opts.length > 0) {
+                    code += `,\n    ${opts.join(',\n    ')}`;
+                }
+                code += `\n\nputs response.code\nputs response.body`;
+                return code;
+            }
+        },
+        csharp: {
+            name: 'C#',
+            generate: (data) => {
+                let code = `using var client = new HttpClient();\n\nvar request = new HttpRequestMessage(HttpMethod.${data.method}, "${data.url}");`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    Object.entries(data.headers).forEach(([key, value]) => {
+                        code += `\nrequest.Headers.Add("${key}", "${value}");`;
+                    });
+                }
+                if (data.body) {
+                    code += `\nrequest.Content = new StringContent(${data.body === '{}' ? '{}' : `'${data.body}'`}, Encoding.UTF8, "application/json");`;
+                }
+                code += `\n\nvar response = await client.SendAsync(request);\nvar content = await response.Content.ReadAsStringAsync();\nConsole.WriteLine(content);`;
+                return code;
+            }
+        },
+        rust: {
+            name: 'Rust',
+            generate: (data) => {
+                let code = `use reqwest::Client;\nuse tokio::main;\n\n#[tokio::main]\nasync fn main() -> Result<(), reqwest::Error> {\n    let client = Client::new();\n    let response = client.${data.method.toLowerCase()}("${data.url}")`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    Object.entries(data.headers).forEach(([key, value]) => {
+                        code += `\n        .header("${key}", "${value}")`;
+                    });
+                }
+                if (data.body) {
+                    code += `\n        .body(r#"${data.body}"#)`;
+                }
+                code += `\n        .send()\n        .await?;\n\n    println!("Status: {}", response.status());\n    let body = response.text().await?;\n    println!("Body: {}", body);\n    Ok(())\n}`;
+                return code;
+            }
+        },
+        nodejs: {
+            name: 'Node.js (http)',
+            generate: (data) => {
+                // Parse URL to get hostname, port, path
+                let hostname = data.url, port = 80, path = data.url;
+                try {
+                    const urlObj = new URL(data.url);
+                    hostname = urlObj.hostname;
+                    port = urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80);
+                    path = urlObj.pathname + urlObj.search;
+                } catch (e) { }
+                const isHttps = data.url.startsWith('https');
+
+                let code = `const ${isHttps ? 'https' : 'http'} = require('${isHttps ? 'https' : 'http'}');\n\nconst options = {\n    hostname: '${hostname}',\n    port: ${port},\n    path: '${path}',\n    method: '${data.method}'`;
+                if (data.headers && Object.keys(data.headers).length > 0) {
+                    code += `,\n    headers: {\n`;
+                    Object.entries(data.headers).forEach(([key, value], idx, arr) => {
+                        code += `        '${key}': '${value}'${idx < arr.length - 1 ? ',' : ''}\n`;
+                    });
+                    code += `    }`;
+                }
+                code += `\n};\n\nconst req = ${isHttps ? 'https' : 'http'}.request(options, res => {\n    let data = '';\n    res.on('data', chunk => data += chunk);\n    res.on('end', () => console.log(data));\n});\n\nreq.on('error', error => console.error(error));`;
+                if (data.body) {
+                    code += `;\nreq.write('${data.body}');`;
+                }
+                code += `\nreq.end();`;
+                return code;
+            }
+        }
+    };
+
+    // Current selected language
+    let currentCodeLang = 'curl';
+
+    // Render Code Tab
+    window.renderCodeTab = function() {
+        const container = document.getElementById('codeContainer');
+        if (!container) return;
+
+        // Get current request data
+        const url = document.getElementById('url')?.value || '';
+        const method = document.getElementById('method')?.value || 'GET';
+
+        if (!url) {
+            container.innerHTML = '<div class="code-empty">Enter a URL and send a request to generate code snippets</div>';
+            return;
+        }
+
+        // Get headers
+        const headers = {};
+        const headerRows = document.querySelectorAll('#headersContainer .key-value-row');
+        headerRows.forEach(row => {
+            const checkbox = row.querySelector('.row-checkbox');
+            if (checkbox && checkbox.checked) {
+                const keyInput = row.querySelector('.header-key');
+                const valueInput = row.querySelector('.header-value');
+                if (keyInput && valueInput && keyInput.value) {
+                    headers[keyInput.value] = valueInput.value;
+                }
+            }
+        });
+
+        // Get body
+        let body = '';
+        const bodyType = document.querySelector('input[name="bodyType"]:checked')?.value;
+        if (bodyType === 'raw') {
+            body = document.getElementById('bodyInput')?.value || '';
+        } else if (bodyType === 'form-data' || bodyType === 'urlencoded') {
+            const containerId = bodyType === 'form-data' ? 'formDataContainer' : 'urlencodedContainer';
+            const rows = document.querySelectorAll(`#${containerId} .key-value-row`);
+            const bodyObj = {};
+            rows.forEach(row => {
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox && checkbox.checked) {
+                    const keyInput = row.querySelector('[class*="-key"]');
+                    const valueInput = row.querySelector('[class*="-value"]');
+                    if (keyInput && valueInput && keyInput.value) {
+                        bodyObj[keyInput.value] = valueInput.value;
+                    }
+                }
+            });
+            if (Object.keys(bodyObj).length > 0) {
+                body = JSON.stringify(bodyObj);
+            }
+        }
+
+        // Build language selector
+        const languages = Object.keys(codeGenerators);
+        let langOptions = '';
+        languages.forEach(lang => {
+            const selected = lang === currentCodeLang ? 'selected' : '';
+            langOptions += `<option value="${lang}" ${selected}>${codeGenerators[lang].name}</option>`;
+        });
+
+        // Generate code for current language
+        const generator = codeGenerators[currentCodeLang];
+        const code = generator ? generator.generate({ url, method, headers, body }) : '';
+
+        container.innerHTML = `
+            <div class="code-toolbar">
+                <select id="codeLanguageSelect" class="code-lang-select" onchange="changeCodeLanguage(this.value)">
+                    ${langOptions}
+                </select>
+                <button class="code-copy-btn" onclick="copyCode()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copy
+                </button>
+            </div>
+            <pre class="code-block"><code id="codeOutput">${highlightCode(code, currentCodeLang)}</code></pre>
+        `;
+    }
+
+    window.changeCodeLanguage = function(lang) {
+        currentCodeLang = lang;
+        renderCodeTab();
+    }
+
+    window.copyCode = function() {
+        const codeEl = document.getElementById('codeOutput');
+        if (codeEl) {
+            navigator.clipboard.writeText(codeEl.textContent).then(() => {
+                showToast('Code copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    }
+
+    // Store current code for copy function
+    window.currentCodeData = null;
+
+    // Syntax highlighting function
+    function highlightCode(code, language) {
+        if (!code) return '';
+
+        // Escape HTML first
+        let highlighted = code
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // Language-specific patterns
+        const patterns = {
+            curl: {
+                keywords: /(&lt;\/?[\w-]+|&gt;|-X|-H|-d|--data)/g,
+                strings: /'[^']*'|"[^"]*"|\$\w+|\$[{"\w]/g,
+                comments: /#.*/g
+            },
+            python: {
+                keywords: /\b(def|class|import|from|return|if|else|elif|for|while|in|try|except|finally|with|as|pass|break|continue|and|or|not|None|True|False|async|await|print|requests|json)\b/g,
+                strings: /"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+                comments: /#.*/g,
+                numbers: /\b\d+\b/g
+            },
+            javascript: {
+                keywords: /\b(const|let|var|function|async|await|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|class|extends|import|export|from|default|this|super|typeof|instanceof|in|of|null|undefined|true|false)\b/g,
+                strings: /`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            axios: {
+                keywords: /\b(const|let|var|function|async|await|return|if|else|for|while|try|catch|axios|await)\b/g,
+                strings: /`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            go: {
+                keywords: /\b(package|import|func|var|const|type|struct|interface|map|chan|if|else|for|range|switch|case|default|break|continue|return|go|select|defer|fallthrough|nil|true|false|fmt|http)\b/g,
+                strings: /"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            php: {
+                keywords: /\b(&lt;\?php|\$|function|class|extends|implements|public|private|protected|static|final|abstract|const|var|if|else|elseif|for|foreach|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|new|use|namespace|echo|print|array|true|false|null)\b|&gt;/g,
+                strings: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\/|#.*/g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            ruby: {
+                keywords: /\b(require|class|module|def|end|if|elsif|else|unless|case|when|while|until|for|do|begin|rescue|ensure|raise|return|yield|attr_reader|attr_writer|attr_accessor|true|false|nil|self|puts|puts|require|httparty)\b/g,
+                strings: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|/g,
+                comments: /#.*/g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            csharp: {
+                keywords: /\b(using|namespace|class|public|private|protected|internal|static|void|int|string|bool|var|new|if|else|for|foreach|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|async|await|HttpClient|HttpRequestMessage|StringContent|Encoding|Task)\b/g,
+                strings: /"(?:[^"\\]|\\.)*"/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            rust: {
+                keywords: /\b(fn|let|mut|const|struct|enum|impl|trait|pub|mod|use|crate|self|super|if|else|match|loop|while|for|in|break|continue|return|async|await|Result|Option|Some|None|Ok|Err|println|reqwest|tokio|main)\b/g,
+                strings: /"(?:[^"\\]|\\.)*"|r#*"[\s\S]*?"#*/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
+                numbers: /\b\d+\.?\d*\b/g
+            },
+            nodejs: {
+                keywords: /\b(const|let|var|function|require|module|exports|if|else|for|while|do|switch|case|break|continue|return|try|catch|finally|throw|new|this|null|undefined|true|false|http|https)\b/g,
+                strings: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g,
+                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
+                numbers: /\b\d+\.?\d*\b/g
+            }
+        };
+
+        const lang = language || 'curl';
+        const p = patterns[lang];
+
+        if (p) {
+            // Apply patterns in order (comments first to avoid conflicts)
+            if (p.comments) {
+                highlighted = highlighted.replace(p.comments, '<span class="code-comment">$&</span>');
+            }
+            if (p.keywords) {
+                highlighted = highlighted.replace(p.keywords, '<span class="code-keyword">$&</span>');
+            }
+            if (p.strings) {
+                highlighted = highlighted.replace(p.strings, '<span class="code-string">$&</span>');
+            }
+            if (p.numbers) {
+                highlighted = highlighted.replace(p.numbers, '<span class="code-number">$&</span>');
+            }
+        }
+
+        return highlighted;
+    }
 
     function parseCookies(headers) {
         const cookies = [];
@@ -3449,6 +3896,7 @@ function initApp() {
         }
 
         document.getElementById('method').value = req.method;
+        document.getElementById('method').dispatchEvent(new Event('change'));
         document.getElementById('url').value = req.url;
         document.getElementById('contentType').value = req.contentType || 'application/json';
 
@@ -4211,6 +4659,28 @@ function initApp() {
                 { key: 'Accept', value: 'application/xml' }
             ],
             contentType: 'application/xml',
+            body: ''
+        },
+        // WebSocket Examples
+        'ws-echo': {
+            method: 'WS',
+            url: 'wss://echo.websocket.org',
+            headers: [],
+            contentType: '',
+            body: ''
+        },
+        'ws-binance': {
+            method: 'WS',
+            url: 'wss://stream.binance.com:9443/ws/btcusdt@ticker',
+            headers: [],
+            contentType: '',
+            body: ''
+        },
+        'ws-coinbase': {
+            method: 'WS',
+            url: 'wss://ws-feed.exchange.coinbase.com',
+            headers: [],
+            contentType: '',
             body: ''
         }
     };

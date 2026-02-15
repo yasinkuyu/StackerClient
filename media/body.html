@@ -23,6 +23,7 @@
                 <option value="OPTIONS">OPTIONS</option>
                 <option value="CONNECT">CONNECT</option>
                 <option value="TRACE">TRACE</option>
+                <option value="WS">WS (WebSocket)</option>
             </select>
             <input type="text" id="url" class="url-input" placeholder="https://api.example.com/users">
             <input type="hidden" id="contentType" value="application/json">
@@ -252,6 +253,20 @@
                 <div class="example-item" data-example="env-demo">
                     <span class="example-method get">GET</span>
                     <span class="example-name">Environment Variables Demo</span>
+                </div>
+
+                <div class="example-category">WebSocket</div>
+                <div class="example-item" data-example="ws-echo">
+                    <span class="example-method ws">WS</span>
+                    <span class="example-name">Echo Server</span>
+                </div>
+                <div class="example-item" data-example="ws-binance">
+                    <span class="example-method ws">WS</span>
+                    <span class="example-name">Binance BTC Ticker</span>
+                </div>
+                <div class="example-item" data-example="ws-coinbase">
+                    <span class="example-method ws">WS</span>
+                    <span class="example-name">Coinbase BTC Ticker</span>
                 </div>
             </div>
         </div>
@@ -615,12 +630,6 @@
         <!-- WebSockets Tab -->
         <div id="websocketsTab" class="tab-content">
             <div class="ws-container">
-                <div class="ws-controls">
-                    <input type="text" id="wsUrl" class="url-input" placeholder="wss://echo.websocket.org"
-                        style="flex: 1;">
-                    <button id="wsConnectBtn" class="send-btn" onclick="wsToggleConnect()">Connect</button>
-                </div>
-
                 <div class="ws-status-bar">
                     <span id="wsStatusDot" class="status-dot"></span>
                     <span id="wsStatusText">Disconnected</span>
@@ -669,6 +678,7 @@
                 <button class="res-tab" onclick="showResTab('resHex', event)">Hex</button>
                 <button class="res-tab" onclick="showResTab('resStack', event)">Stack <span id="stackCount"
                         class="tab-count"></span></button>
+                <button class="res-tab" onclick="showResTab('resCode', event)">Code</button>
             </div>
             <div class="response-content">
 
@@ -832,6 +842,11 @@
             <div id="resStack" class="res-tab-content">
                 <div id="techStackContainer" class="tech-stack-list">
                     <div class="tech-stack-empty">Send a request to detect the technology stack</div>
+                </div>
+            </div>
+            <div id="resCode" class="res-tab-content">
+                <div id="codeContainer" class="code-container">
+                    <div class="code-empty">Enter a URL and send a request to generate code snippets</div>
                 </div>
             </div>
         </div>
