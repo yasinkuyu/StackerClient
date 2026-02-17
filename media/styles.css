@@ -2954,31 +2954,26 @@ body.theme-dark {
 
 .category-server .tech-dot,
 .category-server .tech-category-name {
-    background: #6366f1;
     color: #6366f1;
 }
 
 .category-marketing .tech-dot,
 .category-marketing .tech-category-name {
-    background: #f472b6;
     color: #f472b6;
 }
 
 .category-control-panel .tech-dot,
 .category-control-panel .tech-category-name {
-    background: #a78bfa;
     color: #a78bfa;
 }
 
 .category-paas .tech-dot,
 .category-paas .tech-category-name {
-    background: #38bdf8;
     color: #38bdf8;
 }
 
 .category-monitoring .tech-dot,
 .category-monitoring .tech-category-name {
-    background: #fb923c;
     color: #fb923c;
 }
 
