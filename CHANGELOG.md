@@ -1,3 +1,18 @@
+## [1.2.2] - 2026-02-15
+
+### Added
+- **Premium Stack Tab Redesign**: Completely overhauled the "Stack" tab UI. Replaced unreadable color blocks with a modern card-based layout, subtle accent borders, and high-contrast typography.
+- **WebSocket Interpolation**: URLs in the WebSockets tab now fully support environment variables (`{{variable}}`).
+- **Smart Protocol Detection**: WebSocket connection now automatically handles missing protocols (`ws://` for localhost, `wss://` for domains).
+
+### Fixed
+- **WebSocket Connectivity**: Fixed connection failures for many services by adding proper `Origin` and `User-Agent` headers and increasing handshake timeouts.
+- **Reference Error**: Fixed `escapeHtml` error in WebSocket log renderer.
+- **Button Styling**: Resolved unstyled "Send Message" button in the WebSockets dashboard to match the primary theme.
+
+### Improved
+- **Syntax Highlighting**: Optimized the core highlighter for better performance and cross-language robustness.
+
 ## [1.2.1] - 2026-02-15
 
 ### Added

@@ -20,6 +20,14 @@ window.onunhandledrejection = function (event) {
     }
 };
 
+const escaper = document.createElement('div');
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    if (typeof text !== 'string') text = String(text);
+    escaper.textContent = text;
+    return escaper.innerHTML;
+}
+
 const COMMON_HEADERS = [
     { key: 'Accept', value: 'application/json', desc: 'Accepted response format' },
     { key: 'Accept', value: 'text/html', desc: 'Accepted response format' },
@@ -1234,12 +1242,6 @@ function initApp() {
         urlInput.addEventListener('paste', () => setTimeout(syncUrlToQuery, 0));
     }
 
-    const escaper = document.createElement('div');
-    function escapeHtml(text) {
-        if (text === null || text === undefined) return '';
-        escaper.textContent = text;
-        return escaper.innerHTML;
-    }
 
     // Button handlers removed - now using inline onclick in body.html
 
@@ -1968,14 +1970,19 @@ function initApp() {
         // Group by category
         const byCategory = {};
         techStack.forEach(tech => {
-            if (!byCategory[tech.category]) {
-                byCategory[tech.category] = [];
+            const catKey = tech.category || 'OTHER';
+            if (!byCategory[catKey]) {
+                byCategory[catKey] = [];
             }
-            byCategory[tech.category].push(tech);
+            byCategory[catKey].push(tech);
         });
 
         // Sort categories: SERVER, FRONTEND, BACKEND first, then others alphabetically
-        const categoryOrder = ['SERVER', 'FRONTEND', 'BACKEND', 'CDN', 'SECURITY', 'CMS', 'ECOM', 'ANALYTICS', 'MONITORING', 'PAYMENT', 'API', 'MARKETING', 'INFRA', 'CONTROL_PANEL', 'PAAS'];
+        const categoryOrder = [
+            'SERVER', 'FRONTEND', 'BACKEND', 'CDN', 'SECURITY', 'CMS', 'ECOM',
+            'ANALYTICS', 'MONITORING', 'PAYMENT', 'API', 'MARKETING',
+            'INFRA', 'CONTROL_PANEL', 'PAAS'
+        ];
 
         let html = '<div class="tech-stack-grid">';
 
@@ -2005,10 +2012,12 @@ function initApp() {
                 </div>
                 <span class="tech-category-count">${itemCount}</span>
             </div>`;
-            html += `<div class="tech-category-desc">${escapeHtml(catDesc)}</div>`;
+            if (catDesc) {
+                html += `<div class="tech-category-desc">${escapeHtml(catDesc)}</div>`;
+            }
             html += '<div class="tech-items">';
             items.forEach(tech => {
-                html += `<div class="tech-item" title="${escapeHtml(tech.category)}">`;
+                html += `<div class="tech-item" title="${escapeHtml(catName)}">`;
                 html += `<span class="tech-dot"></span>`;
                 html += '<span class="tech-item-name">' + escapeHtml(tech.name) + '</span>';
                 html += '</div>';
@@ -2232,7 +2241,7 @@ function initApp() {
     let currentCodeLang = 'curl';
 
     // Render Code Tab
-    window.renderCodeTab = function() {
+    window.renderCodeTab = function () {
         const container = document.getElementById('codeContainer');
         if (!container) return;
 
@@ -2308,16 +2317,16 @@ function initApp() {
                     Copy
                 </button>
             </div>
-            <pre class="code-block"><code id="codeOutput">${highlightCode(code, currentCodeLang)}</code></pre>
+            <pre class="code-block"><code id="codeOutput">${highlightCode(code)}</code></pre>
         `;
     }
 
-    window.changeCodeLanguage = function(lang) {
+    window.changeCodeLanguage = function (lang) {
         currentCodeLang = lang;
         renderCodeTab();
     }
 
-    window.copyCode = function() {
+    window.copyCode = function () {
         const codeEl = document.getElementById('codeOutput');
         if (codeEl) {
             navigator.clipboard.writeText(codeEl.textContent).then(() => {
@@ -2331,99 +2340,14 @@ function initApp() {
     // Store current code for copy function
     window.currentCodeData = null;
 
-    // Syntax highlighting function
-    function highlightCode(code, language) {
+    // Simple syntax highlighting - no regex, just escape HTML
+    function highlightCode(code) {
         if (!code) return '';
-
-        // Escape HTML first
-        let highlighted = code
+        // Just escape HTML, no highlighting for now
+        return code
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
-
-        // Language-specific patterns
-        const patterns = {
-            curl: {
-                keywords: /(&lt;\/?[\w-]+|&gt;|-X|-H|-d|--data)/g,
-                strings: /'[^']*'|"[^"]*"|\$\w+|\$[{"\w]/g,
-                comments: /#.*/g
-            },
-            python: {
-                keywords: /\b(def|class|import|from|return|if|else|elif|for|while|in|try|except|finally|with|as|pass|break|continue|and|or|not|None|True|False|async|await|print|requests|json)\b/g,
-                strings: /"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
-                comments: /#.*/g,
-                numbers: /\b\d+\b/g
-            },
-            javascript: {
-                keywords: /\b(const|let|var|function|async|await|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|class|extends|import|export|from|default|this|super|typeof|instanceof|in|of|null|undefined|true|false)\b/g,
-                strings: /`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            axios: {
-                keywords: /\b(const|let|var|function|async|await|return|if|else|for|while|try|catch|axios|await)\b/g,
-                strings: /`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            go: {
-                keywords: /\b(package|import|func|var|const|type|struct|interface|map|chan|if|else|for|range|switch|case|default|break|continue|return|go|select|defer|fallthrough|nil|true|false|fmt|http)\b/g,
-                strings: /"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            php: {
-                keywords: /\b(&lt;\?php|\$|function|class|extends|implements|public|private|protected|static|final|abstract|const|var|if|else|elseif|for|foreach|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|new|use|namespace|echo|print|array|true|false|null)\b|&gt;/g,
-                strings: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\/|#.*/g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            ruby: {
-                keywords: /\b(require|class|module|def|end|if|elsif|else|unless|case|when|while|until|for|do|begin|rescue|ensure|raise|return|yield|attr_reader|attr_writer|attr_accessor|true|false|nil|self|puts|puts|require|httparty)\b/g,
-                strings: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|/g,
-                comments: /#.*/g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            csharp: {
-                keywords: /\b(using|namespace|class|public|private|protected|internal|static|void|int|string|bool|var|new|if|else|for|foreach|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|async|await|HttpClient|HttpRequestMessage|StringContent|Encoding|Task)\b/g,
-                strings: /"(?:[^"\\]|\\.)*"/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            rust: {
-                keywords: /\b(fn|let|mut|const|struct|enum|impl|trait|pub|mod|use|crate|self|super|if|else|match|loop|while|for|in|break|continue|return|async|await|Result|Option|Some|None|Ok|Err|println|reqwest|tokio|main)\b/g,
-                strings: /"(?:[^"\\]|\\.)*"|r#*"[\s\S]*?"#*/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
-                numbers: /\b\d+\.?\d*\b/g
-            },
-            nodejs: {
-                keywords: /\b(const|let|var|function|require|module|exports|if|else|for|while|do|switch|case|break|continue|return|try|catch|finally|throw|new|this|null|undefined|true|false|http|https)\b/g,
-                strings: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g,
-                comments: /\/\/.*|\/\*[\s\S]*?\*\//g,
-                numbers: /\b\d+\.?\d*\b/g
-            }
-        };
-
-        const lang = language || 'curl';
-        const p = patterns[lang];
-
-        if (p) {
-            // Apply patterns in order (comments first to avoid conflicts)
-            if (p.comments) {
-                highlighted = highlighted.replace(p.comments, '<span class="code-comment">$&</span>');
-            }
-            if (p.keywords) {
-                highlighted = highlighted.replace(p.keywords, '<span class="code-keyword">$&</span>');
-            }
-            if (p.strings) {
-                highlighted = highlighted.replace(p.strings, '<span class="code-string">$&</span>');
-            }
-            if (p.numbers) {
-                highlighted = highlighted.replace(p.numbers, '<span class="code-number">$&</span>');
-            }
-        }
-
-        return highlighted;
     }
 
     function parseCookies(headers) {
@@ -2452,6 +2376,162 @@ function initApp() {
     let currentResponse = null;
     let bodyViewMode = 'raw'; // 'raw' or 'preview'
     let headersViewMode = 'table'; // 'table' or 'raw'
+
+    function getHeaderValueClass(value) {
+        const val = String(value);
+        if (val.startsWith('http')) return 'url';
+        if (/^\d{4}-\d{2}-\d{2}/.test(val)) return 'date';
+        if (!isNaN(val) && val.length > 0) return 'number';
+        return 'string';
+    }
+
+    function formatHtml(html) {
+        if (!html) return '';
+        var formatted = '';
+        var reg = /(>)(<)(\/*)/g;
+        html = html.replace(reg, '$1\r\n$2$3');
+        var pad = 0;
+        html.split('\r\n').forEach(function (node) {
+            var indent = 0;
+            if (node.match(/.+<\/\w[^>]*>$/)) {
+                indent = 0;
+            } else if (node.match(/^<\/\w/)) {
+                if (pad != 0) pad -= 1;
+            } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+                indent = 1;
+            } else {
+                indent = 0;
+            }
+
+            var padding = '';
+            for (var i = 0; i < pad; i++) padding += '  ';
+            formatted += padding + node + '\r\n';
+            pad += indent;
+        });
+
+        return formatted.trim();
+    }
+
+    function highlightHTML(html) {
+        if (!html) return '';
+
+        // Performance: Limit highlighting for very large bodies
+        if (html.length > 100000) {
+            return '<code class="html-highlighted">' + (typeof html === 'string' ? escapeHtml(html) : escapeHtml(JSON.stringify(html))) + '</code>';
+        }
+
+        var escaped = escapeHtml(html);
+        // Use placeholder markers instead of real <span> tags during regex
+        // to prevent later regex steps from matching generated span attributes.
+        // \x01CLASS\x02 will become <span class="CLASS"> at the end
+        // \x03 will become </span> at the end
+        var h = escaped
+            .replace(/&lt;!--[\s\S]*?--&gt;/g, '\x01token-comment\x02$&\x03')
+            .replace(/(&lt;!DOCTYPE\s+[^&]*&gt;)/gi, '\x01token-doctype\x02$&\x03')
+            .replace(/(&lt;\/?)([a-z][a-z0-9-]*)/gi, '$1\x01token-tag\x02$2\x03')
+            .replace(/(\s+)([a-z][a-z0-9_:-]*)(\s*=\s*)(&quot;[\s\S]*?&quot;|&#39;[\s\S]*?&#39;|[^\s&>\x01]+)/gi,
+                '$1\x01token-attr-name\x02$2\x03$3\x01token-attr-value\x02$4\x03')
+            .replace(/&lt;/g, '\x01token-bracket\x02&lt;\x03')
+            .replace(/\/?&gt;/g, '\x01token-bracket\x02$&\x03');
+        // Now convert markers to real spans (safe - no more regex processing)
+        h = h.replace(/\x01([^\x02]*)\x02/g, '<span class="$1">').replace(/\x03/g, '</span>');
+        // Line numbers
+        var lines = h.split('\n');
+        var numbered = lines.map(function (line, i) {
+            return '<span class="line-number">' + (i + 1) + '</span>' + line;
+        }).join('\n');
+        return '<code class="html-highlighted">' + numbered + '</code>';
+    }
+
+    function renderHexViewer(hexData) {
+        const size = hexData.size;
+        const truncated = hexData.truncated;
+        const mime = hexData.mimeType || 'unknown';
+
+        const hexStr = hexData.hex || '';
+
+        let html = '<div class="hex-viewer">';
+        html += '<div class="hex-header">';
+        html += `<span class="hex-type">Binary</span>`;
+        html += `<span class="hex-mime">${escapeHtml(mime)}</span>`;
+        html += `<span class="hex-size">${formatBytes(size)}</span>`;
+        if (truncated) {
+            html += `<span class="hex-truncated">(Showing first 1MB)</span>`;
+        }
+        html += '</div>';
+        html += '<div class="hex-content">';
+
+        // Use manual hex rendering
+        html += renderHexManual(hexStr);
+
+        html += '</div></div>';
+        return html;
+    }
+
+    function renderHexManual(hex) {
+        let html = '';
+        const bytes = hex.split(' ');
+        for (let i = 0; i < bytes.length; i += 16) {
+            const lineBytes = bytes.slice(i, i + 16);
+            const offset = i.toString(16).padStart(8, '0');
+            const hexPart = lineBytes.join(' ');
+            const asciiPart = lineBytes.map(b => {
+                const code = parseInt(b, 16);
+                return code >= 32 && code <= 126 ? String.fromCharCode(code) : '.';
+            }).join('');
+
+            html += '<div class="hex-line">';
+            html += `<span class="hex-offset">${offset}</span>`;
+            html += `<span class="hex-bytes">${hexPart}</span>`;
+            html += `<span class="hex-ascii">${escapeHtml(asciiPart)}</span>`;
+            html += '</div>';
+        }
+        return html;
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function renderFormData(formData) {
+        let html = '<div class="formdata-viewer">';
+        html += '<div class="formdata-header">';
+        html += `<span class="formdata-type">multipart/form-data</span>`;
+        html += `<span class="formdata-boundary">Boundary: ${escapeHtml(formData.boundary || '')}</span>`;
+        html += '</div>';
+
+        if (formData.parts && formData.parts.length > 0) {
+            html += '<div class="formdata-parts">';
+            formData.parts.forEach((part, idx) => {
+                html += '<div class="formdata-part">';
+                html += `<div class="formdata-part-header">Part ${idx + 1}</div>`;
+
+                if (part.filename) {
+                    html += `<div class="formdata-field"><span class="field-label">Filename:</span> <span class="field-value">${escapeHtml(part.filename)}</span></div>`;
+                }
+                if (part.name) {
+                    html += `<div class="formdata-field"><span class="field-label">Name:</span> <span class="field-value">${escapeHtml(part.name)}</span></div>`;
+                }
+                if (part.contentType) {
+                    html += `<div class="formdata-field"><span class="field-label">Type:</span> <span class="field-value">${escapeHtml(part.contentType)}</span></div>`;
+                }
+                html += `<div class="formdata-field"><span class="field-label">Content:</span></div>`;
+                html += `<pre class="formdata-content">${escapeHtml(part.body || '')}</pre>`;
+
+                html += '</div>';
+            });
+            html += '</div>';
+        } else {
+            html += '<pre class="formdata-raw">' + escapeHtml(formData.raw || '') + '</pre>';
+        }
+
+        html += '</div>';
+        return html;
+    }
 
     function displayResponse(response) {
         currentResponse = response;
@@ -2539,7 +2619,7 @@ function initApp() {
                 if (collapseBtn) collapseBtn.style.display = 'none';
             }
 
-            bodyViewMode = 'preview';
+            bodyViewMode = (isHtml || contentType.includes('xml')) ? 'pretty' : 'preview';
             updateBodyView();
         } else {
             if (copyBtn) copyBtn.style.display = 'none';
@@ -2573,14 +2653,6 @@ function initApp() {
             headersHtml += '<span class="header-key" style="color:#a78bfa;">Interpolated URL</span>';
             headersHtml += '<span class="header-value url">' + escapeHtml(response.interpolatedUrl) + '</span>';
             headersHtml += '</div>';
-        }
-
-        function getHeaderValueClass(value) {
-            const val = String(value);
-            if (val.startsWith('http')) return 'url';
-            if (/^\d{4}-\d{2}-\d{2}/.test(val)) return 'date';
-            if (!isNaN(val) && val.length > 0) return 'number';
-            return 'string';
         }
 
         headerKeys.forEach(function (key) {
@@ -2626,132 +2698,6 @@ function initApp() {
         // Body viewing handles high-level state, specific rendering happens in updateBodyView
         // This resolves the synchronization issue where labels and content didn't match.
         const previewFrame = document.getElementById('previewFrame');
-
-        // Render Form Data
-        function renderFormData(formData) {
-            let html = '<div class="formdata-viewer">';
-            html += '<div class="formdata-header">';
-            html += `<span class="formdata-type">multipart/form-data</span>`;
-            html += `<span class="formdata-boundary">Boundary: ${escapeHtml(formData.boundary || '')}</span>`;
-            html += '</div>';
-
-            if (formData.parts && formData.parts.length > 0) {
-                html += '<div class="formdata-parts">';
-                formData.parts.forEach((part, idx) => {
-                    html += '<div class="formdata-part">';
-                    html += `<div class="formdata-part-header">Part ${idx + 1}</div>`;
-
-                    if (part.filename) {
-                        html += `<div class="formdata-field"><span class="field-label">Filename:</span> <span class="field-value">${escapeHtml(part.filename)}</span></div>`;
-                    }
-                    if (part.name) {
-                        html += `<div class="formdata-field"><span class="field-label">Name:</span> <span class="field-value">${escapeHtml(part.name)}</span></div>`;
-                    }
-                    if (part.contentType) {
-                        html += `<div class="formdata-field"><span class="field-label">Type:</span> <span class="field-value">${escapeHtml(part.contentType)}</span></div>`;
-                    }
-                    html += `<div class="formdata-field"><span class="field-label">Content:</span></div>`;
-                    html += `<pre class="formdata-content">${escapeHtml(part.body || '')}</pre>`;
-
-                    html += '</div>';
-                });
-                html += '</div>';
-            } else {
-                html += '<pre class="formdata-raw">' + escapeHtml(formData.raw || '') + '</pre>';
-            }
-
-            html += '</div>';
-            return html;
-        }
-
-        function highlightHTML(html) {
-            if (!html) return '';
-
-            // Performance: Limit highlighting for very large bodies
-            if (html.length > 100000) {
-                return '<code class="html-highlighted">' + escapeHtml(html) + '</code>';
-            }
-
-            var escaped = escapeHtml(html);
-            // Use placeholder markers instead of real <span> tags during regex
-            // to prevent later regex steps from matching generated span attributes.
-            // \x01CLASS\x02 will become <span class="CLASS"> at the end
-            // \x03 will become </span> at the end
-            var h = escaped
-                .replace(/&lt;!--[\s\S]*?--&gt;/g, '\x01token-comment\x02$&\x03')
-                .replace(/(&lt;!DOCTYPE\s+[^&]*&gt;)/gi, '\x01token-doctype\x02$&\x03')
-                .replace(/(&lt;\/?)([a-z][a-z0-9-]*)/gi, '$1\x01token-tag\x02$2\x03')
-                .replace(/(\s+)([a-z][a-z0-9_:-]*)(\s*=\s*)(&quot;[\s\S]*?&quot;|&#39;[\s\S]*?&#39;|[^\s&>\x01]+)/gi,
-                    '$1\x01token-attr-name\x02$2\x03$3\x01token-attr-value\x02$4\x03')
-                .replace(/&lt;/g, '\x01token-bracket\x02&lt;\x03')
-                .replace(/\/?&gt;/g, '\x01token-bracket\x02$&\x03');
-            // Now convert markers to real spans (safe - no more regex processing)
-            h = h.replace(/\x01([^\x02]*)\x02/g, '<span class="$1">').replace(/\x03/g, '</span>');
-            // Line numbers
-            var lines = h.split('\n');
-            var numbered = lines.map(function (line, i) {
-                return '<span class="line-number">' + (i + 1) + '</span>' + line;
-            }).join('\n');
-            return '<code class="html-highlighted">' + numbered + '</code>';
-        }
-
-        // Hex Viewer - Custom implementation
-        function renderHexViewer(hexData) {
-            const size = hexData.size;
-            const truncated = hexData.truncated;
-            const mime = hexData.mimeType || 'unknown';
-
-            const hexStr = hexData.hex || '';
-
-            let html = '<div class="hex-viewer">';
-            html += '<div class="hex-header">';
-            html += `<span class="hex-type">Binary</span>`;
-            html += `<span class="hex-mime">${escapeHtml(mime)}</span>`;
-            html += `<span class="hex-size">${formatBytes(size)}</span>`;
-            if (truncated) {
-                html += `<span class="hex-truncated">(Showing first 1MB)</span>`;
-            }
-            html += '</div>';
-            html += '<div class="hex-content">';
-
-            // Use manual hex rendering
-            html += renderHexManual(hexStr);
-
-            html += '</div></div>';
-            return html;
-        }
-
-        // Manual hex render fallback
-        function renderHexManual(hex) {
-            let html = '';
-            const bytes = hex.split(' ');
-            for (let i = 0; i < bytes.length; i += 16) {
-                const lineBytes = bytes.slice(i, i + 16);
-                const offset = i.toString(16).padStart(8, '0');
-                const hexPart = lineBytes.join(' ');
-                const asciiPart = lineBytes.map(b => {
-                    const code = parseInt(b, 16);
-                    return code >= 32 && code <= 126 ? String.fromCharCode(code) : '.';
-                }).join('');
-
-                html += '<div class="hex-line">';
-                html += `<span class="hex-offset">${offset}</span>`;
-                html += `<span class="hex-bytes">${hexPart}</span>`;
-                html += `<span class="hex-ascii">${escapeHtml(asciiPart)}</span>`;
-                html += '</div>';
-            }
-            return html;
-        }
-
-        // Format bytes to human readable
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
 
         // Setup HTML preview using srcdoc (more secure and CSP-friendly)
         if (isHtml && response.body) {
@@ -2839,9 +2785,20 @@ function initApp() {
         responseEl.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Toggle body view (raw/preview)
+    // Toggle body view (raw/pretty/preview)
     window.toggleBodyView = function () {
-        bodyViewMode = bodyViewMode === 'raw' ? 'preview' : 'raw';
+        if (!currentResponse) return;
+        const contentType = currentResponse.headers['content-type'] || currentResponse.headers['Content-Type'] || '';
+        const isHtml = contentType.includes('html');
+        const isXml = contentType.includes('xml');
+
+        if (isHtml || isXml) {
+            if (bodyViewMode === 'raw') bodyViewMode = 'pretty';
+            else if (bodyViewMode === 'pretty') bodyViewMode = 'preview';
+            else bodyViewMode = 'raw';
+        } else {
+            bodyViewMode = bodyViewMode === 'raw' ? 'preview' : 'raw';
+        }
         updateBodyView();
     };
 
@@ -3274,19 +3231,40 @@ function initApp() {
         const expandBtn = document.getElementById('expandBtn');
         const collapseBtn = document.getElementById('collapseBtn');
 
-        const contentType = currentResponse?.headers['content-type'] || currentResponse?.headers['Content-Type'] || '';
+        if (!currentResponse) return;
+
+        const contentType = currentResponse.headers['content-type'] || currentResponse.headers['Content-Type'] || '';
         const isJson = contentType.includes('json');
         const isHtml = contentType.includes('html');
         const isXml = contentType.includes('xml');
 
-        if (bodyViewMode === 'preview') {
+        bodyEl.classList.remove('raw-text');
+
+        if (bodyViewMode === 'preview' && (isHtml || isXml)) {
+            // Rendered iframe mode
+            bodyEl.style.display = 'none';
+            previewEl.style.display = 'block';
+            if (expandBtn) expandBtn.style.display = 'none';
+            if (collapseBtn) collapseBtn.style.display = 'none';
+            if (viewText) viewText.textContent = 'Raw';
+        } else if (bodyViewMode === 'pretty' && (isHtml || isXml)) {
+            // Formatted + Highlighted code mode
+            bodyEl.style.display = 'block';
+            previewEl.style.display = 'none';
+            if (expandBtn) expandBtn.style.display = 'none';
+            if (collapseBtn) collapseBtn.style.display = 'none';
+            if (viewText) viewText.textContent = 'Preview';
+
+            const prettyHtml = formatHtml(currentResponse.body);
+            bodyEl.innerHTML = highlightHTML(prettyHtml);
+        } else if (bodyViewMode === 'preview' || bodyViewMode === 'pretty') {
+            // Tree view for JSON or other "Pretty" versions
+            bodyEl.style.display = 'block';
+            previewEl.style.display = 'none';
+
             if (isJson) {
-                bodyEl.style.display = 'block';
-                previewEl.style.display = 'none';
-                bodyEl.classList.remove('raw-text');
                 if (expandBtn) expandBtn.style.display = 'flex';
                 if (collapseBtn) collapseBtn.style.display = 'flex';
-
                 let jsonData = null;
                 if (typeof currentResponse.body === 'object') {
                     jsonData = currentResponse.body;
@@ -3296,17 +3274,9 @@ function initApp() {
                 if (jsonData !== null) {
                     bodyEl.innerHTML = '<div class="json-tree">' + renderJSONTree(jsonData, 0) + '</div>';
                 }
-            } else if (isHtml || isXml) {
-                bodyEl.style.display = 'none';
-                previewEl.style.display = 'block';
+            } else {
                 if (expandBtn) expandBtn.style.display = 'none';
                 if (collapseBtn) collapseBtn.style.display = 'none';
-            } else {
-                // For other types, "Preview" might just be highlighted version if available
-                bodyEl.style.display = 'block';
-                previewEl.style.display = 'none';
-                bodyEl.classList.remove('raw-text');
-                // Re-render body content for potential highlighting if applicable
                 if (currentResponse.body && currentResponse.body.__hex__) {
                     bodyEl.innerHTML = renderHexViewer(currentResponse.body);
                 } else if (currentResponse.body && currentResponse.body.__formData__) {
@@ -3318,18 +3288,18 @@ function initApp() {
             }
             if (viewText) viewText.textContent = 'Raw';
         } else {
-            // Raw mode - Standard for all types
+            // Raw mode
             bodyEl.style.display = 'block';
             previewEl.style.display = 'none';
             bodyEl.classList.add('raw-text');
-
             if (expandBtn) expandBtn.style.display = 'none';
             if (collapseBtn) collapseBtn.style.display = 'none';
-            if (viewText) viewText.textContent = 'Preview';
+
+            const btnLabel = (isHtml || isXml) ? 'Pretty' : 'Preview';
+            if (viewText) viewText.textContent = btnLabel;
 
             const bodyStr = typeof currentResponse.body === 'string' ?
                 currentResponse.body : JSON.stringify(currentResponse.body, null, 2);
-
             bodyEl.textContent = bodyStr;
         }
     }

@@ -2753,39 +2753,46 @@ body.theme-dark {
     background: var(--vscode-button-secondaryHoverBackground);
 }
 
-/* Tech Stack Tab Styles */
+/* Tech Stack Tab Styles - Redesigned for Premium Look */
 .tech-stack-list {
-    padding: 12px;
+    padding: 20px;
     height: 100%;
     overflow-y: auto;
+    background: var(--vscode-editor-background);
 }
 
 .tech-stack-empty {
     color: var(--vscode-descriptionForeground);
-    font-size: 13px;
+    font-size: 14px;
     text-align: center;
-    padding: 40px 20px;
+    padding: 60px 20px;
     opacity: 0.7;
+    font-style: italic;
 }
 
 .tech-stack-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    padding: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
 }
 
 .tech-category {
-    background: var(--vscode-editor-background);
+    background: var(--vscode-sideBar-background);
     border: 1px solid var(--vscode-panel-border);
+    border-left: 4px solid var(--vscode-focusBorder);
+    /* Default accent */
     border-radius: 8px;
     padding: 16px;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .tech-category:hover {
     transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     border-color: var(--vscode-focusBorder);
 }
 
@@ -2793,173 +2800,156 @@ body.theme-dark {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 4px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--vscode-panel-border);
 }
 
 .tech-category-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .tech-category-icon {
-    font-size: 18px;
-    line-height: 1;
+    font-size: 20px;
+    background: var(--vscode-button-secondaryBackground);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
 }
 
 .tech-category-name {
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--vscode-foreground);
 }
 
 .tech-category-count {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-descriptionForeground);
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     padding: 2px 8px;
-    border-radius: 12px;
-    min-width: 20px;
-    text-align: center;
+    border-radius: 10px;
 }
 
 .tech-category-desc {
     font-size: 12px;
     color: var(--vscode-descriptionForeground);
-    margin-bottom: 14px;
-    font-style: italic;
-    opacity: 0.85;
+    line-height: 1.5;
+    margin-top: -4px;
 }
 
 .tech-items {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    margin-top: 4px;
 }
 
 .tech-item {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: 8px;
+    padding: 5px 12px;
     background: var(--vscode-button-secondaryBackground);
+    border: 1px solid var(--vscode-panel-border);
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--vscode-foreground);
-    transition: background 0.2s ease;
-    border: 1px solid transparent;
+    transition: all 0.2s ease;
 }
 
 .tech-item:hover {
     background: var(--vscode-button-secondaryHoverBackground);
-    border-color: rgba(139, 92, 246, 0.3);
+    border-color: var(--vscode-focusBorder);
 }
 
 .tech-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--vscode-descriptionForeground);
+    background: currentColor;
+    opacity: 0.8;
 }
 
-.tech-item-name {
-    font-weight: 500;
+/* Category Accent Colors */
+.category-server {
+    border-left-color: #6366f1;
 }
 
-/* Category Specific Colors */
-.category-frontend .tech-dot,
-.category-frontend .tech-category-name {
-    background: #10b981;
-    color: #10b981;
+.category-frontend {
+    border-left-color: #10b981;
 }
 
-.category-backend .tech-dot,
-.category-backend .tech-category-name {
-    background: #3b82f6;
-    color: #3b82f6;
+.category-backend {
+    border-left-color: #3b82f6;
 }
 
-.category-security .tech-dot,
-.category-security .tech-category-name {
-    background: #ef4444;
-    color: #ef4444;
+.category-cdn {
+    border-left-color: #f59e0b;
 }
 
-.category-cdn .tech-dot,
-.category-cdn .tech-category-name {
-    background: #f59e0b;
-    color: #f59e0b;
+.category-security {
+    border-left-color: #ef4444;
 }
 
-.category-cms .tech-dot,
-.category-cms .tech-category-name {
-    background: #8b5cf6;
-    color: #8b5cf6;
+.category-cms {
+    border-left-color: #8b5cf6;
 }
 
-.category-web-server .tech-dot,
-.category-web-server .tech-category-name {
-    background: #6366f1;
-    color: #6366f1;
+.category-analytics {
+    border-left-color: #ec4899;
 }
 
-.category-analytics .tech-dot,
-.category-analytics .tech-category-name {
-    background: #ec4899;
-    color: #ec4899;
+.category-e-commerce {
+    border-left-color: #f97316;
 }
 
-.category-e-commerce .tech-dot,
-.category-e-commerce .tech-category-name {
-    background: #f97316;
-    color: #f97316;
+.category-api {
+    border-left-color: #06b6d4;
 }
 
-.category-api .tech-dot,
-.category-api .tech-category-name {
-    background: #06b6d4;
-    color: #06b6d4;
+.category-infrastructure {
+    border-left-color: #71717a;
 }
 
-.category-infrastructure .tech-dot,
-.category-infrastructure .tech-category-name {
-    background: #84cc16;
-    color: #84cc16;
+.category-control-panel {
+    border-left-color: #14b8a6;
 }
 
-.category-payment .tech-dot,
-.category-payment .tech-category-name {
-    background: #14b8a6;
-    color: #14b8a6;
+.category-paas {
+    border-left-color: #0ea5e9;
 }
 
-.category-monitoring .tech-dot,
-.category-monitoring .tech-category-name {
-    background: #a855f7;
-    color: #a855f7;
+.category-payment {
+    border-left-color: #14b8a6;
 }
 
-.category-marketing .tech-dot,
-.category-marketing .tech-category-name {
-    background: #f43f5e;
-    color: #f43f5e;
+.category-monitoring {
+    border-left-color: #a855f7;
 }
 
-.category-control-panel .tech-dot,
-.category-control-panel .tech-category-name {
-    background: #64748b;
-    color: #64748b;
+.category-marketing {
+    border-left-color: #f43f5e;
 }
 
-.category-paas .tech-dot,
-.category-paas .tech-category-name {
-    background: #0ea5e9;
-    color: #0ea5e9;
+.category-server {
+    border-left-color: #6366f1;
+}
+
+.category-web-server {
+    border-left-color: #6366f1;
+}
+
+.category-operating-system {
+    border-left-color: #71717a;
+}
+
+.category-database {
+    border-left-color: #3b82f6;
 }
 
 .category-server .tech-dot,

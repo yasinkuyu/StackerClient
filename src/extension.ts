@@ -116,7 +116,18 @@ export function activate(context: vscode.ExtensionContext) {
                     await vscode.commands.executeCommand('stacker.importCollection');
                     break;
                 case 'wsConnect':
-                    handleWsConnect(message.url, panelRef);
+                    {
+                        const activeEnvId = sidebarProvider.getActiveEnvironment();
+                        let envVariables: Array<{ key: string, value: string, enabled: boolean }> = [];
+                        if (activeEnvId) {
+                            const environments = sidebarProvider.getEnvironments();
+                            const activeEnv = environments.find(e => e.id === activeEnvId);
+                            if (activeEnv) {
+                                envVariables = activeEnv.variables;
+                            }
+                        }
+                        handleWsConnect(message.url, panelRef, envVariables);
+                    }
                     break;
                 case 'wsDisconnect':
                     handleWsDisconnect(panelRef);
@@ -1910,21 +1921,69 @@ function parseMultipartFormData(body: string, boundary: string): any[] {
 }
 
 
-function handleWsConnect(url: string, panel: vscode.WebviewPanel) {
+function handleWsConnect(url: string, panel: vscode.WebviewPanel, envVariables: Array<{ key: string, value: string, enabled: boolean }> = []) {
     try {
         if (activeWs) {
             activeWs.close();
         }
 
-        const ws = new WebSocket(url);
+        // Interpolate environment variables
+        let interpolatedUrl = interpolateEnvironmentVariables(url, envVariables);
+
+        // Ensure protocol
+        if (!interpolatedUrl.startsWith('ws://') && !interpolatedUrl.startsWith('wss://')) {
+            // Default to ws:// for localhost/IPs, wss:// for others
+            const isLocal = interpolatedUrl.includes('localhost') ||
+                interpolatedUrl.includes('127.0.0.1') ||
+                /^(\d{1,3}\.){3}\d{1,3}/.test(interpolatedUrl);
+
+            if (interpolatedUrl.includes('.') || interpolatedUrl.includes(':')) {
+                interpolatedUrl = (isLocal ? 'ws://' : 'wss://') + interpolatedUrl;
+            } else {
+                panel.webview.postMessage({
+                    command: 'wsError',
+                    error: 'Invalid WebSocket URL. Please use ws:// or wss://'
+                });
+                return;
+            }
+        }
+
+        let originValue = '';
+        try {
+            const urlObj = new URL(interpolatedUrl);
+            originValue = urlObj.origin;
+        } catch (e) {
+            originValue = interpolatedUrl;
+        }
+
+        const ws = new WebSocket(interpolatedUrl, {
+            headers: {
+                'User-Agent': 'StackerClient/1.2.1',
+                'Origin': originValue
+            },
+            rejectUnauthorized: false,
+            handshakeTimeout: 15000 // Increased timeout
+        });
         activeWs = ws;
 
+        // Connection timeout 
+        const connectTimeout = setTimeout(() => {
+            if (ws.readyState !== WebSocket.OPEN) {
+                ws.close();
+                panel.webview.postMessage({
+                    command: 'wsError',
+                    error: 'Connection timed out after 15 seconds'
+                });
+            }
+        }, 15000);
+
         ws.on('open', () => {
+            clearTimeout(connectTimeout);
             panel.webview.postMessage({
                 command: 'wsStatus',
                 status: 'connected',
                 text: 'Connected',
-                url: url
+                url: interpolatedUrl
             });
         });
 
@@ -1936,17 +1995,19 @@ function handleWsConnect(url: string, panel: vscode.WebviewPanel) {
         });
 
         ws.on('error', (error: any) => {
+            clearTimeout(connectTimeout);
             panel.webview.postMessage({
                 command: 'wsError',
-                error: error.message
+                error: error.message || 'Unknown WebSocket error'
             });
         });
 
-        ws.on('close', () => {
+        ws.on('close', (code, reason) => {
+            clearTimeout(connectTimeout);
             panel.webview.postMessage({
                 command: 'wsStatus',
                 status: 'disconnected',
-                text: 'Disconnected'
+                text: reason ? `Disconnected: ${reason}` : 'Disconnected'
             });
             if (activeWs === ws) {
                 activeWs = undefined;
