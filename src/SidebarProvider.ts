@@ -106,14 +106,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             const config = vscode.workspace.getConfiguration('stacker');
             const defaultView = config.get<string>('sidebar.defaultView', 'recent');
 
+            const history = this._requestManager.getHistory();
+            const saved = this._requestManager.getAllRequests();
+
             let requests;
             if (defaultView === 'saved') {
-                requests = this._requestManager.getAllRequests();
+                requests = saved;
             } else if (defaultView === 'recentSaved') {
                 // Combine history and saved requests
-                const history = this._requestManager.getHistory();
-                const saved = this._requestManager.getAllRequests();
-                // Merge and remove duplicates by id
                 const seen = new Set<string>();
                 requests = [];
                 for (const req of [...history, ...saved]) {
@@ -123,12 +123,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     }
                 }
             } else {
-                requests = this._requestManager.getHistory();
+                requests = history;
             }
 
             this._view.webview.postMessage({
                 type: 'refresh',
-                requests: requests,
+                requests: requests, // Current view requests
+                savedRequests: saved, // All saved requests for folders
                 folders: this.getFolders(),
                 environments: this.getEnvironments(),
                 activeEnvironment: this.getActiveEnvironment(),
@@ -274,17 +275,46 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     const availableReqs = allReqs.filter(r => !folder.requestIds.includes(r.id));
 
                     if (availableReqs.length === 0) {
-                        vscode.window.showInformationMessage('No available requests to add');
+                        vscode.window.showInformationMessage('No available requests to add. Save a request first or check if it\'s already in the folder.');
                         break;
                     }
 
-                    const items = availableReqs.map(r => ({ label: r.method + ' ' + r.name, description: r.url, id: r.id }));
-                    const selected = await vscode.window.showQuickPick(items, { placeHolder: 'Select request to add' });
+                    const items = availableReqs.map(r => ({
+                        label: r.method + ' ' + (r.name || 'Untitled Request'),
+                        description: r.url,
+                        id: r.id
+                    }));
+                    const selected = await vscode.window.showQuickPick(items, {
+                        placeHolder: 'Select request to add to "' + folder.name + '"',
+                        matchOnDescription: true,
+                        matchOnDetail: true
+                    });
 
                     if (selected) {
                         folder.requestIds.push(selected.id);
                         this.saveFolder(folder);
                         this.refresh();
+                        vscode.window.showInformationMessage(`Added to folder: ${folder.name}`);
+                    }
+                    break;
+                case 'openAddToFolderPrompt':
+                    const allFoldersForPrompt = this.getFolders();
+                    if (allFoldersForPrompt.length === 0) {
+                        vscode.window.showInformationMessage('Create a folder first');
+                        break;
+                    }
+                    const folderItems = allFoldersForPrompt.map(f => ({ label: f.name, id: f.id }));
+                    const selectedFolder = await vscode.window.showQuickPick(folderItems, { placeHolder: 'Select folder' });
+                    if (selectedFolder) {
+                        const folderToUpdate = allFoldersForPrompt.find(f => f.id === selectedFolder.id);
+                        if (folderToUpdate && !folderToUpdate.requestIds.includes(data.requestId)) {
+                            folderToUpdate.requestIds.push(data.requestId);
+                            this.saveFolder(folderToUpdate);
+                            this.refresh();
+                            vscode.window.showInformationMessage(`Added to folder: ${folderToUpdate.name}`);
+                        } else if (folderToUpdate) {
+                            vscode.window.showInformationMessage(`Request is already in folder: ${folderToUpdate.name}`);
+                        }
                     }
                     break;
 

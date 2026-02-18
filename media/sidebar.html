@@ -1015,7 +1015,16 @@
         <!-- Folders Tab -->
         <div class="tab-content" id="foldersTab">
             <div class="tab-header">
-                <button class="add-btn" onclick="createFolder()">
+                <div class="saved-search" style="margin-bottom: 8px;">
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" class="saved-search-input" id="folderFilterInput"
+                        placeholder="Search folders...">
+                </div>
+                <button class="add-btn" onclick="createFolder()" style="width: 100%; justify-content: center;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1061,10 +1070,12 @@
     <script>
         const vscode = acquireVsCodeApi();
         let allRequests = [];
+        let allSavedRequests = [];
         let allFolders = [];
         let allEnvironments = [];
         let activeEnvironment = null;
         let filterQuery = '';
+        let folderFilterQuery = '';
 
         // Debounce helper
         function debounce(func, wait) {
@@ -1111,6 +1122,15 @@
             elements.filterInput.addEventListener('input', (e) => {
                 filterQuery = e.target.value.toLowerCase();
                 debouncedRender();
+            });
+        }
+
+        const folderFilterInput = document.getElementById('folderFilterInput');
+        if (folderFilterInput) {
+            const debouncedFolderRender = debounce(() => renderFolders(), 250);
+            folderFilterInput.addEventListener('input', (e) => {
+                folderFilterQuery = e.target.value.toLowerCase();
+                debouncedFolderRender();
             });
         }
 
@@ -1396,6 +1416,13 @@
                             </div>
                         <span class="request-time">${timeAgo}</span>
                         <div class="request-actions">
+                            <button class="action-btn" onclick="openAddToFolderPrompt('${req.id}', event)" title="Add to Folder">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                    <line x1="12" y1="11" x2="12" y2="17"></line>
+                                    <line x1="9" y1="14" x2="15" y2="14"></line>
+                                </svg>
+                            </button>
                             <button class="action-btn delete" onclick="deleteRequest('${req.id}', event)" title="Delete">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -1440,6 +1467,11 @@
             vscode.postMessage({ type: 'removeFromFolder', folderId, requestId });
         }
 
+        function openAddToFolderPrompt(requestId, event) {
+            if (event) event.stopPropagation();
+            vscode.postMessage({ type: 'openAddToFolderPrompt', requestId });
+        }
+
         function renderRequestItemWithRemove(req, folderId) {
             const methodClass = 'method-' + req.method.toLowerCase();
             let displayUrl = req.url;
@@ -1480,9 +1512,22 @@
             }
 
             if (emptyState) emptyState.style.display = 'none';
-            container.innerHTML = allFolders.map(folder => {
-                const requests = allRequests.filter(r => folder.requestIds.includes(r.id));
-                const availableRequests = allRequests.filter(r => !folder.requestIds.includes(r.id));
+
+            let filteredFolders = [...allFolders];
+            if (folderFilterQuery) {
+                filteredFolders = filteredFolders.filter(f =>
+                    f.name.toLowerCase().includes(folderFilterQuery)
+                );
+            }
+
+            if (filteredFolders.length === 0 && folderFilterQuery) {
+                container.innerHTML = '<div class="empty-state"><h3>No Folders Found</h3><p>Try a different search term.</p></div>';
+                return;
+            }
+
+            container.innerHTML = filteredFolders.map(folder => {
+                const requests = allSavedRequests.filter(r => folder.requestIds.includes(r.id));
+                const availableRequests = allSavedRequests.filter(r => !folder.requestIds.includes(r.id));
                 return `
                     <div class="folder-wrapper" id="folder-${folder.id}">
                         <div class="folder-item" onclick="document.getElementById('folder-${folder.id}').classList.toggle('expanded')">
@@ -1606,6 +1651,7 @@
             const message = event.data;
             if (message.type === 'refresh') {
                 allRequests = message.requests || [];
+                allSavedRequests = message.savedRequests || [];
                 allFolders = message.folders || [];
                 allEnvironments = message.environments || [];
                 activeEnvironment = message.activeEnvironment;
