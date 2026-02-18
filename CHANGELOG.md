@@ -1,3 +1,14 @@
+## [1.3.0] - 2026-02-18
+
+### Added
+- **Folders Management**: New sidebar section to organize requests into collections/folders. Create, rename, and delete folders directly from the sidebar.
+- **Environment Management**: Fully integrated environment variable support. Define variables (e.g., `baseUrl`, `token`) and use them in URLs, headers, and request bodies using `{{variable}}` syntax.
+- **WebSocket Enhancements**: URLs now support variable interpolation and smart protocol detection (automatic `ws://` or `wss://` based on hostname).
+
+### Improved
+- **Clean UI**: Removed excessive background colors from category tech dots and names in the "Stack" tab for a more professional, high-contrast look.
+- **WebSocket Stability**: Improved connection reliability and error handling.
+
 ## [1.2.2] - 2026-02-15
 
 ### Added

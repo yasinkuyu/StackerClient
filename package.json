@@ -2,7 +2,7 @@
   "name": "stacker-client",
   "displayName": "StackerClient - REST API Client",
   "description": "Powerful REST API client for VS Code, Cursor, and Antigravity IDE. Test APIs, manage auth tokens, save request history with modern UI. Lightweight alternative to Postman and Insomnia.",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "publisher": "yasinkuyu",
   "author": {
     "name": "Insya - Yasin Kuyu",
